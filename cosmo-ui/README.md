@@ -1,8 +1,12 @@
 # Fuse_Box board UI
 
-Kiosk UI for the Fuse_Box board: animated Cosmo avatar with real activity
-states + a voice-navigable suggestion queue + a card stream
-(emails / calls / texts / calendar). Zero-dependency Node.
+The household hub screen of the Fuse_Box appliance — the delivery platform
+for its two priority features, the Guardian (scam protection) and
+text-first PC control. Animated Cosmo avatar with real activity
+states + a voice-navigable approval queue (nothing sends, spends, or
+speaks for the owner without a spoken yes) + a card stream
+(guardian alerts / emails / calls / texts / calendar).
+Zero-dependency Node.
 
 Run: systemd user service cosmo-ui (port 3180) on the box.
 Install: copy this directory to the box, install the units from the repo's install tree, done.

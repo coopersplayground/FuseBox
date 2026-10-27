@@ -1,8 +1,27 @@
 # Fuse_Box
 
-A voice-first home board built on **Muse**: a kiosk screen that shows what
-needs you, an agent that speaks and listens in the room, and a strict rule
-that nothing sends, posts, buys, or changes without the owner's say-so.
+**An always-on, safety-first AI appliance that protects people, helps them
+use their computers, and takes action only through controlled, auditable
+workflows.**
+
+Fuse_Box is not a new AI model, and it is not an agent harness looking for
+a problem. It is a physical appliance — a screen, a microphone, and a
+speaker in the room, designed to run on a Raspberry Pi 5 with 8 GB of RAM —
+that puts two safeguards in front of powerful systems:
+
+- **The Guardian** — continuous scam protection for the people most likely
+  to be targeted by it.
+- **Text-first computer control** — a patient helper that reads and
+  operates a PC as text, and teaches on the user's own screen instead of
+  taking over.
+
+The household hub — the board, the voice, the home connections — is the
+delivery platform for those two features. Like a fuse box in a house, the
+appliance sits between powerful systems and the people who live with them:
+each request is routed to the smallest circuit that can handle it safely, a
+breaker trips — an approval, a banner, a spoken warning — before anything
+consequential happens, and the local layers keep working when the cloud is
+not needed at all.
 
 Built for the Meta Global AI Developer Hackathon (Oct 26 – Nov 4, 2026).
 This repository is the hackathon source release: **all personal data,
@@ -10,31 +29,129 @@ accounts, and credentials have been removed.** Demo/seed content is
 fictional, the avatar ships in its drawn (SVG) mode, and every integration
 is configured locally by whoever installs it.
 
-## What it does
+## Priority 1 — The Guardian
+
+Scareware works by panicking people into calling a number. The Guardian
+watches for exactly that:
+
+- Every screen snapshot from a connected PC is judged for scams —
+  **text first**: OCR text from the screen, judged by a small local model
+  (Llama 3.2 3B). A staged scam drill is caught in about 6 seconds; a clean
+  desktop clears in about 2. A small vision model loads on demand only when
+  text cannot decide, then unloads.
+- A real rotating scareware page — fake security alerts, each with a
+  different support number — was flagged live on Day 1: the appliance spoke
+  the warning aloud ("do not call, do not click"), put the alert on the
+  board, and the browser was closed and the desktop verified clean.
+- The Guardian judges deceptive content only. Normal technical screens —
+  command prompts, installers, settings — are explicitly not scams, and the
+  appliance's own control banner carries a permanent in-code exemption,
+  learned from a live false positive on Day 1.
+- Planned as must-haves, not stretch goals: calls terminate on the box
+  with a screening gate (unknown callers state name and business; family
+  rings through), a family code word, scam-guard monitoring on calls with
+  monitor / mute / whisper, and a spoken "is this real?" check that
+  cross-references a suspicious message against the cameras and the board.
+  The board's ring receiver is built; carrier ring wiring is in progress.
+
+## Priority 2 — Text-first computer control
+
+The original plan was commands first, accessibility second, pixels last.
+Day 1 proved why that order matters: a screenshot-guessing path worked but
+was slow and fragile, so control was rebuilt around text.
+
+| Tier | How it works | Cost / speed |
+| --- | --- | --- |
+| 0 — Rules + text | Commands, the Windows UI Automation (UIA) control tree, and OCR keywords, in a one-file agent on the user's PC — no dependencies, no admin rights | Free, instant |
+| 1 — Small judge | OCR text judged by the resident 3B model on the hub | Seconds |
+| 2 — Vision fallback | A small vision model (Qwen3-VL-4B), loaded on demand only when UIA is blind | ~13 s warm; a fallback, never the driver |
+| 3 — Full judgment | The full agent, for real work and decisions | Only when the lower tiers cannot |
+
+Proven on a real PC on Day 1: the agent returned a calculator window as 47
+named controls with positions; "Seven" and "Eight" were invoked **by
+name** and the display read back as text — "Display is 78" — with zero
+screenshots. A follow-up sequence (close, reopen, 4 × 48 =, close) ran the
+same way.
+
+Control is gated, always: PC control works only inside an open control
+session, under a visible banner on the PC itself, with a stop button and a
+10-minute idle auto-lock. For steps the user should take themselves,
+**guide mode** posts a plain-language step strip on the PC's own screen;
+the user's own click advances the flow while the appliance watches the
+screen as text — teaching instead of taking over.
+
+**The hardware hand.** Protected windows can refuse synthetic input
+silently (observed live against an antivirus window on Day 1). So control
+has a third rung: one command vocabulary delivered interchangeably by the
+Windows agent, a Pi in USB gadget mode (keyboard + absolute mouse, works
+at login, UAC, and pre-boot screens), or an ESP32-S3 Bluetooth dongle. The
+backend was built and proven **byte-exact** through a development sink
+before any hardware arrived: a spoken command produces the identical HID
+byte sequence whichever hand delivers it. The gadget setup script and the
+ESP32 firmware source are ready for the parts.
+
+## The delivery platform — the household hub
 
 - **The board** (`cosmo-ui/`) — a zero-dependency Node kiosk UI: a numbered
   "NEEDS YOUR VOICE" approval queue, a live card stream (mail, texts, calls,
   calendar, camera events), and full-screen overlays for calendar, cameras,
-  email, messages, music, weather, home control, network, apps, and a
-  built-in newspaper reader. State persists in `cosmo-ui/data/state.json`
-  (created from a fictional seed on first run) and updates over SSE.
-- **The voice loop** (`cosmo-listener/`) — a local listener on the box:
-  microphone → energy VAD → local Whisper (Wyoming protocol) → wake-phrase
-  spotting ("Hey Cosmo") → the owner's Muse session via the Muse Gadget
-  SDK → speech back through ElevenLabs v3, Kokoro, or Piper (in that order).
-  `sudo cosmo` on the box shows a live WAITING / LISTENING / THINKING /
-  SPEAKING status.
-- **Reflexes** — small, fast jobs (open the calendar, show a camera, read
-  the weather) are handled locally or by a small model (Meta Muse Spark via
-  the Model API, see `cosmo-listener/spark.py`); anything needing judgment
-  wakes the full Muse session. The session's operating instructions live
-  in `cosmo-listener/preamble.txt`.
-- **PC companion & guardian** — a small Windows agent (`cosmo-ui/public/pc/`)
-  reports laptop health to the board; every screen snapshot is judged for
-  scam patterns, and full PC control is session-gated behind the owner's
-  explicit start, with a visible banner on the PC while it runs.
-- **Feeders** (`cosmo-ui/feeders/`) — zero-token scripts that keep weather,
-  network state, and touch input flowing into the board.
+  email, messages, music, weather, home control, network, and apps. State
+  persists in `cosmo-ui/data/state.json` (created from a fictional seed on
+  first run) and updates over SSE.
+- **Self-updating, script-fed** — every live surface is fed by small
+  polling scripts that push only on change, at zero model cost (music
+  every 2 s, messages every 2 min, mail every 5 min, calendar every
+  30 min). Watchdogs wake an agent only on a real failure. A model is
+  involved only where judgment is needed.
+- **Voice in three tiers** (`cosmo-listener/`) — microphone → energy VAD →
+  local Whisper (Wyoming protocol) → wake-phrase spotting ("Hey Cosmo");
+  all audio processing is local and only a transcript leaves the room,
+  after the wake phrase. A resident local 3B router handles reflexes
+  (open a page, show a camera — silently; the user can see the screen). A
+  fast cloud tier (Meta Model API) answers factual questions from board
+  data in about 2–3 seconds and is **answer-only by design**: ask it to act
+  and the request falls through to the full agent. Speech returns through
+  ElevenLabs v3, Kokoro, or Piper, with barge-in. `sudo cosmo` on the box
+  shows a live WAITING / LISTENING / THINKING / SPEAKING status.
+
+## The safeguarding pattern, applied everywhere
+
+- **Approval queue.** Anything that sends, spends, or speaks for the owner
+  waits as a numbered item on the board, handled one at a time by voice —
+  discuss, edit, skip, or hear a readback. The item's title is spoken aloud
+  before any send, so a wrong number gets caught. An item is resolved only
+  after its action has really been carried out.
+- **Show first, speak second.** Putting something on screen is silent;
+  speech is reserved for information the owner cannot see.
+- **Session gates.** PC control and hardware input exist only inside an
+  open, banner-visible control session.
+- **No silent transfers.** Music control drives the session on whatever
+  device already holds it; it never hijacks playback to another speaker
+  unprompted.
+- **One modal at a time.** Opening any overlay closes all others, enforced
+  server-side, so what is on screen is always the one active thing.
+- **No model larger than the job.** Learned the hard way on Day 1: a
+  never-unload setting kept a 66 GB model resident and the kiosk browser
+  took the fall. The rules now: no model larger than the job, no model
+  resident without a reason, no screenshot where text will do. The full
+  stack is budgeted against the Pi 5's 8 GB — roughly 1.5 GB for OS +
+  board + voice, ~2.5 GB for the resident 3B, the vision fallback visiting
+  rather than living in RAM, and ~3.5–4 GB of headroom.
+
+## Honest status
+
+Fuse_Box is a systems-integration project with meaningful implementation
+work behind it — Day 1 proved each of its three jobs at least once, live,
+on a real machine: protection from scareware, plain-language teaching on
+the user's own screen, and quiet machine-health checks in the background.
+
+It is not yet a proven product. Whether it becomes genuinely
+differentiated will depend on proving the hardware (the Pi gadget and
+ESP32 transports are backend-proven, not yet run on the parts),
+demonstrating reliable scam protection beyond drills and one live catch,
+and showing that its safeguards outperform a conventional agent given
+similar tools. The code in this repository is the current state of that
+work, published so the claims can be checked.
 
 ## Layout
 
@@ -55,7 +172,7 @@ from files on the box at runtime, and those files are git-ignored:
 - ElevenLabs API key: `~/.config/cosmo-voice/elevenlabs_api_key` (0600) —
   optional; without it, speech falls back to local Kokoro/Piper.
 - Meta Model API key: `~/.config/cosmo-voice/meta_api_key` (0600) — only
-  for the Spark reflex tier.
+  for the fast cloud reflex tier.
 - Home Assistant long-lived token: the path set by `haTokenPath` in
   `cosmo-ui/config.json`.
 - Voice profiles (ElevenLabs voice IDs), weather location, camera and
