@@ -1,0 +1,13 @@
+[Unit]
+Description=Cosmo listener - Hey Cosmo voice for the Fuse_Box gadget
+After=network.target
+
+[Service]
+ExecStart=/home/cosmo/cosmo-listener/listener.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=/home/cosmo/cosmo-listener
+
+[Install]
+WantedBy=default.target

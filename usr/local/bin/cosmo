@@ -1,0 +1,57 @@
+#!/bin/bash
+# cosmo - launcher for the Cosmo gadget stack on THIS box.
+#   sudo cosmo           start everything (gadget daemon + UI + kiosk screen)
+#   sudo cosmo stop      stop the kiosk screen (services keep running)
+#   sudo cosmo status    show what's running
+set -u
+
+if [ "$(id -u)" -ne 0 ]; then exec sudo "$0" "$@"; fi
+
+ACTION="start"
+for a in "$@"; do
+  case "$a" in
+    start|stop|status) ACTION="$a" ;;
+    Cosmo|cosmo) ;;
+    *) echo "Unknown option: $a" >&2; exit 1 ;;
+  esac
+done
+
+COSMO_UID="$(id -u cosmo)"
+HAS_KIOSK=0
+[ -f /etc/systemd/system/cosmo-kiosk.service ] && HAS_KIOSK=1
+
+userctl() {
+  runuser -u cosmo -- env XDG_RUNTIME_DIR="/run/user/$COSMO_UID" \
+    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$COSMO_UID/bus" \
+    systemctl --user "$@"
+}
+
+status_lines() {
+  printf 'musegadget : %s\n' "$(systemctl is-active musegadget 2>/dev/null)"
+  printf 'cosmo-ui   : %s\n' "$(userctl is-active cosmo-ui 2>/dev/null)"
+  [ "$HAS_KIOSK" = 1 ] && printf 'kiosk      : %s\n' "$(systemctl is-active cosmo-kiosk 2>/dev/null)"
+}
+
+case "$ACTION" in
+  stop)
+    [ "$HAS_KIOSK" = 1 ] && systemctl stop cosmo-kiosk 2>/dev/null
+    echo "Cosmo screen is off. Daemon and UI are still running."
+    ;;
+  status)
+    status_lines
+    ;;
+  start)
+    systemctl start musegadget 2>/dev/null
+    userctl start cosmo-ui 2>/dev/null
+    if [ "$HAS_KIOSK" = 1 ]; then
+      systemctl is-active --quiet cosmo-kiosk || { systemctl start cosmo-kiosk; sleep 3; }
+      status_lines
+      systemctl is-active --quiet cosmo-kiosk \
+        && echo "Cosmo is on the screen." \
+        || echo "Kiosk didn't come up - is a monitor plugged into this box? (journalctl -u cosmo-kiosk)"
+    else
+      status_lines
+      echo "Cosmo services are up (no kiosk installed on this box)."
+    fi
+    ;;
+esac

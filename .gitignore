@@ -1,0 +1,18 @@
+# runtime state - never commit
+cosmo-ui/data/state.json
+cosmo-listener/logs/
+cosmo-listener/state/
+cosmo-listener/session-id
+cosmo-listener/venv/
+**/__pycache__/
+*.log
+*.bak*
+# personal avatar media + downloaded images stay local
+cosmo-ui/public/avatar/*.mp4
+cosmo-ui/public/avatar/*.jpg
+cosmo-ui/public/found/
+cosmo-ui/public/pc/latest.jpg
+cosmo-ui/public/paper/*.pdf
+# secrets live outside the repo by design (see README)
+*api_key*
+*token*

@@ -1,0 +1,12 @@
+[Unit]
+Description=Cosmo kiosk display (Xorg + Chrome fullscreen)
+After=network.target systemd-user-sessions.service
+
+[Service]
+User=root
+ExecStart=/usr/bin/xinit /usr/local/bin/cosmo-kiosk-session.sh -- /usr/bin/Xorg :0 vt7 -keeptty -nolisten tcp -nocursor
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

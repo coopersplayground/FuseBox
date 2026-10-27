@@ -1,0 +1,2 @@
+# The listener's Wyoming-protocol client library (the rest is stdlib).
+wyoming==1.10.2

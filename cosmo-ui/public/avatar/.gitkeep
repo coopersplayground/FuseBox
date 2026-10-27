@@ -1,0 +1,4 @@
+The reference install uses a personally generated avatar (video clips) that is NOT shipped.
+With AVATAR_MODE=svg the board draws the built-in SVG bot instead. To use video clips,
+drop idle.mp4 / waking.mp4 / working.mp4 / making.mp4 / milestone.mp4 and face.jpg here
+and set AVATAR_MODE to real.

@@ -1,0 +1,12 @@
+{
+  "frigateUrl": "http://127.0.0.1:5000",
+  "haDbPath": "/home/cosmo/homeassistant/home-assistant_v2.db",
+  "personOverridePath": "/home/cosmo/homeassistant/person-alerts.override",
+  "timezone": "America/New_York",
+  "weatherLat": 40.7128,
+  "weatherLon": -74.006,
+  "weatherPlace": "New York, NY (demo)",
+  "haUrl": "http://127.0.0.1:8123",
+  "haTokenPath": "/home/cosmo/.config/ha-api-token",
+  "mirrorCameras": []
+}

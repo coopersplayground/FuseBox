@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cosmo — Gadget</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-state="waiting" data-avatar-mode="real">
+<header>
+  <div class="brand">
+<span class="brand-dot">
+</span>COSMO</div>
+  <div class="head-mid" id="clock">11:54 PM</div>
+  <div class="head-right">
+<span id="dateLine">Sunday, October 25, 2026</span>
+</div>
+</header>
+
+<main>
+<aside id="rail">
+<div class="rail-panel" id="railCalPanel">
+<div class="rail-head">
+<span>CALENDAR</span>
+<span class="rail-sub" id="railCalMonth"></span>
+</div>
+<div class="rail-dow">
+<span>SUN</span><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span>
+</div>
+<div id="railCalGrid" class="rail-cal-grid"></div>
+<div id="railCalEvents" class="rail-cal-events"></div>
+</div>
+<div class="rail-panel" id="railWxPanel">
+<div class="rail-head">
+<span>WEATHER</span>
+<span class="rail-sub" id="railWxPlace"></span>
+</div>
+<div class="rail-wx-main">
+<span class="rail-wx-icon" id="railWxIcon"></span>
+<span class="rail-wx-temp" id="railWxTemp">--</span>
+<div class="rail-wx-side">
+<div id="railWxCond"></div>
+<div class="rail-wx-hilo" id="railWxHiLo"></div>
+</div>
+</div>
+<div class="rail-wx-meta" id="railWxMeta"></div>
+</div>
+<div class="rail-panel mail-panel" id="railMailPanel">
+<div class="rail-head">
+<span>EMAIL</span>
+<span class="rail-sub" id="railMailCount"></span>
+</div>
+<div id="railMail" class="rail-mail"></div>
+</div>
+</aside>
+  <section class="stage">
+    <div class="sweep">
+</div>
+    <div class="avatar-wrap">
+      <div class="ring ring1">
+</div>
+      <div class="ring ring2">
+</div>
+      <video id="botVideo" class="bot-video" autoplay="" loop="" muted="" playsinline="" poster="avatar/face.jpg" data-src="avatar/idle.mp4">
+</video>
+      <div class="video-badge-q" id="videoBadgeQ">?</div>
+      <div class="eqbars" id="eqBars">
+<span>
+</span>
+<span>
+</span>
+<span>
+</span>
+<span>
+</span>
+</div>
+      <svg id="bot" viewBox="0 0 240 260" aria-label="Cosmo avatar">
+        <defs>
+          <linearGradient id="shell" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2dd4bf">
+</stop>
+            <stop offset="1" stop-color="#0e7490">
+</stop>
+          </linearGradient>
+          <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0b1226">
+</stop>
+            <stop offset="1" stop-color="#131c38">
+</stop>
+          </linearGradient>
+          <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#37e0c8" stop-opacity="0.55">
+</stop>
+            <stop offset="1" stop-color="#37e0c8" stop-opacity="0">
+</stop>
+          </radialGradient>
+        </defs>
+        <ellipse class="halo" cx="120" cy="128" rx="112" ry="118" fill="url(#glow)">
+</ellipse>
+        <g class="antenna">
+          <line x1="120" y1="42" x2="120" y2="16" stroke="#2dd4bf" stroke-width="5" stroke-linecap="round">
+</line>
+          <circle class="tip" cx="120" cy="12" r="7" fill="#5eead4">
+</circle>
+        </g>
+        <rect class="head" x="38" y="42" width="164" height="150" rx="58" fill="url(#shell)">
+</rect>
+        <rect class="faceplate" x="54" y="60" width="132" height="114" rx="44" fill="url(#face)">
+</rect>
+        <g class="eyes">
+          <g class="eye eyeL">
+<rect x="80" y="96" width="20" height="30" rx="10" fill="#7dfce9">
+</rect>
+</g>
+          <g class="eye eyeR">
+<rect x="140" y="96" width="20" height="30" rx="10" fill="#7dfce9">
+</rect>
+</g>
+        </g>
+        <path class="smile" d="M100 148 Q120 162 140 148" stroke="#7dfce9" stroke-width="5" fill="none" stroke-linecap="round">
+</path>
+        <g class="eq">
+          <rect x="92" y="140" width="7" height="16" rx="3.5" fill="#7dfce9">
+</rect>
+          <rect x="106" y="140" width="7" height="16" rx="3.5" fill="#7dfce9">
+</rect>
+          <rect x="120" y="140" width="7" height="16" rx="3.5" fill="#7dfce9">
+</rect>
+          <rect x="134" y="140" width="7" height="16" rx="3.5" fill="#7dfce9">
+</rect>
+        </g>
+        <g class="badge-q">
+          <circle cx="198" cy="52" r="17" fill="#f59e0b">
+</circle>
+          <text x="198" y="60" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1005">?</text>
+        </g>
+        <path class="note note1" d="M196 96 q10 -4 10 -14 l0 -10 l-16 4 l0 10 q-8 -3 -12 3 q-3 7 4 9 q7 2 10 -4 Z" fill="#c4b5fd">
+</path>
+        <path class="note note2" d="M30 110 q10 -4 10 -14 l0 -10 l-16 4 l0 10 q-8 -3 -12 3 q-3 7 4 9 q7 2 10 -4 Z" fill="#f9a8d4">
+</path>
+        <rect class="bodybase" x="78" y="204" width="84" height="20" rx="10" fill="#155e75">
+</rect>
+        <circle class="orbit o1" cx="120" cy="118" r="4" fill="#a5f3fc">
+</circle>
+        <circle class="orbit o2" cx="120" cy="118" r="3" fill="#f0abfc">
+</circle>
+      </svg>
+    </div>
+    <div class="status-chip" id="stateChip">WAITING FOR YOU</div>
+    <div class="status-msg" id="statusMsg"></div>
+  </section>
+
+  <section class="panel">
+    <div class="toprow">
+    <div class="queue-col">
+    <div class="queue-head">
+      <h2>NEEDS YOUR VOICE</h2>
+      <span class="queue-count" id="queueCount">3</span>
+    </div>
+    <div id="queue" class="queue"></div>
+    </div>
+    <aside id="textsPanel" class="texts-panel">
+      <div class="queue-head">
+        <h2>MESSAGES</h2>
+        <span class="queue-count" id="textsCount">0</span>
+      </div>
+      <div id="textsList" class="texts-list"></div>
+    </aside>
+    </div>
+    <h2 class="stream-head">LATEST</h2>
+    <div id="stream" class="stream"></div>
+  </section>
+</main>
+
+<div id="focusOverlay" class="focus-overlay hidden">
+  <div class="focus-card">
+    <div class="focus-top">
+      <span class="focus-num" id="focusNum">1</span>
+      <span class="focus-kind" id="focusKind">
+</span>
+      <span class="focus-now">ON SCREEN NOW</span>
+    </div>
+    <h1 id="focusTitle">
+</h1>
+    <p id="focusBody">
+</p>
+    <div class="focus-meta" id="focusMeta">
+</div>
+    <img id="focusImg" class="focus-img hidden" alt="card image">
+    <div id="focusThreadWrap" class="focus-thread-wrap hidden">
+      <div class="focus-section-label">THE CONVERSATION — LATEST LAST</div>
+      <div id="focusThread" class="focus-thread">
+</div>
+    </div>
+    <div id="focusDraftWrap" class="focus-draft-wrap hidden">
+      <div class="focus-section-label">DRAFT REPLY — WHAT COSMO WOULD SEND</div>
+      <div id="focusDraft" class="focus-draft">
+</div>
+    </div>
+    <div class="focus-hint">Say: <b>“send it”</b> · <b>“edit it”</b> · <b>“skip it”</b> · <b>“hold on”</b> · <b>“back to the board”</b>
+</div>
+  </div>
+</div>
+
+<div class="touch-bar hidden" id="focusActions">
+<button class="tbtn send" id="btnFocusSend">SEND IT</button>
+<button class="tbtn" id="btnFocusHold">HOLD</button>
+<button class="tbtn" id="btnFocusSkip">SKIP</button>
+<button class="tbtn back" id="btnFocusBack">← BACK</button>
+</div>
+<div id="calOverlay" class="cal-overlay hidden">
+  <div class="cal-card">
+    <div class="cal-top">
+      <span class="cal-title">📅 YOUR CALENDAR</span>
+      <span class="cal-sub" id="calSub">
+</span>
+      <span class="cal-views" id="calViews">
+</span>
+    </div>
+    <div class="cal-dow" id="calDow">
+</div>
+    <div id="calBody" class="cal-body">
+</div>
+    <div class="cal-hint">Say: <b>“week view”</b> · <b>“day view”</b> · <b>“show 30 days”</b> · <b>“back to the board”</b>
+</div>
+  </div>
+</div>
+
+<div id="camOverlay" class="cam-overlay hidden">
+  <div class="cam-card">
+    <div class="cam-top">
+      <span class="cam-title" id="camTitle">
+</span>
+      <span class="cam-src" id="camSrc">
+</span>
+    </div>
+    <div class="cam-ask hidden" id="camAsk">
+</div>
+    <img id="camFeed" class="cam-feed" alt="camera feed">
+    <div class="cam-hint" id="camHint">
+</div>
+  </div>
+</div>
+
+<div class="touch-bar hidden" id="camBar">
+<button class="tbtn" id="btnCamPrev">← PREV</button>
+<button class="tbtn send hidden" id="btnCamYes">YES - THAT'S IT</button>
+<button class="tbtn" id="btnCamNext">NEXT →</button>
+</div>
+<div id="mailOverlay" class="mail-overlay hidden">
+  <div class="mail-card">
+    <div class="mail-top">
+      <span class="mail-title" id="mailTitle">
+</span>
+      <span class="mail-sub" id="mailSub">
+</span>
+    </div>
+    <div class="mail-list" id="mailList">
+</div>
+    <div class="mail-threadwrap hidden" id="mailThreadWrap">
+      <div class="mail-thead" id="mailTHead">
+</div>
+      <div class="mail-thread" id="mailThread">
+</div>
+      <div class="mail-draftwrap hidden" id="mailDraftWrap">
+        <div class="mail-draftlabel">DRAFT REPLY - SAY "SEND IT", OR TELL ME WHAT TO CHANGE</div>
+        <div class="focus-draft" id="mailDraft">
+</div>
+      </div>
+    </div>
+    <div class="mail-hint" id="mailHint">
+</div>
+  </div>
+</div>
+
+<div class="touch-bar hidden" id="mailActions">
+<button class="tbtn back" id="btnMailBack">← BACK TO LIST</button>
+<button class="tbtn send" id="btnMailSend">SEND DRAFT</button>
+</div>
+<div id="musicOverlay" class="music-overlay hidden">
+  <div class="music-card">
+    <div class="music-top">
+      <span class="music-title">MUSIC</span>
+      <span class="music-badge">SPOTIFY</span>
+      <span class="music-upd" id="musicUpd">11:50 PM</span>
+    </div>
+    <div class="np-row">
+      <div class="np-art" id="musicArtWrap">
+<img id="musicArt" alt="">
+<div class="np-art-fallback" id="musicArtFallback">♪</div>
+</div>
+      <div class="np-info">
+        <div class="np-track" id="musicTrack">Fool in the Rain - Remaster</div>
+        <div class="np-artist" id="musicArtist">Led Zeppelin</div>
+        <div class="np-album" id="musicAlbum">
+</div>
+        <div class="np-meta" id="musicMeta">❚❚ Paused  ·  on Cosmo  ·  from Steely Dan &amp; more  ·  0:00 of 6:10</div>
+        <div class="np-prog">
+<div class="np-prog-fill" id="musicProgFill">
+</div>
+</div>
+      </div>
+    </div>
+<div class="touch-bar music-transports">
+<button class="tbtn tport" id="btnMusPrev">⏮</button>
+<button class="tbtn tport" id="btnMusToggle">▶ ❚❚</button>
+<button class="tbtn tport" id="btnMusNext">⏭</button>
+<button class="tbtn tport" id="btnMusVolDown">VOL −</button>
+<button class="tbtn tport" id="btnMusVolUp">VOL +</button>
+</div>
+<div class="music-devices-head" id="musicDevicesHead">PLAYING ON - TAP TO MOVE IT</div>
+<div class="music-devices" id="musicDevices"></div>
+    <div class="music-picks-head" id="musicPicksHead" style="display: block;">PLAY ONE - SAY THE NUMBER</div>
+    <div class="music-picks" id="musicPicks">
+<div class="mpick">
+<span class="mnum">1</span>
+<div class="mpick-main">
+<div class="mpick-title">Steely Dan &amp; more</div>
+<div class="mpick-meta">Your playlist</div>
+</div>
+</div>
+<div class="mpick">
+<span class="mnum">2</span>
+<div class="mpick-main">
+<div class="mpick-title">Daily Mix 1</div>
+<div class="mpick-meta">Made for you</div>
+</div>
+</div>
+<div class="mpick">
+<span class="mnum">3</span>
+<div class="mpick-main">
+<div class="mpick-title">Classic Rock #1 Hits</div>
+<div class="mpick-meta">The biggest classic rock anthems of all time</div>
+</div>
+</div>
+<div class="mpick">
+<span class="mnum">4</span>
+<div class="mpick-main">
+<div class="mpick-title">Country Cookout</div>
+<div class="mpick-meta">The perfect soundtrack for a backyard barbecue</div>
+</div>
+</div>
+<div class="mpick">
+<span class="mnum">5</span>
+<div class="mpick-main">
+<div class="mpick-title">BEST Christian Rock Mix EVER</div>
+<div class="mpick-meta">Christian and inspirational music</div>
+</div>
+</div>
+<div class="mpick">
+<span class="mnum">6</span>
+<div class="mpick-main">
+<div class="mpick-title">Blue grass</div>
+<div class="mpick-meta">Your playlist</div>
+</div>
+</div>
+<div class="mpick">
+<span class="mnum">7</span>
+<div class="mpick-main">
+<div class="mpick-title">Sublime Radio</div>
+<div class="mpick-meta">With Weezer, Third Eye Blind, Everclear</div>
+</div>
+</div>
+<div class="mpick">
+<span class="mnum">8</span>
+<div class="mpick-main">
+<div class="mpick-title">Good Christ Rap</div>
+<div class="mpick-meta">Your playlist</div>
+</div>
+</div>
+</div>
+    <div class="music-hint">Say: <b>"play number 2"</b> · <b>"pause"</b> · <b>"next song"</b> · <b>"back to the board"</b>
+</div>
+  </div>
+</div>
+
+<div id="weatherOverlay" class="wx-overlay hidden">
+<div class="wx-card">
+<div class="wx-top">
+<span class="wx-title" id="wxTitle">WEATHER</span>
+<span class="wx-upd" id="wxUpd"></span>
+</div>
+<div class="wx-now">
+<span class="wx-now-icon" id="wxNowIcon"></span>
+<div>
+<div class="wx-now-temp" id="wxNowTemp"></div>
+<div class="wx-now-cond" id="wxNowCond"></div>
+<div class="wx-now-meta" id="wxNowMeta"></div>
+</div>
+</div>
+<div class="wx-sec">NEXT HOURS</div>
+<div class="wx-hours" id="wxHours"></div>
+<div class="wx-sec">7-DAY FORECAST</div>
+<div class="wx-days" id="wxDays"></div>
+<div class="hint">Say: <b>"back to the board"</b></div>
+</div>
+</div>
+<div id="homeOverlay" class="home-overlay hidden">
+<div class="home-card">
+<div class="home-top">
+<span class="home-title">HOME CONTROL</span>
+<span class="home-upd" id="homeUpd"></span>
+</div>
+<div id="homeGroups" class="home-groups"></div>
+<div id="haPop" class="ha-pop hidden">
+<div class="ha-pop-card">
+<div class="ha-pop-name" id="haPopName"></div>
+<div class="ha-pop-q" id="haPopQ"></div>
+<div class="ha-pop-note">It stays in Home Assistant - this only changes this screen. Hidden tiles live under HIDDEN at the bottom.</div>
+<div class="touch-bar">
+<button class="tbtn danger" id="haPopYes">REMOVE</button>
+<button class="tbtn back" id="haPopNo">CANCEL</button>
+</div>
+</div>
+</div>
+<div class="hint">Tap a tile to turn it on or off. Say: <b>"back to the board"</b></div>
+</div>
+</div>
+<div id="imageOverlay" class="img-overlay hidden">
+  <div class="img-card">
+    <div class="img-top"><span class="img-title" id="imgTitle">IMAGE</span><span class="img-credit" id="imgCredit"></span></div>
+    <img class="img-main" id="imgMain" alt="">
+    <div class="img-hint">Say: <b>"back to the board"</b></div>
+  </div>
+</div>
+<div id="helpOverlay" class="help-overlay hidden">
+  <div class="help-card">
+    <div class="help-top">
+      <span class="help-title">WHAT I CAN DO</span>
+      <span class="help-sub">JUST SAY IT OUT LOUD</span>
+    </div>
+    <div class="help-body" id="helpBody">
+      <div class="hsec">
+<h2>JUST ASK</h2>
+<p>Ask me questions, the time anywhere in the world, math, explanations. If I don't know, I'll say so.</p>
+<div class="hcmds">
+<span>"What time is it in Georgia?"</span>
+<span>"What is four times three?"</span>
+</div>
+</div>
+      <div class="hsec">
+<h2>THE BOARD</h2>
+<p>Cards land here on their own - people spotted by the cameras (with a photo), warnings before calendar events, new texts, missed calls, and important mail. The numbered ones are waiting for your voice. Nothing ever sends without your approval, and I always say the title out loud before sending.</p>
+<div class="hcmds">
+<span>"Show me 2"</span>
+<span>"Send it"</span>
+<span>"Edit it"</span>
+<span>"Skip it"</span>
+<span>"Hold on"</span>
+<span>"Read me the full thing"</span>
+<span>"Send 1 and 3, hold 2"</span>
+</div>
+</div>
+      <div class="hsec">
+<h2>WORKING ON MY OWN</h2>
+<p>I don't just wait to be asked. The security cameras tell me when someone shows up - if I know their face, a card with their photo lands on the board; if I don't, it waits in the queue for your call. Events on your calendar get a warning card two hours before they start. I also hunt for follow-ups you owe - threads that went quiet - and get suggestion cards ready with drafts written. After 6:30 in the morning, a morning card posts today's schedule and everything waiting for you.</p>
+<div class="hcmds">
+<span>"What needs my attention?"</span>
+<span>"Show me 1"</span>
+</div>
+</div>
+      <div class="hsec">
+<h2>CALENDAR</h2>
+<p>Your next 60 days live here. I keep it loaded, so it opens instantly.</p>
+<div class="hcmds">
+<span>"Show me my calendar"</span>
+<span>"Week view"</span>
+<span>"Day view"</span>
+<span>"Show me the 11th"</span>
+</div>
+</div>
+      <div class="hsec">
+<h2>CAMERAS</h2>
+<p>I find the cameras myself - Frigate first, or a scan for IP cameras. Ask for any camera by name. If I don't know the name, I'll show you what I have and ask if it's the one - say yes and I learn the name, say no and I'll show you the next one.</p>
+<div class="hcmds">
+<span>"Show me the driveway cam"</span>
+<span>"Show me the shop cam"</span>
+</div>
+</div>
+      <div class="hsec">
+<h2>EMAIL</h2>
+<p>Your inbox, numbered and auto-scrolling. Open one to read the whole conversation, then tell me how to reply.</p>
+<div class="hcmds">
+<span>"Show me all my email"</span>
+<span>"Show me 3"</span>
+<span>"Draft a reply"</span>
+<span>"Reply with ..."</span>
+<span>"Send it"</span>
+<span>"Back to my email"</span>
+</div>
+</div>
+      <div class="hsec">
+<h2>MUSIC</h2>
+<p>Spotify runs through me - ask for a song, an artist, or one of your playlists, and I control it on whichever speaker it is already playing on - the music screen shows where, and you can move it from there. Your playlists are also a numbered list: just say the number. If I need to talk while music is playing, the music pauses first and comes back after.</p>
+<div class="hcmds">
+<span>"Play some classic rock"</span>
+<span>"Play number 2"</span>
+<span>"Pause"</span>
+<span>"Next song"</span>
+<span>"What's playing?"</span>
+</div>
+</div>
+            <div class="hsec">
+<h2>HOME CONTROL</h2>
+<p>Every switch, plug, light and automation in Home Assistant, as tiles. Tap a tile to turn it on or off - or just ask me. Press and hold a tile to remove it from this screen; the engineering switches can go, normal people just need the lights and plugs.</p>
+<div class="hcmds">
+<span>"Show me the home controls"</span>
+<span>"Turn off the shop cam recordings"</span>
+<span>"Turn the thinking sound off at 11 PM every night"</span>
+</div>
+</div>
+<div class="hsec">
+<h2>IMAGES</h2>
+<p>Name anything and I will find a picture of it and put it on the big screen.</p>
+<div class="hcmds">
+<span>"Show me an image of a red panda"</span>
+<span>"Show me a picture of the Eiffel Tower"</span>
+</div>
+</div>
+<div class="hsec">
+<h2>MY VOICES</h2>
+<p>I have five voices. Switch any time, or ask which one you're hearing.</p>
+<div class="hcmds">
+<span>"Switch to voice 3"</span>
+<span>"Which voice is this?"</span>
+</div>
+</div>
+      <div class="hsec">
+<h2>I BUILD NEW THINGS</h2>
+<p>I can even edit this environment. Ask for a feature and I'll build it - new add-ons, custom apps, whole new screens - then test it here and write it down so I never lose it. The cameras, the email screen, and this page all exist because you asked. You direct; I build.</p>
+<div class="hcmds">
+<span>"Add camera support"</span>
+<span>"Show my email on the screen"</span>
+<span>"Build me a ..."</span>
+</div>
+</div>
+      <div class="hsec">
+<h2>APPS</h2>
+<p>The puzzle-piece button opens your Apps page - every connection in one place. Add ready-made connections, pin your favorites to the dock, or tap Build a custom app and tell me what you want. In the finished product, that page is where new things get built.</p>
+<div class="hcmds">
+<span>"Open apps"</span>
+<span>"Pin Gmail to the dock"</span>
+<span>"Build me an app that..."</span>
+</div>
+</div>
+      <div class="hsec">
+<h2>HOW I BEHAVE</h2>
+<p>I don't narrate screen changes - if it happened, you can see it. I only speak unprompted for serious, urgent things: security, money at risk, hard deadlines. Everything else waits quietly on the board.</p>
+</div>
+    </div>
+    <div class="help-hint">Say: <b>"back to the board"</b> to close this</div>
+  </div>
+</div>
+
+<button id="touchClose" class="hidden">✕ CLOSE</button>
+<nav id="boardNav">
+<button data-nav="apps">Apps</button>
+<button data-nav="facebook">Facebook</button>
+      <button data-nav="messenger">Messenger</button>
+      <button data-nav="texts">Texts</button>
+      <button data-nav="instagram">Instagram</button>
+<button data-nav="calendar">Calendar</button>
+<button data-nav="mail">Email</button>
+<button data-nav="music">Music</button>
+<button data-nav="cameras">Cameras</button>
+<button data-nav="home">Home</button>
+<button data-nav="help">What I can do</button>
+</nav>
+<footer>
+  <div class="hint">Say: <b>“read number 1”</b> · <b>“send 1 and 3”</b> · <b>“skip 2”</b> · <b>“hold on 2”</b>
+</div>
+  <div class="foot-right"><span class="livedot on" id="liveDot"></span><span id="nodeInfo">MuseGadget · paired</span></div>
+</footer>
+
+<div id="appsOverlay" class="apps-overlay hidden">
+  <div class="apps-card">
+    <div class="fb-head"><span class="apps-logo">&#129513;</span><h2>APPS</h2><span class="apps-sub">Your connections, in one place</span></div>
+    <div class="apps-body">
+      <div class="fb-sec">MY APPS - TAP A CARD TO OPEN ITS PAGE</div>
+      <div id="appsGrid" class="apps-grid"></div>
+      <div class="fb-sec">ADD A CONNECTION</div>
+      <div id="appsCatalog" class="apps-grid"></div>
+      <div class="fb-sec">MAKE SOMETHING NEW</div>
+      <div class="apps-grid">
+        <div class="app-card build" id="appsCustom"><div class="app-ico" style="background:#7c3aed">&#128268;</div><div class="app-name">Add a custom connection</div><p>Tell Cosmo about a service and he will wire it up for you.</p></div>
+        <div class="app-card build" id="appsBuild"><div class="app-ico" style="background:#d62976">&#128736;&#65039;</div><div class="app-name">Build a custom app</div><p>Tell Cosmo what you want - he builds it, and it gets its own page and card right here.</p></div>
+      </div>
+    </div>
+    <div class="fb-hint">Say: "open the Spotify app" &middot; "pin Gmail to the dock" &middot; "back"</div>
+  </div>
+</div>
+<div id="appOverlay" class="apps-overlay hidden">
+  <div class="apps-card app-page">
+    <div id="appPageBody"></div>
+    <div class="fb-hint">Say: "back to apps" &middot; "back"</div>
+  </div>
+</div>
+<div id="networkOverlay" class="apps-overlay hidden">
+  <div class="apps-card network-card">
+    <div class="net-head"><div class="net-logo">&#128225;</div><div><div class="apps-title">NETWORK ADMINISTRATOR</div><div class="apps-sub">Your home network, live - refreshed every 2 minutes</div></div></div>
+    <div id="networkBody"></div>
+    <div class="network-actions"><button class="app-go" id="netRefresh">REFRESH NOW</button><button class="app-pin2" id="netWol">WAKE GAMING RIG</button></div>
+    <div class="fb-hint">Say: "refresh the network" &middot; "wake the gaming rig" &middot; "back"</div>
+  </div>
+</div>
+<div id="paperOverlay" class="apps-overlay hidden">
+  <div class="apps-card paper-card">
+    <div id="paperBody"></div>
+    <div class="fb-hint">Say: "make today's edition" &middot; "print it" &middot; "back"</div>
+  </div>
+</div>
+<div id="smsOverlay" class="mg-overlay hidden">
+  <div class="mg-phone">
+    <div class="mg-notch"></div>
+    <div class="fb-head"><span class="sms-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#2fbf4f" d="M12 2C6.5 2 2 6.1 2 11.2c0 2.9 1.4 5.4 3.7 7.1V22l3.4-1.9c.9.3 1.9.4 2.9.4 5.5 0 10-4.1 10-9.3S17.5 2 12 2z"/><path stroke="#fff" stroke-width="1.8" stroke-linecap="round" d="M7 9.2h10M7 13h6.5"/></svg></span><h2>TEXTS</h2></div>
+    <div class="fb-body">
+    <div class="fb-main">
+    <div id="smsDraft" class="fb-draft hidden"></div>
+    <div id="smsThread" class="fb-detail hidden"></div>
+    <div id="smsListWrap">
+    <div class="fb-sec">CONVERSATIONS</div>
+    <div id="smsList" class="fb-posts"></div>
+    </div>
+    </div>
+    </div>
+    <div class="fb-hint">Say: "read conversation 2" &middot; "text 2: ..." &middot; "back"</div>
+  </div>
+</div>
+<div id="instaOverlay" class="mg-overlay hidden">
+  <div class="mg-phone">
+    <div class="mg-notch"></div>
+    <div class="fb-head"><span class="ig-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="igGrad" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#feda75"/><stop offset=".35" stop-color="#fa7e1e"/><stop offset=".6" stop-color="#d62976"/><stop offset=".82" stop-color="#962fbf"/><stop offset="1" stop-color="#4f5bd5"/></linearGradient></defs><rect x="2.6" y="2.6" width="18.8" height="18.8" rx="5.4" fill="none" stroke="url(#igGrad)" stroke-width="2.2"/><circle cx="12" cy="12" r="4.3" fill="none" stroke="url(#igGrad)" stroke-width="2.2"/><circle cx="17.5" cy="6.5" r="1.6" fill="url(#igGrad)"/></svg></span><h2>INSTAGRAM</h2></div>
+    <div class="fb-body">
+    <div class="fb-main">
+    <div id="igProfile" class="ig-profile hidden"></div>
+    <div id="igPost" class="fb-detail hidden"></div>
+    <div id="igListWrap">
+    <div class="fb-sec">FEED</div>
+    <div id="igList" class="fb-posts"></div>
+    </div>
+    </div>
+    </div>
+    <div class="fb-hint">Say: "read post 2" &middot; "back"</div>
+  </div>
+</div>
+<div id="messengerOverlay" class="mg-overlay hidden">
+  <div class="mg-phone">
+    <div class="mg-notch"></div>
+    <div class="fb-head"><span class="msgr-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="mgGrad" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#006aff"/><stop offset=".55" stop-color="#a033ff"/><stop offset="1" stop-color="#ff5280"/></linearGradient></defs><path fill="url(#mgGrad)" d="M12 2C6.5 2 2 6.1 2 11.2c0 2.9 1.4 5.4 3.7 7.1V22l3.4-1.9c.9.3 1.9.4 2.9.4 5.5 0 10-4.1 10-9.3S17.5 2 12 2z"/><path fill="#fff" d="M13.4 6.9l-6 5.5h3.1l-1.7 4.7 6-5.5h-3.1l1.7-4.7z"/></svg></span><h2>MESSENGER</h2></div>
+    <div class="fb-body">
+    <div class="fb-main">
+    <div id="mgDraft" class="fb-draft hidden"></div>
+    <div id="mgThread" class="fb-detail hidden"></div>
+    <div id="mgListWrap">
+    <div class="fb-sec">CONVERSATIONS</div>
+    <div id="mgList" class="fb-posts"></div>
+    </div>
+    </div>
+    </div>
+    <div class="fb-hint">Say: "read conversation 2" &middot; "reply to 2: ..." &middot; "back"</div>
+  </div>
+</div>
+<div id="facebookOverlay" class="fb-overlay hidden">
+  <div class="fb-card">
+    <div class="fb-head"><span class="fb-logo">f</span><h2>FACEBOOK</h2><img id="fbPic" class="fb-pic hidden" alt=""><span id="fbMe" class="fb-me"></span></div>
+    <div class="fb-body">
+    <div class="fb-main">
+    <div id="fbDraft" class="fb-draft hidden"></div>
+    <div id="fbDetail" class="fb-detail hidden"></div>
+    <div id="fbListWrap">
+    <div class="fb-sec">FEED</div>
+    <div id="fbPosts" class="fb-posts"></div>
+    </div>
+    </div>
+    <aside class="fb-rail">
+    <div class="fb-sec" id="fbBdaySec">BIRTHDAYS</div>
+    <div id="fbBirthdays" class="fb-bdays hidden"></div>
+    <div class="fb-sec">YOUR GROUPS</div>
+    <div id="fbGroups" class="fb-groups"></div>
+    </aside>
+    </div>
+    <div class="fb-hint">Say: &quot;post to Facebook: ...&quot; &middot; &quot;comment on post 2: ...&quot; &middot; &quot;read post 1&quot;</div>
+  </div>
+</div>
+<script src="app.js">
+</script>
+
+
+</body>
+</html>

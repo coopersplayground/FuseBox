@@ -1,0 +1,13 @@
+[Unit]
+Description=Cosmo Gadget UI (avatar + cards kiosk)
+After=network.target
+
+[Service]
+WorkingDirectory=/home/cosmo/cosmo-ui
+ExecStart=/usr/bin/node /home/cosmo/cosmo-ui/server.js
+Environment=PORT=3180
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
