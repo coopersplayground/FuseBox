@@ -13,6 +13,8 @@ workflows.**
 
 ![Fuse Box Guardian — set up in minutes](architecture-3.svg)
 
+![Fuse Box Guardian — the phone Guardian](architecture-4.svg)
+
 WATCH THE VIDEO:
 <p/>
   
@@ -61,19 +63,34 @@ watches for exactly that:
 - The Guardian judges deceptive content only. Normal technical screens —
   command prompts, installers, settings — are explicitly not scams, and the
   appliance's own control banner carries a permanent in-code exemption.
-- **The phone Guardian runs on real calls.** House calls pass through
-  the box (an Asterisk PBX in pass-through
-  between the carrier trunk and the phones), so a desk phone and an old
-  analog phone on an adapter both ring as always — and if the box is
-  down, the phones register with the carrier directly and ring anyway.
-  Both sides of every call are transcribed live on the box. Only the
-  caller's side is scanned against a scam watch list; two distinct hits
-  — or a single instant-trigger phrase — and the Guardian steps in: the
-  parties are separated, the caller hears hold music, and the person at
-  home hears what was flagged. The caller is then asked for a family
-  password before the call can be reconnected; a wrong answer ends it.
-  A scam that arrives as a *text on the PC screen* makes the house
-  phones ring with a spoken warning.
+## The phone Guardian
+
+The Guardian also stands on the phone line itself. Her number does not
+change: calls reach the house through the box — an Asterisk PBX in
+pass-through between the carrier trunk and the phones — so a desk
+phone and an old analog phone on a Grandstream adapter ring exactly as
+they always have, and calls she makes go out through the Guardian the
+same way. Plugging a phone in is the whole setup: the box sees it and
+provisions it.
+
+- **Both sides are heard; only one is scanned.** Each side of the call
+  is recorded on its own leg and transcribed separately by Muse Voice
+  Transcribe. The caller's words are scanned against a scam watch list
+  as the call happens. Her words never are.
+- **The step-in.** Two distinct watch-list hits — or a single
+  instant-trigger phrase, like "social security number" — and the
+  Guardian splits the call into separate conference rooms. He hears a
+  hold message and music. She hears the Guardian say what was flagged.
+- **Her word decides.** She can hang up, return to the call, or have
+  the Guardian ask the caller for the family password first. A wrong
+  answer — or no answer — ends the call instead of reconnecting it.
+- **A scam on the screen rings the phones.** When the Guardian judges
+  a scam on the PC — a text, a message, a page — it calls the house
+  phones and speaks the warning, so the alert reaches her even away
+  from the screen.
+- **The line never depends on the box.** If the box is down, crashed,
+  or unplugged, the phones register with the carrier directly and ring
+  anyway. A ringing phone never waits on a computer.
 
 ## Computer help
 

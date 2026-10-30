@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1600" viewBox="0 0 2560 1600">
+<rect width="2560" height="1600" fill="#05070d"/>
+<defs><pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M64 0H0V64" fill="none" stroke="#0b1220" stroke-width="1"/></pattern></defs>
+<rect width="2560" height="1600" fill="url(#grid)"/>
+<text x="90" y="83" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="46" font-weight="700" fill="#f2f6fc" text-anchor="start" letter-spacing="6">FUSE_BOX GUARDIAN</text>
+<text x="90" y="173" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="86" font-weight="700" fill="#f2f6fc" text-anchor="start">The phone Guardian</text>
+<text x="90" y="241" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="36" font-weight="400" fill="#93a4bb" text-anchor="start">Her number never changes. Every call passes through the box — and only the caller's words are ever scanned.</text>
+<rect x="90" y="300" width="2380" height="260" rx="22" fill="#0a101c" stroke="#6b7d94" stroke-width="2"/>
+<line x1="200" y1="390" x2="2400" y2="390" stroke="#6b7d94" stroke-width="4"/>
+<polygon points="700,379 700,401 720,390" fill="#6b7d94"/>
+<polygon points="1300,379 1300,401 1320,390" fill="#6b7d94"/>
+<polygon points="1900,379 1900,401 1920,390" fill="#6b7d94"/>
+<rect x="310" y="360" width="80" height="60" rx="8" fill="#0a101c" stroke="#93a4bb" stroke-width="4"/>
+<circle cx="350" cy="390" r="12" fill="none" stroke="#93a4bb" stroke-width="3"/>
+<text x="350" y="474" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="700" fill="#f2f6fc" text-anchor="middle">THE CALLER</text>
+<text x="350" y="510" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="400" fill="#93a4bb" text-anchor="middle">A voice on the line</text>
+<rect x="868" y="362" width="164" height="56" rx="10" fill="#0a101c" stroke="#35b6f2" stroke-width="4"/>
+<line x1="890" y1="376" x2="1010" y2="376" stroke="#35b6f2" stroke-width="3"/>
+<line x1="890" y1="390" x2="1010" y2="390" stroke="#35b6f2" stroke-width="3"/>
+<line x1="890" y1="404" x2="1010" y2="404" stroke="#35b6f2" stroke-width="3"/>
+<text x="950" y="474" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="700" fill="#f2f6fc" text-anchor="middle">THE CARRIER</text>
+<text x="950" y="510" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="400" fill="#93a4bb" text-anchor="middle">Her number, unchanged</text>
+<rect x="1430" y="350" width="240" height="80" rx="10" fill="#0a101c" stroke="#2fe6c8" stroke-width="5"/>
+<text x="1550" y="396" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="30" font-weight="700" fill="#2fe6c8" text-anchor="middle">FUSE BOX</text>
+<text x="1550" y="474" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="700" fill="#f2f6fc" text-anchor="middle">THE BOX</text>
+<text x="1550" y="510" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="400" fill="#93a4bb" text-anchor="middle">Asterisk pass-through, mid-call</text>
+<rect x="1995" y="362" width="70" height="56" rx="8" fill="#0a101c" stroke="#4a86ff" stroke-width="4"/>
+<circle cx="2030" cy="390" r="12" fill="none" stroke="#4a86ff" stroke-width="3"/>
+<rect x="2155" y="362" width="70" height="56" rx="8" fill="#0a101c" stroke="#b07fe8" stroke-width="4"/>
+<circle cx="2190" cy="390" r="12" fill="none" stroke="#b07fe8" stroke-width="3"/>
+<text x="2110" y="474" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="700" fill="#f2f6fc" text-anchor="middle">HER PHONES</text>
+<text x="2110" y="510" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="400" fill="#93a4bb" text-anchor="middle">Desk phone + her old phone</text>
+<rect x="90" y="600" width="1173" height="350" rx="22" fill="#0a101c" stroke="#f5b93f" stroke-width="2"/>
+<text x="126" y="652" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#f5b93f" text-anchor="start">HIS WORDS — SCANNED AS HE SPEAKS</text>
+<text x="126" y="717" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26"><tspan fill="#93a4bb" font-weight="400">“This is the bank's </tspan><tspan fill="#f5b93f" font-weight="700">refund department</tspan><tspan fill="#93a4bb" font-weight="400">…”</tspan></text>
+<text x="126" y="763" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26"><tspan fill="#93a4bb" font-weight="400">“Read me the </tspan><tspan fill="#f5b93f" font-weight="700">code on the back</tspan><tspan fill="#93a4bb" font-weight="400"> of the </tspan><tspan fill="#f5b93f" font-weight="700">gift card</tspan><tspan fill="#93a4bb" font-weight="400">…”</tspan></text>
+<text x="126" y="809" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26"><tspan fill="#93a4bb" font-weight="400">“And </tspan><tspan fill="#f5b93f" font-weight="700">don't tell anyone</tspan><tspan fill="#93a4bb" font-weight="400"> about this call…”</tspan></text>
+<text x="126" y="876" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="700" fill="#f2f6fc" text-anchor="start">Two different warning phrases — or one instant phrase,</text>
+<text x="126" y="912" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="700" fill="#f2f6fc" text-anchor="start">‘social security number’ — and the Guardian steps in.</text>
+<rect x="1297" y="600" width="1173" height="350" rx="22" fill="#0a101c" stroke="#2fe6c8" stroke-width="2"/>
+<text x="1333" y="652" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#2fe6c8" text-anchor="start">HER WORDS — NEVER SCANNED</text>
+<text x="1333" y="717" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="400" fill="#93a4bb" text-anchor="start">“Who is this again?”</text>
+<text x="1333" y="763" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="400" fill="#93a4bb" text-anchor="start">“Hold on, let me think about that…”</text>
+<text x="1333" y="809" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="400" fill="#93a4bb" text-anchor="start">“Guardian — ask him for the password.”</text>
+<text x="1333" y="876" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="700" fill="#f2f6fc" text-anchor="start">Her side is recorded for the call record.</text>
+<text x="1333" y="912" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="700" fill="#f2f6fc" text-anchor="start">It is never scanned, and never judged.</text>
+<rect x="90" y="990" width="700" height="300" rx="22" fill="#0a101c" stroke="#f5b93f" stroke-width="2"/>
+<text x="124" y="1034" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="700" fill="#f5b93f" text-anchor="start" letter-spacing="3">CONFERENCE ROOM 1</text>
+<text x="124" y="1078" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="32" font-weight="700" fill="#f2f6fc" text-anchor="start">He hears hold music</text>
+<text x="124" y="1132" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">A hold message, then music.</text>
+<text x="124" y="1168" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">He never hears her side again</text>
+<text x="124" y="1204" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">unless she says so.</text>
+<rect x="830" y="990" width="900" height="300" rx="22" fill="#0a101c" stroke="#2fe6c8" stroke-width="2"/>
+<text x="864" y="1034" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="700" fill="#2fe6c8" text-anchor="start" letter-spacing="3">CONFERENCE ROOM 2</text>
+<text x="864" y="1078" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="32" font-weight="700" fill="#f2f6fc" text-anchor="start">She hears the Guardian</text>
+<text x="864" y="1128" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">“That call tripped two warning phrases.”</text>
+<rect x="864" y="1158" width="200" height="56" rx="14" fill="none" stroke="#2fe6c8" stroke-width="3"/>
+<text x="964.0" y="1191" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="700" fill="#f2f6fc" text-anchor="middle">HANG UP</text>
+<rect x="1076" y="1158" width="300" height="56" rx="14" fill="none" stroke="#2fe6c8" stroke-width="3"/>
+<text x="1226.0" y="1191" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="700" fill="#f2f6fc" text-anchor="middle">RETURN TO THE CALL</text>
+<rect x="1388" y="1158" width="330" height="56" rx="14" fill="none" stroke="#2fe6c8" stroke-width="3"/>
+<text x="1553.0" y="1191" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="700" fill="#f2f6fc" text-anchor="middle">ASK FOR THE PASSWORD</text>
+<rect x="1770" y="990" width="700" height="300" rx="22" fill="#0a101c" stroke="#b07fe8" stroke-width="2"/>
+<text x="1804" y="1034" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="700" fill="#b07fe8" text-anchor="start" letter-spacing="3">THE FAMILY PASSWORD</text>
+<text x="1804" y="1078" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="32" font-weight="700" fill="#f2f6fc" text-anchor="start">The password decides</text>
+<text x="1804" y="1132" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">Right answer: the call</text>
+<text x="1804" y="1168" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">reconnects.</text>
+<text x="1804" y="1218" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="700" fill="#f2f6fc" text-anchor="start">Wrong — or no — answer: it ends.</text>
+<rect x="90" y="1330" width="2380" height="140" rx="22" fill="#0a101c" stroke="#34d399" stroke-width="2"/>
+<text x="128" y="1379" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="29" font-weight="700" fill="#f2f6fc" text-anchor="start">IF THE BOX GOES DARK, THE PHONES RING ANYWAY</text>
+<text x="128" y="1426" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">Unplugged, crashed, power out — the phones register with the carrier directly. And a scam judged on her PC screen rings these same phones with the warning.</text>
+<text x="90" y="1543" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#6b7d94" text-anchor="start" letter-spacing="3">SAME NUMBER  •  SAME PHONES  •  A GUARDED LINE</text>
+</svg>
