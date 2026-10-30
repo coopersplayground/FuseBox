@@ -1,0 +1,7 @@
+[Unit]
+Description=Fuse Box silent update check
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 %h/fusebox-app/current/updater/updater.py

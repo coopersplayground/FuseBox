@@ -57,6 +57,18 @@ put() {
   echo "  + write $1"
 }
 as_cosmo() { run sudo -u "$FB_USER" env HOME="$FB_HOME" "$@"; }
+# to_link PATH TARGET - make PATH a symlink to TARGET. A pre-existing
+# real file/dir (a pre-versioning install) is moved aside into
+# ~/pre-versioned-backup/ first - nothing is deleted.
+to_link() {
+  local p="$1" t="$2"
+  if [ -L "$p" ]; then run ln -sfn "$t" "$p"; return 0; fi
+  if [ -e "$p" ]; then
+    run install -d -o "$FB_USER" -g "$FB_USER" "$FB_HOME/pre-versioned-backup"
+    run mv "$p" "$FB_HOME/pre-versioned-backup/$(basename "$p").$(date +%s)"
+  fi
+  run ln -s "$t" "$p"
+}
 
 if [ "$(id -u)" != 0 ]; then
   if [ "$DRY" = 1 ]; then
@@ -142,24 +154,60 @@ note "User $FB_USER + linger: OK"
 
 # ---------------------------------------------------------------- the tree
 say "Installing the Fuse_Box tree into $FB_HOME"
+# The app lives in a versioned release tree; the familiar paths
+# (~/cosmo-ui, ~/guardian-ear.py, ...) are symlinks into
+# fusebox-app/current - which is what the silent updater flips.
+FB_VERSION="1.0.0"
+REL="$FB_HOME/fusebox-app/releases/$FB_VERSION"
+SHARED="$FB_HOME/fusebox-app/shared"
 run install -d -o "$FB_USER" -g "$FB_USER" \
-  "$FB_HOME/cosmo-ui" "$FB_HOME/cosmo-listener" "$FB_HOME/.config/systemd/user" \
+  "$REL/cosmo-ui" "$REL/cosmo-listener" "$REL/guardian" "$REL/updater" \
+  "$SHARED/cosmo-ui-data" "$SHARED/found" "$SHARED/listener-logs" "$SHARED/listener-state" \
+  "$FB_HOME/.config/systemd/user" \
   "$FB_HOME/.config/cosmo-guardian" "$FB_HOME/.config/cosmo-voice" \
   "$FB_HOME/android-x" "$FB_HOME/cosmo-osk" "$FB_HOME/cosmo-hid"
 run chmod 700 "$FB_HOME/.config/cosmo-guardian" "$FB_HOME/.config/cosmo-voice"
 run rsync -a --exclude 'data/' --exclude 'shop-index.json' --exclude 'public/found/' \
-  --exclude 'public/pc/latest.jpg' "$SRC_DIR/cosmo-ui/" "$FB_HOME/cosmo-ui/"
+  --exclude 'public/pc/latest.jpg' "$SRC_DIR/cosmo-ui/" "$REL/cosmo-ui/"
 run rsync -a --exclude 'venv/' --exclude 'logs/' --exclude 'state/' --exclude 'session-id' \
-  --exclude '__pycache__/' "$SRC_DIR/cosmo-listener/" "$FB_HOME/cosmo-listener/"
-run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/guardian/guardian-ear.py" "$FB_HOME/guardian-ear.py"
-run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/guardian/setup-asterisk.py" "$FB_HOME/setup-asterisk.py"
-run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/guardian/grd-resample.py" "$FB_HOME/grd-resample.py"
+  --exclude '__pycache__/' "$SRC_DIR/cosmo-listener/" "$REL/cosmo-listener/"
+run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/guardian/guardian-ear.py" "$REL/guardian/guardian-ear.py"
+run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/guardian/setup-asterisk.py" "$REL/guardian/setup-asterisk.py"
+run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/guardian/grd-resample.py" "$REL/guardian/grd-resample.py"
+run rsync -a --exclude '__pycache__/' "$SRC_DIR/updater/" "$REL/updater/"
+put "$REL/VERSION" <<EOF
+$FB_VERSION
+EOF
+# Runtime data lives in shared/ and is linked into the release, so an
+# update flip never strands the board's state.
+run ln -sfn "$SHARED/cosmo-ui-data" "$REL/cosmo-ui/data"
+run ln -sfn "$SHARED/found" "$REL/cosmo-ui/public/found"
+run ln -sfn "$SHARED/listener-logs" "$REL/cosmo-listener/logs"
+run ln -sfn "$SHARED/listener-state" "$REL/cosmo-listener/state"
+[ -L "$FB_HOME/fusebox-app/current" ] || run ln -s "$REL" "$FB_HOME/fusebox-app/current"
+# Preserve board data from a pre-versioning install before linking over it.
+if [ -d "$FB_HOME/cosmo-ui" ] && [ ! -L "$FB_HOME/cosmo-ui" ] && [ -d "$FB_HOME/cosmo-ui/data" ]; then
+  run cp -a "$FB_HOME/cosmo-ui/data/." "$SHARED/cosmo-ui-data/"
+fi
+to_link "$FB_HOME/cosmo-ui" "fusebox-app/current/cosmo-ui"
+to_link "$FB_HOME/cosmo-listener" "fusebox-app/current/cosmo-listener"
+to_link "$FB_HOME/guardian-ear.py" "fusebox-app/current/guardian/guardian-ear.py"
+to_link "$FB_HOME/setup-asterisk.py" "fusebox-app/current/guardian/setup-asterisk.py"
+to_link "$FB_HOME/grd-resample.py" "fusebox-app/current/guardian/grd-resample.py"
+# Seed the updater's state so the first silent update knows where it stands.
+if [ ! -f "$FB_HOME/fusebox-app/update-state.json" ]; then
+  put "$FB_HOME/fusebox-app/update-state.json" <<EOF
+{"current": "$FB_VERSION", "previous": null, "last_result": "installed"}
+EOF
+fi
 run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/android/android-x.py" "$FB_HOME/android-x/android-x.py"
 run install -m 0755 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/android/waydroid-session.sh" "$FB_HOME/waydroid-session.sh"
 run install -m 0755 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/android/fuse-shop-sync.py" "$FB_HOME/fuse-shop-sync.py"
 run rsync -a --exclude '__pycache__/' "$SRC_DIR/cosmo-osk/" "$FB_HOME/cosmo-osk/"
 run rsync -a --exclude '__pycache__/' --exclude '*.log' "$SRC_DIR/cosmo-hid/" "$FB_HOME/cosmo-hid/"
 run rsync -a "$SRC_DIR/.config/systemd/user/" "$FB_HOME/.config/systemd/user/"
+run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/updater/fusebox-update.service" "$FB_HOME/.config/systemd/user/fusebox-update.service"
+run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/updater/fusebox-update.timer" "$FB_HOME/.config/systemd/user/fusebox-update.timer"
 run install -m 0644 "$SRC_DIR/etc/systemd/system/cosmo-kiosk.service" /etc/systemd/system/cosmo-kiosk.service
 run install -m 0755 "$SRC_DIR/usr/local/bin/cosmo-kiosk-session.sh" /usr/local/bin/cosmo-kiosk-session.sh
 run install -m 0755 "$SRC_DIR/usr/local/bin/cosmo" /usr/local/bin/cosmo
@@ -175,8 +223,11 @@ note "Listener venv: OK"
 
 # ---------------------------------------------------------------- voice: Meta + browser
 # No local AI voice services are installed - by design. Speech-to-text is
-# Muse Voice Transcribe on the Meta Model API (the owner drops the key at
-# ~/.config/cosmo-voice/meta_api_key), and spoken output is the browser's
+# Muse Voice Transcribe on the Meta Model API - reached through the
+# owner's gateway (a per-device token at ~/.config/cosmo-voice/gateway.json)
+# on a provisioned box, or directly with the key the owner drops at
+# ~/.config/cosmo-voice/meta_api_key on their own hardware - and spoken
+# output is the browser's
 # built-in speechSynthesis, with espeak-ng (installed above) rendering the
 # Guardian's phone prompts and acting as the local fallback voice.
 note "Voice: Meta transcription API + browser speech (no local AI voice models)"
@@ -257,7 +308,7 @@ run systemctl enable cosmo-kiosk.service
 run_sh "for i in \$(seq 1 30); do [ -S /run/user/$FB_UID/bus ] && break; sleep 1; done; true"
 USERCTL="sudo -u $FB_USER env XDG_RUNTIME_DIR=/run/user/$FB_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$FB_UID/bus systemctl --user"
 run_sh "$USERCTL daemon-reload"
-run_sh "$USERCTL enable cosmo-ui.service cosmo-listener.service guardian-ear.service guardian-provision.path cosmo-osk.service android-x.service hid-emitter.service"
+run_sh "$USERCTL enable cosmo-ui.service cosmo-listener.service guardian-ear.service guardian-provision.path cosmo-osk.service android-x.service hid-emitter.service fusebox-update.timer"
 [ "$ANDROID" = 1 ] && run_sh "$USERCTL enable waydroid-session.service"
 run_sh "$USERCTL start cosmo-ui.service"
 note "Kiosk + user services enabled: OK"
@@ -288,9 +339,10 @@ echo
 echo "This machine is now a Fuse Box."
 echo "  Board:    http://127.0.0.1:3180/ (full screen on this machine's display)"
 echo "  Next:     complete the Guardian setup on the board to bring the phone"
-echo "            line up, and drop the Meta Model API key at"
-echo "            ~/.config/cosmo-voice/meta_api_key to enable voice and"
-echo "            transcription (see README - Configuration & secrets)."
+echo "            line up, and provision the box's cloud access - a gateway"
+echo "            token at ~/.config/cosmo-voice/gateway.json, or the Meta"
+echo "            Model API key at ~/.config/cosmo-voice/meta_api_key on the"
+echo "            owner's own hardware (see README - Configuration & secrets)."
 echo "  Log:      $LOG"
 if [ "$BOARD_OK" != 1 ]; then
   echo "The board did not come up - not rebooting. Fix the above, then reboot."

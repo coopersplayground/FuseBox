@@ -181,6 +181,14 @@ The gadget setup script and the ESP32 firmware source are in
   unprompted.
 - **One modal at a time.** Opening any overlay closes all others, enforced
   server-side, so what is on screen is always the one active thing.
+- **Signed, silent updates.** The box checks its owner's gateway for
+  updates on a timer and installs them itself — no prompts, nothing
+  for the owner to do. A release is accepted only with a valid
+  signature from the owner's release key; it is staged beside the
+  running version, the box health-checks itself after the switch,
+  and a failed check flips it back to the previous version on its
+  own. Updates never touch the phone service, and one is deferred
+  while a call is live.
 - **Right-sized models.** No model larger than the job, no model
   resident without a reason, no screenshot where text will do. The stack
   is budgeted against 8 GB of RAM: roughly 1.5 GB for OS + board +
@@ -195,6 +203,9 @@ The gadget setup script and the ESP32 firmware source are in
 | `cosmo-ui/` | The board: `server.js`, `public/` (kiosk page), `feeders/`, `config.json` |
 | `cosmo-listener/` | The voice loop: listener, speech, UI driver (`ui.py`), HA helper, status tool |
 | `guardian/` | The phone Guardian: Asterisk PBX generator, per-leg call transcription (the Ear), line resampler |
+| `gateway/` | The owner's hosted relay: holds the Meta API key server-side, meters per-box device tokens, serves signed updates |
+| `updater/` | The box's silent updater — signature-verified, staged, self-rolling-back — plus its systemd timer |
+| `tools/` | Release tooling: builds and signs an update bundle |
 | `android/` | Android on the box: Waydroid session script, full-screen close button, Fuse Shop catalog sync |
 | `cosmo-osk/` | The system on-screen keyboard that types into any app |
 | `cosmo-hid/` | The hardware hand: Pi USB gadget + ESP32-S3 input transports |
@@ -238,10 +249,18 @@ ordinary HTTP plumbing — does the rest.
 **No secrets are in this repo, by design.** The code reads credentials
 from files on the box at runtime, and those files are git-ignored:
 
-- Meta Model API key: `~/.config/cosmo-voice/meta_api_key` (0600) —
-  powers the cloud reflex tier (Muse Spark) and all speech-to-text
-  (Muse Voice Transcribe). Without it the box still runs; voice input
-  and call transcription simply stay off.
+- Cloud access — one of two files, both 0600, both read at runtime:
+  - `~/.config/cosmo-voice/gateway.json` — how a provisioned box
+    reaches the cloud models: the address of the owner's gateway and
+    this box's own device token. **No API key is ever stored on a
+    customer's box**; the gateway holds the key server-side and
+    meters each box (see `gateway/`).
+  - `~/.config/cosmo-voice/meta_api_key` — direct access with the
+    owner's own Meta Model API key, for the owner's hardware and
+    development. Either file powers the cloud reflex tier (Muse
+    Spark) and all speech-to-text (Muse Voice Transcribe). With
+    neither, the box still runs; voice input and call transcription
+    simply stay off.
 - Home Assistant long-lived token: the path set by `haTokenPath` in
   `cosmo-ui/config.json`.
 - Guardian phone credentials (SIP user/password, line number) and the

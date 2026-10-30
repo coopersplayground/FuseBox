@@ -5,9 +5,10 @@ Asterisk records each leg's own microphone stream with MixMonitor r():
   guardian-<dir>-<ts>-<peer>-her.raw   (the house side, mono PCM)
   guardian-<dir>-<ts>-<peer>-them.raw  (the remote side, mono PCM)
 This feeder streams each growing file into cosmo-ui's ear pipeline in
-~3.2 s chunks with proper side labels (live pass: small model, scam
-watch), and at call end re-transcribes each side whole with the big
-model (large-v3-turbo) and replaces the saved record's lines.
+~3.2 s chunks with proper side labels (live pass: transcription and
+scam watch on the board), and at call end re-transcribes each side
+whole with Muse Voice Transcribe and replaces the saved record's
+lines.
 """
 import base64, json, os, re, socket, struct, threading, time, urllib.request
 
@@ -17,6 +18,24 @@ STATE = os.path.expanduser("~/.guardian-ear-state.json")
 CHUNK = 51200  # 3.2 s of 8 kHz 16-bit mono
 NAME = re.compile(r"^guardian-(in|out)-(\d{8})-(\d{6})-(\+?\d+)-(her|them)\.raw$")
 META_KEY_PATH = os.path.expanduser("~/.config/cosmo-voice/meta_api_key")
+GATEWAY_PATH = os.path.expanduser("~/.config/cosmo-voice/gateway.json")
+
+def cloud_asr():
+    """(url, authorization) for Muse Voice Transcribe: through the
+    owner's gateway (per-device token, no API key on the box) when
+    gateway.json exists, else direct with the on-box key file."""
+    try:
+        with open(GATEWAY_PATH) as f:
+            g = json.load(f)
+        if g.get("url") and g.get("token"):
+            return str(g["url"]).rstrip("/") + "/v1/asr/transcribe", "Bearer " + g["token"]
+    except Exception:
+        pass
+    try:
+        key = open(META_KEY_PATH).read().strip()
+    except Exception:
+        key = ""
+    return ("https://api.meta.ai/v1/asr/transcribe", "Bearer " + key) if key else None
 ACC = {}  # callId -> {"local": bytearray, "remote": bytearray} (memory only)
 LIVE = set()  # callIds in a live call right now (main loop maintains)
 FINAL_LOCK = threading.Lock()  # one final pass at a time
@@ -50,9 +69,10 @@ def transcribe_big(pcm):
     # file endpoint - the same model the live path uses.
     import audioop, io, urllib.request, uuid, wave
     try:
-        key = open(META_KEY_PATH).read().strip()
-        if not key or len(pcm) < 3200:
+        ep = cloud_asr()
+        if not ep or len(pcm) < 3200:
             return ""
+        stt_url, stt_auth = ep
         pcm16, _ = audioop.ratecv(bytes(pcm), 2, 1, 8000, 16000, None)
         buf = io.BytesIO()
         w = wave.open(buf, "wb")
@@ -66,9 +86,9 @@ def transcribe_big(pcm):
             f"--{b}\r\nContent-Disposition: form-data; name=\"audio\"; filename=\"audio.wav\"\r\nContent-Type: audio/wav\r\n\r\n".encode() + buf.getvalue() + b"\r\n",
             f"--{b}--\r\n".encode()])
         req = urllib.request.Request(
-            "https://api.meta.ai/v1/asr/transcribe", data=body, method="POST",
+            stt_url, data=body, method="POST",
             headers={"Content-Type": f"multipart/form-data; boundary={b}",
-                     "Authorization": "Bearer " + key})
+                     "Authorization": stt_auth})
         with urllib.request.urlopen(req, timeout=180) as r:
             return str(json.loads(r.read()).get("transcript", "")).strip()
     except Exception as e:

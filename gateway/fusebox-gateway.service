@@ -1,0 +1,19 @@
+[Unit]
+Description=Fuse Box gateway (Meta model relay + update channel)
+After=network.target
+
+[Service]
+Type=simple
+User=fusebox-gateway
+WorkingDirectory=/opt/fusebox-gateway
+EnvironmentFile=/opt/fusebox-gateway/gateway.env
+ExecStart=/usr/bin/node /opt/fusebox-gateway/gateway.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/fusebox-gateway
+
+[Install]
+WantedBy=multi-user.target

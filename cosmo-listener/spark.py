@@ -8,9 +8,12 @@ answer - never act. If the answer is not fully contained in the digest,
 the model must reply FALLTHROUGH and the caller dispatches to the cloud
 Claude session exactly as before.
 
-The API key is read per call from meta_api_key_path in config.json
-(default ~/.config/cosmo-voice/meta_api_key, 0600, Server-2-only). No key
-or any error -> None (fall through). Answers are never cached.
+Cloud access is resolved per call: through the owner's gateway
+(~/.config/cosmo-voice/gateway.json — a per-device token; no API key on
+the box) when provisioned, else direct with the key file at
+meta_api_key_path in config.json (default
+~/.config/cosmo-voice/meta_api_key, 0600). No endpoint or any error ->
+None (fall through). Answers are never cached.
 """
 import json, re, subprocess, sys, urllib.request
 from datetime import datetime
@@ -44,6 +47,17 @@ def _key():
         return p.read_text().strip()
     except Exception:
         return ''
+
+def _endpoint():
+    """(url, authorization) for the chat endpoint, or None."""
+    try:
+        g = json.loads(Path('~/.config/cosmo-voice/gateway.json').expanduser().read_text())
+        if g.get('url') and g.get('token'):
+            return str(g['url']).rstrip('/') + '/v1/chat/completions', 'Bearer ' + g['token']
+    except Exception:
+        pass
+    key = _key()
+    return (API_URL, 'Bearer ' + key) if key else None
 
 def build_digest(state):
     today = datetime.now().strftime('%Y-%m-%d')
@@ -84,9 +98,10 @@ def build_digest(state):
 
 def try_answer(command):
     """Return a one-sentence answer string, or None to fall through."""
-    key = _key()
-    if not key:
+    ep = _endpoint()
+    if not ep:
         return None
+    api_url, api_auth = ep
     try:
         with urllib.request.urlopen(STATE_URL, timeout=6) as r:
             state = json.loads(r.read())
@@ -94,9 +109,9 @@ def try_answer(command):
         body = {'model': MODEL, 'max_tokens': 2000,
                 'messages': [{'role': 'system', 'content': SYSTEM + '\n\nSTATE:\n' + digest},
                              {'role': 'user', 'content': command}]}
-        req = urllib.request.Request(API_URL, data=json.dumps(body).encode(),
+        req = urllib.request.Request(api_url, data=json.dumps(body).encode(),
                                      headers={'Content-Type': 'application/json',
-                                              'Authorization': 'Bearer ' + key})
+                                              'Authorization': api_auth})
         with urllib.request.urlopen(req, timeout=20) as r:
             d = json.loads(r.read())
         text = (d['choices'][0]['message']['content'] or '').strip()

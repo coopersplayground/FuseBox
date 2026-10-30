@@ -727,11 +727,20 @@ async function guardianProgram() {
 // window goes to Muse Voice Transcribe (Meta Model API) and comes
 // back as text, appended to the live call and saved with it at hangup.
 // All speech-to-text is Muse Voice Transcribe (Meta), via the Meta Model
-// API's one-shot endpoint. Key file convention matches the listener's
-// Spark client: ~/.config/cosmo-voice/meta_api_key (0600, on the box only).
-const META_STT_URL = 'https://api.meta.ai/v1/asr/transcribe';
+// API's one-shot endpoint — reached through the owner's gateway when
+// gateway.json is provisioned (per-device token, no API key on the box),
+// or directly with the on-box key file on the owner's own hardware.
 const META_KEY_PATH = '/home/cosmo/.config/cosmo-voice/meta_api_key';
+const GATEWAY_PATH = '/home/cosmo/.config/cosmo-voice/gateway.json';
 function metaApiKey() { try { return require('fs').readFileSync(META_KEY_PATH, 'utf8').trim(); } catch (e) { return ''; } }
+function cloudStt() {
+  try {
+    const g = JSON.parse(require('fs').readFileSync(GATEWAY_PATH, 'utf8'));
+    if (g.url && g.token) return { url: String(g.url).replace(/\/$/, '') + '/v1/asr/transcribe', auth: 'Bearer ' + g.token };
+  } catch (e) {}
+  const key = metaApiKey();
+  return key ? { url: 'https://api.meta.ai/v1/asr/transcribe', auth: 'Bearer ' + key } : null;
+}
 function pcm16ToWav(pcm, rate) {
   // The endpoint takes mono 16-bit WAV at 16 or 24 kHz only - resample
   // (linear) and wrap. Phone audio arrives at 8 kHz.
@@ -756,15 +765,15 @@ function pcm16ToWav(pcm, rate) {
   return Buffer.concat([head, samples]);
 }
 async function metaTranscribe(pcm, rate) {
-  const key = metaApiKey();
-  if (!key || !pcm || pcm.length < 3200) return '';
+  const ep = cloudStt();
+  if (!ep || !pcm || pcm.length < 3200) return '';
   try {
     const form = new FormData();
     form.append('request', new Blob([JSON.stringify({ model: 'muse-voice-transcribe-1.0', mode: 'PUSH_TO_TALK', audioEncoding: 'WAV' })], { type: 'application/json' }));
     form.append('audio', new Blob([pcm16ToWav(pcm, rate)], { type: 'audio/wav' }), 'audio.wav');
     const ctl = new AbortController();
     const to = setTimeout(() => ctl.abort(), 30000);
-    const r = await fetch(META_STT_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: form, signal: ctl.signal });
+    const r = await fetch(ep.url, { method: 'POST', headers: { Authorization: ep.auth }, body: form, signal: ctl.signal });
     clearTimeout(to);
     if (!r.ok) return '';
     const d = await r.json();

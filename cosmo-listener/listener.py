@@ -154,7 +154,9 @@ def rms(frame: bytes) -> float:
 
 # ------------------------------------------------------- meta transcription
 # All speech-to-text is Muse Voice Transcribe (Meta) on the Meta Model API:
-# one-shot file endpoint, key read per call from meta_api_key_path
+# one-shot file endpoint, reached through the owner's gateway when
+# gateway.json is provisioned (per-device token, no API key on the box),
+# else direct with the key read per call from meta_api_key_path
 # (default ~/.config/cosmo-voice/meta_api_key, on the box only).
 def _meta_key(c) -> str:
     try:
@@ -162,6 +164,17 @@ def _meta_key(c) -> str:
         return p.read_text().strip()
     except Exception:
         return ""
+
+
+def _meta_endpoint(c):
+    try:
+        g = json.loads(Path(c.get("gateway_path", "~/.config/cosmo-voice/gateway.json")).expanduser().read_text())
+        if g.get("url") and g.get("token"):
+            return str(g["url"]).rstrip("/") + "/v1/asr/transcribe", "Bearer " + g["token"]
+    except Exception:
+        pass
+    key = _meta_key(c)
+    return ("https://api.meta.ai/v1/asr/transcribe", "Bearer " + key) if key else None
 
 
 def _pcm_to_wav16k(pcm: bytes, rate: int) -> bytes:
@@ -176,9 +189,10 @@ def _pcm_to_wav16k(pcm: bytes, rate: int) -> bytes:
 
 
 def _meta_transcribe(pcm: bytes, c) -> str:
-    key = _meta_key(c)
-    if not key or len(pcm) < 3200:
+    ep = _meta_endpoint(c)
+    if not ep or len(pcm) < 3200:
         return ""
+    stt_url, stt_auth = ep
     import urllib.request
     wav = _pcm_to_wav16k(pcm, RATE)
     b = "----cosmo" + uuid.uuid4().hex
@@ -189,9 +203,9 @@ def _meta_transcribe(pcm: bytes, c) -> str:
         f"--{b}\r\nContent-Disposition: form-data; name=\"audio\"; filename=\"audio.wav\"\r\nContent-Type: audio/wav\r\n\r\n".encode() + wav + b"\r\n",
         f"--{b}--\r\n".encode()])
     req = urllib.request.Request(
-        "https://api.meta.ai/v1/asr/transcribe", data=body, method="POST",
+        stt_url, data=body, method="POST",
         headers={"Content-Type": f"multipart/form-data; boundary={b}",
-                 "Authorization": "Bearer " + key})
+                 "Authorization": stt_auth})
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             return str(json.loads(r.read()).get("transcript", "")).strip()
