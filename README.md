@@ -10,6 +10,8 @@ workflows.**
 
 ![Fuse Box Guardian — inside Margaret's house](architecture-2.svg)
 
+![Fuse Box Guardian — set up in minutes](architecture-3.svg)
+
 Fuse_Box is not a new AI model, and it is not an agent harness looking for
 a problem. It is a physical appliance — a screen, a microphone, and a
 speaker in the room, designed to run on a Raspberry Pi 5 with 8 GB of RAM —
@@ -35,7 +37,7 @@ accounts, and credentials have been removed.** Demo/seed content is
 fictional, the avatar ships in its drawn (SVG) mode, and every integration
 is configured locally by whoever installs it.
 
-## Priority 1 — The Guardian
+## The Guardian
 
 Scareware works by panicking people into calling a number. The Guardian
 watches for exactly that:
@@ -54,8 +56,8 @@ watches for exactly that:
   command prompts, installers, settings — are explicitly not scams, and the
   appliance's own control banner carries a permanent in-code exemption,
   learned from a live false positive on Day 1.
-- **The phone Guardian is built and proven on real calls (Days 2–3).**
-  House calls pass through the box (an Asterisk PBX in pass-through
+- **The phone Guardian runs on real calls.** House calls pass through
+  the box (an Asterisk PBX in pass-through
   between the carrier trunk and the phones), so a desk phone and an old
   analog phone on an adapter both ring as always — and if the box is
   down, the phones register with the carrier directly and ring anyway.
@@ -66,14 +68,14 @@ watches for exactly that:
   home hears what was flagged. The caller is then asked for a family
   password before the call can be reconnected; a wrong answer ends it.
   A scam that arrives as a *text on the PC screen* makes the house
-  phones ring with a spoken warning. Still ahead: the screening gate
-  for unknown callers and the spoken audit ("who called today?").
+  phones ring with a spoken warning.
 
-## Priority 2 — Text-first computer control
+## Computer help
 
-The original plan was commands first, accessibility second, pixels last.
-Day 1 proved why that order matters: a screenshot-guessing path worked but
-was slow and fragile, so control was rebuilt around text.
+Control is text-first. A screenshot-guessing path worked on Day 1 but was
+slow and fragile, so the Companion reads the PC as text — window titles,
+control trees, and the words on the screen — and clicks are aimed at
+named controls, not pixels.
 
 | Tier | How it works | Cost / speed |
 | --- | --- | --- |
@@ -165,24 +167,39 @@ ESP32 firmware source are ready for the parts.
   board + voice, ~2.5 GB for the resident 3B, the vision judge visiting
   rather than living in RAM, and ~3.5–4 GB of headroom.
 
-## Honest status
+## What it does today
 
-Fuse_Box is a systems-integration project with meaningful implementation
-work behind it — Day 1 proved each of its three jobs at least once, live,
-on a real machine: protection from scareware, plain-language teaching on
-the user's own screen, and quiet machine-health checks in the background.
-Days 2–3 put the phone Guardian on real calls through real phones,
-including the step-in, the family-password check, and the warning call
-for scam texts — and found and fixed the failure that only back-to-back
-calls could expose.
+Everything above is built and has run live on real hardware:
 
-It is not yet a proven product. Whether it becomes genuinely
-differentiated will depend on proving the hardware (the Pi gadget and
-ESP32 transports are backend-proven, not yet run on the parts), on a
-real senior — not the builder — using it on camera, and on showing that
-its safeguards outperform a conventional agent given similar tools. The
-code in this repository is the current state of that work, published so
-the claims can be checked.
+- Scareware judging on a real PC's screen, with the warning spoken
+  aloud and the page closed.
+- The phone Guardian on real calls through a desk phone and an analog
+  phone: live caller-side scanning, the step-in, the family-password
+  check, and the hang-up on a wrong answer — including back-to-back
+  calls, the pattern that broke the first version. It is fixed.
+- The warning call: a scam that arrives as a text on the PC rings the
+  house phones with a spoken alert.
+- Voice control of a real PC by naming controls ("Display is 78"),
+  guide mode teaching on the PC's own screen, and quiet
+  machine-health checks in the background.
+- The board, the voice loop, the Fuse Shop, and the one-command
+  installer, running as an appliance that boots straight to its
+  screen and recovers on its own after power loss.
+- The current build — every runtime model a Meta model — tested
+  end to end on the reference box, Guardian included.
+
+## What it doesn't do yet
+
+- No real senior has used it on camera yet. That test is still
+  ahead, and it is the one that matters most.
+- The Pi USB gadget and ESP32 transports are proven byte-exact
+  through a development sink; they have not run on the physical
+  parts.
+- The unknown-caller screening gate and the spoken audit ("who
+  called today?") are not built.
+
+The code in this repository is the current state of that work,
+published so the claims can be checked.
 
 ## Layout
 
@@ -227,8 +244,8 @@ formant synthesizer (plain non-ML code), cached as ordinary WAV files.
 There is no text-to-speech model in the runtime path, and no non-Meta
 model runs anywhere in the project: no Whisper, no openWakeWord, no
 local TTS models, no third-party OCR (the screen judge reads with
-Glimmer). Plain non-ML code — Asterisk (the PBX), ffmpeg, the Wyoming
-and ordinary HTTP plumbing — does the rest.
+Glimmer). Plain non-ML code — Asterisk (the PBX), ffmpeg, and
+ordinary HTTP plumbing — does the rest.
 
 ## Configuration & secrets
 
