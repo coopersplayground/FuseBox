@@ -12,8 +12,9 @@ workflows.**
 
 ![Fuse Box Guardian — set up in minutes](architecture-3.svg)
 
+WATCH THE VIDEO:
 [![Watch the video on YouTube](https://img.youtube.com/vi/KEzhON5Ny28/hqdefault.jpg)](https://www.youtube.com/watch?v=KEzhON5Ny28)
-WATCH THE VIDEO
+
 
 Fuse_Box is not a new AI model, and it is not an agent harness looking for
 a problem. It is a physical appliance — a screen, a microphone, and a
