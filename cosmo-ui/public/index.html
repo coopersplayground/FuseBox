@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Cosmo — Gadget</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -147,7 +147,7 @@
       </svg>
     </div>
     <div class="status-chip" id="stateChip">WAITING FOR YOU</div>
-    <div class="status-msg" id="statusMsg"></div>
+    <div class="status-msg" id="statusMsg">3 things need your voice</div>
   </section>
 
   <section class="panel">
@@ -157,7 +157,32 @@
       <h2>NEEDS YOUR VOICE</h2>
       <span class="queue-count" id="queueCount">3</span>
     </div>
-    <div id="queue" class="queue"></div>
+    <div id="queue" class="queue">
+<div class="qcard">
+<div class="qnum">1</div>
+<div class="qbody">
+<h3>Follow up with the pharmacy (demo)</h3>
+<p>Your refill is ready for pickup. Draft reply: ask about Saturday hours and confirm the pickup name.</p>
+<div class="meta">Demo inbox · email · 4h ago</div>
+</div>
+</div>
+<div class="qcard">
+<div class="qnum">2</div>
+<div class="qbody">
+<h3>Possible scam - screen check (demo)</h3>
+<p>The PC companion flagged a fake virus pop-up on the laptop. The snapshot is ready to review before anyone calls the number on screen.</p>
+<div class="meta">PC guardian - demo · 6h ago</div>
+</div>
+</div>
+<div class="qcard">
+<div class="qnum">3</div>
+<div class="qbody">
+<h3>Call back the bakery (demo)</h3>
+<p>Missed call about Saturday's cake order. Callback script and order details are drafted.</p>
+<div class="meta">Call log - demo · 7h ago</div>
+</div>
+</div>
+    </div>
     </div>
     <aside id="textsPanel" class="texts-panel">
       <div class="queue-head">
@@ -168,7 +193,41 @@
     </aside>
     </div>
     <h2 class="stream-head">LATEST</h2>
-    <div id="stream" class="stream"></div>
+    <div id="stream" class="stream">
+<div class="scard resolved">
+<div class="sicon">💡</div>
+<div>
+<h3>Follow up with the pharmacy (demo)<span class="rtag skipped">SKIPPED</span>
+</h3>
+<p>Draft ready: ask about Saturday hours and confirm the pickup name.</p>
+<div class="meta">Demo inbox · email · 6h ago</div>
+</div>
+</div>
+<div class="scard">
+<div class="sicon">📅</div>
+<div>
+<h3>Community library book sale (demo)</h3>
+<p>The annual book sale opens Saturday at 9 AM.</p>
+<div class="meta">Sat · 9:00 AM · 5h ago</div>
+</div>
+</div>
+<div class="scard">
+<div class="sicon">✉️</div>
+<div>
+<h3>Library - your hold is ready (demo)</h3>
+<p>The book you requested is waiting at the front desk until Friday.</p>
+<div class="meta">Demo mail · 10h ago</div>
+</div>
+</div>
+<div class="scard">
+<div class="sicon">💬</div>
+<div>
+<h3>Package delivered (demo)</h3>
+<p>A package was left at the front door at 2:04 PM.</p>
+<div class="meta">Delivery notice · 12h ago</div>
+</div>
+</div>
+</div>
   </section>
 </main>
 
@@ -554,23 +613,27 @@
 
 <button id="touchClose" class="hidden">✕ CLOSE</button>
 <nav id="boardNav">
-<button data-nav="apps">Apps</button>
 <button data-nav="facebook">Facebook</button>
-      <button data-nav="messenger">Messenger</button>
-      <button data-nav="texts">Texts</button>
-      <button data-nav="instagram">Instagram</button>
+<button data-nav="messenger">Messenger</button>
 <button data-nav="calendar">Calendar</button>
 <button data-nav="mail">Email</button>
+<button id="drawerBtn" data-tip="All apps"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#eaf0ff"><circle cx="4.2" cy="4.2" r="3.3"/><circle cx="12" cy="4.2" r="3.3"/><circle cx="19.8" cy="4.2" r="3.3"/><circle cx="4.2" cy="12" r="3.3"/><circle cx="12" cy="12" r="3.3"/><circle cx="19.8" cy="12" r="3.3"/><circle cx="4.2" cy="19.8" r="3.3"/><circle cx="12" cy="19.8" r="3.3"/><circle cx="19.8" cy="19.8" r="3.3"/></g></svg></span><span class="nav-label">All apps</span><span class="nav-dot"></span></button>
+<button data-nav="texts">Texts</button>
+<button data-nav="instagram">Instagram</button>
 <button data-nav="music">Music</button>
 <button data-nav="cameras">Cameras</button>
-<button data-nav="home">Home</button>
-<button data-nav="help">What I can do</button>
 </nav>
 <footer>
-  <div class="hint">Say: <b>“read number 1”</b> · <b>“send 1 and 3”</b> · <b>“skip 2”</b> · <b>“hold on 2”</b>
-</div>
-  <div class="foot-right"><span class="livedot on" id="liveDot"></span><span id="nodeInfo">MuseGadget · paired</span></div>
+  <div class="foot-left"><div class="foot-right"><span class="livedot on" id="liveDot"></span></div><div class="hint">Say: <b>“read number 1”</b> · <b>“send 1 and 3”</b> · <b>“skip 2”</b> · <b>“hold on 2”</b>
+</div></div>
 </footer>
+
+<div id="drawerOverlay" class="drawer-overlay hidden">
+  <div class="drawer-card">
+    <div class="fb-head"><h2>ALL APPS</h2><span class="apps-sub">Tap an app to open it</span></div>
+    <div id="drawerGrid" class="drawer-grid"></div>
+  </div>
+</div>
 
 <div id="appsOverlay" class="apps-overlay hidden">
   <div class="apps-card">
@@ -601,6 +664,28 @@
     <div id="networkBody"></div>
     <div class="network-actions"><button class="app-go" id="netRefresh">REFRESH NOW</button><button class="app-pin2" id="netWol">WAKE GAMING RIG</button></div>
     <div class="fb-hint">Say: "refresh the network" &middot; "wake the gaming rig" &middot; "back"</div>
+  </div>
+</div>
+<div id="guardianOverlay" class="apps-overlay hidden">
+  <div class="apps-card network-card">
+    <div class="net-head"><div class="net-logo">&#128737;&#65039;</div><div><div class="apps-title">GUARDIAN</div><div class="apps-sub">Your home phone, guarded - setup, your number, and call protection</div></div></div>
+    <div id="guardianBody"></div>
+    <div class="fb-hint">Say: "back" &middot; "ring my phone"</div>
+  </div>
+</div>
+<div id="shopOverlay" class="apps-overlay hidden">
+  <div class="apps-card network-card">
+    <div class="net-head"><div class="net-logo">&#128722;</div><div><div class="apps-title">FUSE SHOP</div><div class="apps-sub">Android apps for this box - tap INSTALL and the app is put on for you</div></div></div>
+    <div id="shopBody" class="apps-body shop-body"></div>
+    <div class="fb-hint">Say: "back"</div>
+  </div>
+</div>
+<div id="settingsOverlay" class="apps-overlay hidden">
+  <div class="apps-card settings-card">
+    <div class="net-head"><div class="net-logo">&#9881;&#65039;</div><div><div class="apps-title">SETTINGS</div><div class="apps-sub">Fuse_Box setup</div></div></div>
+    <div id="settingsBody"></div>
+    <div id="wifiPanel" class="hidden"></div>
+    <div class="fb-hint">Say: "open settings" &middot; "back"</div>
   </div>
 </div>
 <div id="paperOverlay" class="apps-overlay hidden">

@@ -225,6 +225,14 @@ def main():
         print(f"ON SCREEN: number {n} is now big on the display.")
         print_card(r.get("card") or card, n)
     elif cmd == "hide":
+        try:
+            call("POST", "/api/browser", {"show": False})
+        except Exception:
+            pass
+        try:
+            call("POST", "/api/android", {"front": False})
+        except Exception:
+            pass
         call("POST", "/api/help", {"clear": True})
         call("POST", "/api/mail", {"clear": True})
         call("POST", "/api/music", {"clear": True})
@@ -234,6 +242,7 @@ def main():
         call("POST", "/api/calendar", {"show": False})
         call("POST", "/api/focus", {"clear": True})
         call("POST", "/api/image", {"clear": True})
+        call("POST", "/api/shop", {"clear": True})
         call("POST", "/api/texts/highlight", {"id": None})
         call("POST", "/api/facebook", {"clear": True})
         call("POST", "/api/messenger", {"clear": True})
@@ -243,6 +252,7 @@ def main():
         call("POST", "/api/app", {"clear": True})
         call("POST", "/api/paper", {"clear": True})
         call("POST", "/api/network", {"clear": True})
+        call("POST", "/api/settings", {"clear": True})
         print("SCREEN CLEARED: back to the board.")
     elif cmd == "sms":
         data = json.load(sys.stdin)
@@ -278,6 +288,37 @@ def main():
         text = sys.stdin.read().strip()
         call("POST", "/api/sms/draft", {"text": text, "threadN": n, "name": name})
         print(f"DRAFT SET (text reply to #{n} {name or ''}): {text[:120]}")
+    elif cmd == "shop":
+        call("POST", "/api/shop", {"show": True})
+        import time as _t
+        _t.sleep(4)
+        st = call("GET", "/api/state")
+        s = st.get("shop") or {}
+        print("Fuse Shop:", s.get("name"), "| apps:", len(s.get("apps") or []), "| installed:", len(s.get("installed") or []), "| error:", s.get("error") or "none")
+        for a in s.get("apps") or []:
+            print(" -", a.get("name"), a.get("version") or "", "[installed]" if a.get("package") in (s.get("installed") or []) else "")
+    elif cmd == "guardian":
+        call("POST", "/api/guardian", {"show": True})
+        st = call("GET", "/api/state")
+        g = st.get("guardian") or {}
+        ad = g.get("adapter") or {}
+        line = g.get("line") or {}
+        print("ON SCREEN: Guardian app. Adapter: " + (("found - " + str(ad.get("model", "")) + " at " + str(ad.get("ip", "")) + ", " + ("registered" if ad.get("registered") else "not registered")) if ad.get("found") else "not found yet") + ". Line: " + (str(line.get("number")) + " (" + str(line.get("status")) + ")" if line.get("number") else "none yet") + ".")
+    elif cmd == "guardian-status":
+        st = call("GET", "/api/state")
+        print(json.dumps(st.get("guardian") or {}, indent=1))
+    elif cmd == "guardian-stepin":
+        call("POST", "/api/guardian/intr", {"cmd": "in"})
+        print("STEPPING IN: Cosmo is taking over the live call - both parties now talk only to Cosmo.")
+    elif cmd == "guardian-release":
+        call("POST", "/api/guardian/intr", {"cmd": "out"})
+        print("STEPPING BACK: the two parties can hear each other again.")
+    elif cmd == "guardian-askpw":
+        r = call("POST", "/api/guardian/askpw", {})
+        print("ASKING FOR THE FAMILY PASSWORD." if r.get("ok") else "COULD NOT ASK: " + str(r.get("error")))
+    elif cmd == "guardian-hangup":
+        r = call("POST", "/api/guardian/hangup", {})
+        print("CALL HUNG UP by the Guardian." if r.get("ok") else "COULD NOT HANG UP: " + str(r.get("error")))
     elif cmd == "pc-check":
         call("POST", "/api/pc/command", {"command": "health"})
         print("PC CHECK REQUESTED: the agent answers within about 30 seconds (the update scan can be slow); then run ui.py pc-status.")
@@ -393,6 +434,55 @@ def main():
             print(f"- {l.get('name')}: {'up' if l.get('ok') else 'DOWN'}" + (f" {l.get('ms')} ms" if l.get('ms') is not None else ""))
         for d in nw.get("devices") or []:
             print(f"- {d.get('name')} ({d.get('ip') or 'not seen'}): {d.get('status')}")
+    elif cmd in ("settings", "settings-open"):
+        call("POST", "/api/settings", {"show": True})
+        st = call("GET", "/api/state")
+        w = (st.get("settings") or {}).get("wifi") or {}
+        c = w.get("connected")
+        if not w.get("radio", True):
+            print("ON SCREEN: Settings. Wi-Fi is OFF.")
+        elif c:
+            print(f"ON SCREEN: Settings. Wi-Fi is connected to {c.get('ssid')} ({c.get('ip') or 'no IP yet'}).")
+        else:
+            print("ON SCREEN: Settings. Wi-Fi is on, not connected to any network.")
+        for n in (w.get("networks") or [])[:8]:
+            print(f"- {n.get('ssid')}: signal {n.get('signal')}%, {'locked' if n.get('secured') else 'open'}" + (" (connected)" if n.get("inUse") else ""))
+        print("A fresh scan was just triggered - the on-screen list fills in within seconds. Wi-Fi passwords are typed on the screen keyboard only, never by voice.")
+    elif cmd == "browser":
+        r = call("POST", "/api/browser", {"show": True})
+        print("BROWSER OPEN: Brave is full screen on the box, on the Fuse_Box start page." if r.get("ok") else f"BROWSER FAILED: {r}")
+    elif cmd == "browser-close":
+        r = call("POST", "/api/browser", {"show": False})
+        print("BACK TO THE BOARD: the browser is behind the board again." if r.get("ok") else f"BROWSER CLOSE FAILED: {r}")
+    elif cmd == "settings-wifi":
+        st = call("GET", "/api/state")
+        w = (st.get("settings") or {}).get("wifi") or {}
+        c = w.get("connected")
+        if not w.get("radio", True):
+            print("WI-FI: off.")
+        elif c:
+            print(f"WI-FI: connected to {c.get('ssid')} ({c.get('ip') or 'no IP yet'}), signal {c.get('signal')}%.")
+        else:
+            print("WI-FI: on, not connected.")
+        for n in (w.get("networks") or [])[:10]:
+            print(f"- {n.get('ssid')}: signal {n.get('signal')}%, {'locked' if n.get('secured') else 'open'}" + (" (connected)" if n.get("inUse") else ""))
+    elif cmd == "settings-wifi-scan":
+        r = call("POST", "/api/settings/wifi/scan", {})
+        w = r.get("wifi") or {}
+        print(f"WI-FI SCAN: {len(w.get('networks') or [])} networks.")
+        for n in (w.get("networks") or [])[:10]:
+            print(f"- {n.get('ssid')}: signal {n.get('signal')}%, {'locked' if n.get('secured') else 'open'}")
+    elif cmd == "settings-wifi-disconnect":
+        call("POST", "/api/settings/wifi/disconnect", {})
+        print("WI-FI DISCONNECTED. (The wired connection is untouched.)")
+    elif cmd == "settings-wifi-forget":
+        ssid = " ".join(sys.argv[2:])
+        call("POST", "/api/settings/wifi/forget", {"ssid": ssid})
+        print(f"FORGOT SAVED WI-FI NETWORK: {ssid}")
+    elif cmd == "settings-wifi-radio":
+        on = len(sys.argv) > 2 and sys.argv[2] == "on"
+        call("POST", "/api/settings/wifi/radio", {"on": on})
+        print("WI-FI RADIO " + ("ON." if on else "OFF."))
     elif cmd == "paper":
         data = json.load(sys.stdin)
         call("POST", "/api/paper/data", data)
@@ -828,7 +918,7 @@ def main():
             first = cams[0]
             call("POST", "/api/camera", {"id": first["id"], "identify": title})
             print(f"NO MATCH: no camera titled '{title}'. ON SCREEN: first feed is {first['name']} (identify mode, {len(cams)} camera(s) total).")
-            print(f"ASK THE OWNER: I can't find a device with that title, but let me show you what I do have. Is this the {title}?")
+            print(f"ASK HAROLD: I can't find a device with that title, but let me show you what I do have. Is this the {title}?")
     elif cmd == "camera-yes":
         cams, snap = _cams()
         cv = snap.get("cameraView") or {}
@@ -849,7 +939,7 @@ def main():
         nxt = cams[idx + 1] if 0 <= idx < len(cams) - 1 else None
         if nxt:
             call("POST", "/api/camera", {"id": nxt["id"], "identify": cv["identify"]})
-            print(f"ON SCREEN: next feed is {nxt['name']}. ASK THE OWNER: Is this the {cv['identify']}?")
+            print(f"ON SCREEN: next feed is {nxt['name']}. ASK HAROLD: Is this the {cv['identify']}?")
         else:
             call("POST", "/api/camera", {"clear": True})
             print(f"NO MORE CAMERAS: showed all {len(cams)} feed(s); none was confirmed as '{cv['identify']}'. Screen is back to the board.")

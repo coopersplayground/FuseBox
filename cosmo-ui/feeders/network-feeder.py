@@ -25,9 +25,19 @@ def ping(ip):
     return (False, None)
 
 KNOWN = [
-    ('Router', '192.168.1.1', '00:11:22:33:44:01', 'Home router / gateway'),
-    ('Demo Cam', '192.168.1.64', '00:11:22:33:44:02', 'Example camera'),
-    ('Smart TV', None, '00:11:22:33:44:03', 'Example television'),
+    ('Router', '192.168.1.1', '00:11:22:33:44:01', 'Router gateway'),
+    ('AdGuard DNS', '192.168.1.2', '00:11:22:33:44:02', 'DNS filtering'),
+    ('WireGuard LXC', '192.168.1.3', '00:11:22:33:44:03', 'Home VPN client'),
+    ('Linux server', '192.168.1.177', '00:11:22:33:44:04', 'Application server'),
+    ('Shop Cam', '192.168.1.217', '00:11:22:33:44:05', 'Frigate camera'),
+    ('Driveway Cam', '192.168.1.228', '00:11:22:33:44:06', 'Frigate camera'),
+    ('Wyze Cam Pan v4', '192.168.1.225', '00:11:22:33:44:07', 'Camera'),
+    ('XM Camera', '192.168.1.123', '00:11:22:33:44:08', 'Camera'),
+    ('PoE Switch', '192.168.1.71', None, 'Managed switch'),
+    ('Gaming Rig', '192.168.1.43', '00:11:22:33:44:09', 'Wake-on-LAN ready'),
+    ('Living Room TV', None, '00:11:22:33:44:10', 'Television'),
+    ('Echo', None, '00:11:22:33:44:11', 'Amazon Echo'),
+    ('Echo Dot', None, '00:11:22:33:44:12', 'Amazon Echo'),
 ]
 
 def neigh():
@@ -82,13 +92,13 @@ def wg_info():
     return {'handshake': hs.group(1).strip() if hs else '', 'endpoint': ep.group(1) if ep else '', 'transfer': tr.group(1).strip() if tr else ''}
 
 def main():
-    targets = ['192.168.1.1', '1.1.1.1'] + [k[1] for k in KNOWN if k[1]]
+    targets = ['192.168.1.1', '1.1.1.1', '8.8.8.8'] + [k[1] for k in KNOWN if k[1]]
     with ThreadPoolExecutor(max_workers=10) as ex:
         pings = dict(zip(targets, ex.map(ping, targets)))
     by_ip, by_mac = neigh()
     known_macs = {k[2] for k in KNOWN if k[2]}
     known_ips = set()
-    devices = [{'name': 'Fuse_Box', 'ip': iface_ip('eno1') or '192.168.1.10', 'status': 'up', 'detail': 'This box - the board lives here'}]
+    devices = [{'name': 'This box', 'ip': iface_ip('eno1') or '192.168.1.50', 'status': 'up', 'detail': 'This box - the board lives here'}]
     for name, fb_ip, mac, detail in KNOWN:
         e = by_mac.get(mac) if mac else None
         ip = e['ip'] if e else fb_ip
@@ -112,11 +122,12 @@ def main():
     unknown.sort(key=lambda x: tuple(int(p) for p in x['ip'].split('.')))
     wg = wg_info()
     links = [
-        {'name': 'Router / gateway', 'target': '192.168.1.1', 'ok': pings['192.168.1.1'][0], 'ms': pings['192.168.1.1'][1], 'detail': 'Home router'},
+        {'name': 'Router / gateway', 'target': '192.168.1.1', 'ok': pings['192.168.1.1'][0], 'ms': pings['192.168.1.1'][1], 'detail': 'Router on the firewall box'},
         {'name': 'Internet', 'target': '1.1.1.1', 'ok': pings['1.1.1.1'][0], 'ms': pings['1.1.1.1'][1], 'detail': 'ISP uplink'},
+        {'name': 'WireGuard hub - Server 3', 'target': '8.8.8.8', 'ok': pings['8.8.8.8'][0], 'ms': pings['8.8.8.8'][1], 'detail': ('Handshake ' + wg['handshake'] if wg['handshake'] else 'No recent handshake') + ((' - ' + wg['transfer']) if wg['transfer'] else '')},
     ]
     summary = {
-        'internet': bool(pings['1.1.1.1'][0]), 'tunnel': False,
+        'internet': bool(pings['1.1.1.1'][0]), 'tunnel': bool(pings['8.8.8.8'][0] and wg['handshake']),
         'devicesUp': sum(1 for d in devices if d['status'] == 'up'),
         'devicesSeen': sum(1 for d in devices if d['status'] in ('up', 'seen')),
         'devicesTotal': len(devices), 'unknownCount': len(unknown),

@@ -1,5 +1,7 @@
 # runtime state - never commit
 cosmo-ui/data/state.json
+cosmo-ui/shop-index.json
+guardian/recordings/
 cosmo-listener/logs/
 cosmo-listener/state/
 cosmo-listener/session-id

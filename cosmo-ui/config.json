@@ -8,5 +8,6 @@
   "weatherPlace": "New York, NY (demo)",
   "haUrl": "http://127.0.0.1:8123",
   "haTokenPath": "/home/cosmo/.config/ha-api-token",
-  "mirrorCameras": []
+  "mirrorCameras": [],
+  "fuseShopUrl": "http://127.0.0.1:3180/shop-index.json"
 }

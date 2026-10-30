@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tier-2 quick answers for cosmo-listener (the box) - Muse Spark.
+"""Tier-2 quick answers for cosmo-listener (Server 2) - Muse Spark.
 
 When the local Llama router (tier 1) cannot route a command, this tier
 tries to answer a QUICK FACTUAL QUESTION from a compact digest of the

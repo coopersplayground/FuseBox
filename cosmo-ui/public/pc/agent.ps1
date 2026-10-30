@@ -1,6 +1,6 @@
-# Cosmo PC Agent v3.5 - watches over this PC for Cosmo (Fuse_Box) and,
+# Cosmo PC Agent v3.5 - watches over this PC for Cosmo (Muse Home) and,
 # during a control session the user starts, lets Cosmo use the mouse,
-# keyboard and shell. Always-on, connects OUT to the Fuse_Box box on the
+# keyboard and shell. Always-on, connects OUT to the Muse box on the
 # home network. No inbound ports, no admin rights needed. One file.
 # v3: control sessions (banner + stop button + 10-min idle auto-lock),
 # mouse/keyboard/shell actions, auto-snapshot after every action,
@@ -138,26 +138,67 @@ function Poll-WuScan {
   }
 }
 
+function Get-SnapshotBytes {
+  # The agent process is DPI-unaware, so its own screen metrics are the
+  # LOGICAL size (1280x720 on a 2560x1440 / 200% display) and an in-process
+  # CopyFromScreen only captures that top-left quadrant of the real screen.
+  # Capture in a short-lived DPI-aware child process instead: it photographs
+  # the full physical primary screen and downscales to 1280 wide. The main
+  # process keeps its awareness (and its click coordinates) untouched.
+  # Fallback: the original in-process capture if the child fails.
+  $tmp = Join-Path $env:TEMP ('cosmo-snap-' + $PID + '.jpg')
+  $child = @'
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+Add-Type -TypeDefinition "using System.Runtime.InteropServices; public class CosmoDpi { [DllImport(""user32.dll"")] public static extern bool SetProcessDPIAware(); }"
+[CosmoDpi]::SetProcessDPIAware() | Out-Null
+$bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+$bmp = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+$g = [System.Drawing.Graphics]::FromImage($bmp)
+$g.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+$w = 1280; $hh = [int]($bounds.Height * ($w / $bounds.Width)); if ($hh -lt 1) { $hh = 1 }
+$small = New-Object System.Drawing.Bitmap $w, $hh
+$g2 = [System.Drawing.Graphics]::FromImage($small)
+$g2.DrawImage($bmp, 0, 0, $w, $hh)
+$codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
+$ep = New-Object System.Drawing.Imaging.EncoderParameters 1
+$ep.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter ([System.Drawing.Imaging.Encoder]::Quality), 60L
+$small.Save($env:COSMO_SNAP_OUT, $codec, $ep)
+'@
+  try {
+    $env:COSMO_SNAP_OUT = $tmp
+    if (Test-Path $tmp) { Remove-Item $tmp -Force }
+    & powershell -NoProfile -ExecutionPolicy Bypass -Command $child | Out-Null
+    if (Test-Path $tmp) {
+      $b = [System.IO.File]::ReadAllBytes($tmp)
+      Remove-Item $tmp -Force
+      if ($b.Length -gt 0) { return $b }
+    }
+    Write-Log 'aware capture produced no file, using fallback'
+  } catch { Write-Log ('aware capture failed: ' + $_.Exception.Message) }
+  $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+  $bmp = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+  $g = [System.Drawing.Graphics]::FromImage($bmp)
+  $g.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+  $w = 1280; $hh = [int]($bounds.Height * ($w / $bounds.Width))
+  if ($hh -lt 1) { $hh = 1 }
+  $small = New-Object System.Drawing.Bitmap $w, $hh
+  $g2 = [System.Drawing.Graphics]::FromImage($small)
+  $g2.DrawImage($bmp, 0, 0, $w, $hh)
+  $ms = New-Object System.IO.MemoryStream
+  $codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
+  $ep = New-Object System.Drawing.Imaging.EncoderParameters 1
+  $ep.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter ([System.Drawing.Imaging.Encoder]::Quality), 60L
+  $small.Save($ms, $codec, $ep)
+  $b2 = $ms.ToArray()
+  $g.Dispose(); $g2.Dispose(); $bmp.Dispose(); $small.Dispose(); $ms.Dispose()
+  return $b2
+}
+
 function Send-Snapshot {
   try {
-    $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-    $bmp = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $ErrorActionPreference = 'Continue'
-    $g.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
-    $w = 1280; $hh = [int]($bounds.Height * ($w / $bounds.Width))
-    if ($hh -lt 1) { $hh = 1 }
-    $small = New-Object System.Drawing.Bitmap $w, $hh
-    $g2 = [System.Drawing.Graphics]::FromImage($small)
-    $g2.DrawImage($bmp, 0, 0, $w, $hh)
-    $ms = New-Object System.IO.MemoryStream
-    $codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
-    $ep = New-Object System.Drawing.Imaging.EncoderParameters 1
-    $ep.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter ([System.Drawing.Imaging.Encoder]::Quality), 60L
-    $small.Save($ms, $codec, $ep)
-    $bytes = $ms.ToArray()
+    $bytes = Get-SnapshotBytes
     $b64 = [Convert]::ToBase64String($bytes)
-    $g.Dispose(); $g2.Dispose(); $bmp.Dispose(); $small.Dispose(); $ms.Dispose()
     $ok = Post-Json '/api/pc/snapshot' @{ name = $Name; image = $b64; foreground = (Get-ForegroundTitle); remoteTools = @(Get-RemoteToolsRunning) }
     Write-Log ('snapshot posted=' + $ok + ' bytes=' + $bytes.Length)
     return @{ ok = $ok; detail = ('bytes ' + $bytes.Length) }

@@ -12,8 +12,8 @@ function ago(t) {
 
 let avatarState = 'idle';
 let avatarMode = 'svg';
-// State -> the real avatar's own activity videos (same variants the
-// board uses). States without a variant keep the nearest one; CSS effects
+// State -> the real avatar's own activity videos (same variants the Muse
+// app uses). States without a variant keep the nearest one; CSS effects
 // (rings, glow, eq bars, badge) layer on top either way.
 const VARIANTS = {
   idle: 'avatar/idle.mp4', connecting: 'avatar/idle.mp4',
@@ -204,12 +204,12 @@ function renderSms(snap) {
 let lastApps = [];
 let lastCatalog = [];
 let lastAppsSig = '';
-const APP_TARGETS = { music: () => post('/api/music', { show: true }), mail: () => post('/api/mail', { show: true }), calendar: () => post('/api/calendar', { show: true }), facebook: () => post('/api/facebook', { show: true }), messenger: () => post('/api/messenger', { show: true }), instagram: () => post('/api/insta', { show: true }), texts: () => post('/api/sms', { show: true }), home: () => post('/api/ha', { show: true }), weather: () => post('/api/weather', { show: true }), cameras: () => { if (lastCameras.length) post('/api/camera', { id: lastCameras[0].id }); }, paper: () => post('/api/paper', { show: true }), network: () => post('/api/network', { show: true }) };
+const APP_TARGETS = { music: () => post('/api/music', { show: true }), mail: () => post('/api/mail', { show: true }), calendar: () => post('/api/calendar', { show: true }), facebook: () => post('/api/facebook', { show: true }), messenger: () => post('/api/messenger', { show: true }), instagram: () => post('/api/insta', { show: true }), texts: () => post('/api/sms', { show: true }), home: () => post('/api/ha', { show: true }), weather: () => post('/api/weather', { show: true }), cameras: () => { if (lastCameras.length) post('/api/camera', { id: lastCameras[0].id }); }, paper: () => post('/api/paper', { show: true }), network: () => post('/api/network', { show: true }), guardian: () => post('/api/guardian', { show: true }), shop: () => post('/api/shop', { show: true }) };
 function appCardHtml(a, mode) {
   const status = mode === 'catalog' ? '<div class="app-status avail">AVAILABLE</div>' : '<div class="app-status">' + (a.status === 'connected' ? 'CONNECTED' : esc(String(a.status || '').toUpperCase())) + '</div>';
   const acts = mode === 'catalog'
     ? '<div class="app-acts"><button class="app-btn add" data-appadd="' + a.id + '">ADD</button></div>'
-    : '<div class="app-acts"><button class="app-btn" data-appopen="' + a.id + '">OPEN</button><button class="app-btn pin' + (a.inDock ? ' on' : '') + '" data-apppin="' + a.id + '">' + (a.inDock ? 'IN DOCK' : 'PIN TO DOCK') + '</button></div>';
+    : '<div class="app-acts"><button class="app-btn" data-appopen="' + a.id + '">OPEN</button><button class="app-btn pin' + (a.inDrawer ? ' on' : '') + '" data-apppin="' + a.id + '">' + (a.inDrawer ? 'IN DRAWER' : 'PIN TO DRAWER') + '</button></div>';
   return '<div class="app-card" data-appid="' + a.id + '"><div class="app-ico" style="background:' + esc(a.bg || '#33507e') + '">' + esc(a.icon || '') + '</div><div class="app-name">' + esc(a.name || '') + '</div><p>' + esc(a.desc || '') + '</p>' + status + acts + '</div>';
 }
 function renderApps(snap) {
@@ -220,7 +220,7 @@ function renderApps(snap) {
   if (ov) ov.classList.toggle('hidden', !(snap.appsView && snap.appsView.visible));
   const app = snap.appView ? (lastApps.find((x) => x.id === snap.appView.id) || lastCatalog.find((x) => x.id === snap.appView.id)) : null;
   if (aov) aov.classList.toggle('hidden', !app);
-  const sig = JSON.stringify([snap.appsView && snap.appsView.visible, snap.appView, lastApps.map((a) => a.id + ':' + (a.inDock ? 1 : 0)), lastCatalog.map((a) => a.id)]);
+  const sig = JSON.stringify([snap.appsView && snap.appsView.visible, snap.appView, lastApps.map((a) => a.id + ':' + (a.inDrawer ? 1 : 0)), lastCatalog.map((a) => a.id)]);
   if (sig === lastAppsSig) return;
   lastAppsSig = sig;
   if (ov && snap.appsView && snap.appsView.visible) {
@@ -234,29 +234,72 @@ function renderApps(snap) {
       '<p class="app-page-desc">' + esc(app.desc || '') + '</p>' +
       ((app.facts || []).length ? '<ul class="app-facts">' + app.facts.map((f) => '<li>' + esc(f) + '</li>').join('') + '</ul>' : '') +
       '<div>' + (app.target ? '<button class="app-go" data-appgo="' + app.id + '">OPEN ' + esc(String(app.name || '').toUpperCase()) + '</button>' : '') +
-      (lastApps.some((x) => x.id === app.id) ? '<button class="app-pin2' + (app.inDock ? ' on' : '') + '" data-apppin="' + app.id + '">' + (app.inDock ? 'PINNED TO DOCK - TAP TO UNPIN' : 'PIN TO DOCK') + '</button>' : '<button class="app-go" data-appadd="' + app.id + '">ADD THIS APP</button>') + '</div>';
+      (lastApps.some((x) => x.id === app.id) ? '<button class="app-pin2' + (app.inDrawer ? ' on' : '') + '" data-apppin="' + app.id + '">' + (app.inDrawer ? 'PINNED TO DRAWER - TAP TO UNPIN' : 'PIN TO DRAWER') + '</button>' : '<button class="app-go" data-appadd="' + app.id + '">ADD THIS APP</button>') + '</div>';
   }
 }
-let lastDockSig = '';
-function renderAppDock(snap) {
-  const pinned = (snap.apps || []).filter((a) => a.inDock);
-  const sig = JSON.stringify(pinned.map((a) => a.id));
-  if (sig === lastDockSig) return;
-  lastDockSig = sig;
-  const nav = $('boardNav');
-  if (!nav) return;
-  nav.querySelectorAll('button.app-nav').forEach((b) => b.remove());
-  let ref = nav.querySelector('#navStyleBtn');
-  for (const a of pinned) {
-    const b = document.createElement('button');
-    b.className = 'app-nav';
-    b.dataset.appid = a.id;
-    b.innerHTML = '<span class="nav-icon">' + esc(a.icon || '') + '</span><span class="nav-label">' + esc(a.name || '') + '</span><span class="nav-dot"></span>';
-    if (ref && ref.nextSibling) nav.insertBefore(b, ref.nextSibling);
-    else if (ref) nav.appendChild(b);
-    else nav.insertBefore(b, nav.firstChild);
-    ref = b;
-  }
+let lastDrawerSig = '';
+const DRAWER_TILES = [
+  { nav: 'apps', name: 'Apps' },
+  { nav: 'browser', name: 'Browser' },
+  { nav: 'facebook', name: 'Facebook' },
+  { nav: 'messenger', name: 'Messenger' },
+  { nav: 'texts', name: 'Texts' },
+  { nav: 'instagram', name: 'Instagram' },
+  { nav: 'calendar', name: 'Calendar' },
+  { nav: 'mail', name: 'Email' },
+  { nav: 'music', name: 'Music' },
+  { nav: 'cameras', name: 'Cameras' },
+  { nav: 'home', name: 'Home' },
+  { nav: 'help', name: 'What I can do' },
+  { nav: 'settings', name: 'Settings' },
+  { nav: 'navstyle', name: 'Use button bar' }
+];
+// App-catalog entries that duplicate a drawer destination stay on the
+// Apps page only; the rest (and anything built later) get drawer tiles.
+const DRAWER_DUPES = { gmail: 1, calendar: 1, facebook: 1, messenger: 1, instagram: 1, texts: 1, home: 1, spotify: 1 };
+const DRAWER_SVGS = {
+  messenger: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="mgGradD" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#006aff"/><stop offset=".55" stop-color="#a033ff"/><stop offset="1" stop-color="#ff5280"/></linearGradient></defs><path fill="url(#mgGradD)" d="M12 2C6.5 2 2 6.1 2 11.2c0 2.9 1.4 5.4 3.7 7.1V22l3.4-1.9c.9.3 1.9.4 2.9.4 5.5 0 10-4.1 10-9.3S17.5 2 12 2z"/><path fill="#fff" d="M13.4 6.9l-6 5.5h3.1l-1.7 4.7 6-5.5h-3.1l1.7-4.7z"/></svg>',
+  instagram: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="igGradD" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#feda75"/><stop offset=".35" stop-color="#fa7e1e"/><stop offset=".6" stop-color="#d62976"/><stop offset=".82" stop-color="#962fbf"/><stop offset="1" stop-color="#4f5bd5"/></linearGradient></defs><rect x="2.6" y="2.6" width="18.8" height="18.8" rx="5.4" fill="none" stroke="url(#igGradD)" stroke-width="2.2"/><circle cx="12" cy="12" r="4.3" fill="none" stroke="url(#igGradD)" stroke-width="2.2"/><circle cx="17.5" cy="6.5" r="1.6" fill="url(#igGradD)"/></svg>',
+  texts: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#2fbf4f" d="M12 2C6.5 2 2 6.1 2 11.2c0 2.9 1.4 5.4 3.7 7.1V22l3.4-1.9c.9.3 1.9.4 2.9.4 5.5 0 10-4.1 10-9.3S17.5 2 12 2z"/><path stroke="#fff" stroke-width="1.8" stroke-linecap="round" d="M7 9.2h10M7 13h6.5"/></svg>'
+};
+function drawerIconHtml(t) {
+  // Self-contained icons only: cloning the dock SVGs broke (their gradient
+  // paint servers live in the nav, which is display:none while the drawer
+  // is open - Instagram rendered blank, Messenger lost its bubble).
+  if (DRAWER_SVGS[t.nav]) return DRAWER_SVGS[t.nav];
+  return esc(NAV_ICONS[t.nav] || '');
+}
+function renderDrawer(snap) {
+  const g = $('drawerGrid');
+  if (!g) return;
+  const apps = (snap.apps || []).filter((a) => !DRAWER_DUPES[a.id]);
+  const sig = apps.map((a) => a.id + ':' + (a.inDrawer ? 1 : 0)).join(',') + '|D' + (snap.androidApps || []).map((d) => d.package).join(',') + '|' + (document.body.classList.contains('dock-nav') ? 'dock' : 'bar');
+  if (sig === lastDrawerSig) return;
+  lastDrawerSig = sig;
+  let h = '';
+  for (const t of DRAWER_TILES) { const nm = t.nav === 'navstyle' ? (document.body.classList.contains('dock-nav') ? 'Use button bar' : 'Use icon dock') : t.name; h += '<button class="drawer-tile" data-drawer="' + t.nav + '"><span class="drawer-ico">' + drawerIconHtml(t) + '</span><span class="drawer-name">' + esc(nm) + '</span></button>'; }
+  const ordered = [...apps.filter((a) => a.inDrawer), ...apps.filter((a) => !a.inDrawer)];
+  for (const a of ordered) h += '<button class="drawer-tile" data-appopen="' + a.id + '"><span class="drawer-ico">' + esc(a.icon || '') + '</span><span class="drawer-name">' + esc(a.name || '') + (a.inDrawer ? ' <span class="drawer-star">&#9733;</span>' : '') + '</span></button>';
+  for (const d of (snap.androidApps || [])) h += '<button class="drawer-tile" data-android="' + esc(d.package) + '"><span class="drawer-ico">' + (d.icon ? '<img src="' + esc(d.icon) + '" alt="">' : '&#129302;') + '</span><span class="drawer-name">' + esc(d.name) + '</span></button>';
+  g.innerHTML = h;
+}
+function openDrawerTarget(k) {
+  if (k === 'navstyle') { post('/api/navstyle', { style: document.body.classList.contains('dock-nav') ? 'bar' : 'dock' }); return; }
+  const o = $('drawerOverlay');
+  if (o) o.classList.add('hidden');
+  if (k === 'browser') post('/api/browser', { show: true });
+  else if (k === 'apps') post('/api/apps', { show: true });
+  else if (k === 'calendar') post('/api/calendar', { show: true });
+  else if (k === 'mail') post('/api/mail', { show: true });
+  else if (k === 'facebook') post('/api/facebook', { show: true });
+  else if (k === 'messenger') post('/api/messenger', { show: true });
+  else if (k === 'texts') post('/api/sms', { show: true });
+  else if (k === 'instagram') post('/api/insta', { show: true });
+  else if (k === 'music') post('/api/music', { show: true });
+  else if (k === 'help') post('/api/help', { show: true });
+  else if (k === 'home') post('/api/ha', { show: true });
+  else if (k === 'settings') post('/api/settings', { show: true });
+  else if (k === 'cameras' && lastCameras.length) post('/api/camera', { id: lastCameras[0].id });
 }
 
 let lastSnap = null;
@@ -293,6 +336,695 @@ function renderNetwork(snap) {
   box.innerHTML = h;
 }
 
+
+let lastGuardianSig = '';
+let grdPortOpen = false;
+let grdDetails = false;
+let grdWantNumbers = false;
+// ---- Guardian softphone: the board itself can call and answer. It
+// registers to the phone company (Telnyx WebRTC) with the line credentials
+// the box holds, so the app phone and the desk phone share one number.
+let grdPhone = { open: false, num: '', status: 'Off', ready: false, client: null, call: null, ringing: false, inCall: false, peer: '', myNumber: '', initTried: false, startedAt: 0 };
+let grdCallsOpen = false;
+let grdCallSel = null;
+let grdSection = 'main';
+let grdWasVisible = false;
+let grdPcAddOpen = false;
+let grdRingCtx = null, grdRingTimer = null, grdCallTimer = null;
+function grdPhoneRefresh() { lastGuardianSig = ''; if (lastSnap) renderGuardian(lastSnap); }
+function grdRingStart() {
+  if (grdRingTimer) return;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    grdRingCtx = new Ctx();
+    const ring = () => {
+      if (!grdRingCtx) return;
+      if (grdRingCtx.state === 'suspended') grdRingCtx.resume();
+      const t0 = grdRingCtx.currentTime;
+      [440, 480].forEach((f) => {
+        const o = grdRingCtx.createOscillator(); const gn = grdRingCtx.createGain();
+        o.frequency.value = f;
+        gn.gain.setValueAtTime(0.0001, t0);
+        gn.gain.exponentialRampToValueAtTime(0.05, t0 + 0.05);
+        gn.gain.setValueAtTime(0.05, t0 + 1.5);
+        gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.7);
+        o.connect(gn); gn.connect(grdRingCtx.destination);
+        o.start(t0); o.stop(t0 + 1.75);
+      });
+    };
+    ring();
+    grdRingTimer = setInterval(ring, 4000);
+  } catch (e) { }
+}
+function grdRingStop() {
+  if (grdRingTimer) clearInterval(grdRingTimer);
+  grdRingTimer = null;
+  if (grdRingCtx) { try { grdRingCtx.close(); } catch (e) { } grdRingCtx = null; }
+}
+// Force plain G.711 on the phone leg (2026-10-27 diagnosis): the Opus
+// stream Telnyx delivers for PSTN callers can arrive as encoded silence;
+// G.711 is what the phone network already speaks, so nothing transcodes.
+function grdForceG711(call) {
+  try {
+    if (!call || call.__g711) return;
+    const pc = call.peer && call.peer.instance;
+    if (!pc || !window.RTCRtpReceiver || !RTCRtpReceiver.getCapabilities) return;
+    const caps = RTCRtpReceiver.getCapabilities('audio').codecs;
+    const keep = caps.filter((c) => /^(PCMU|PCMA|telephone-event)$/i.test(String(c.mimeType).split('/')[1] || ''));
+    const tr = pc.getTransceivers().filter((t) => t.receiver && t.receiver.track && t.receiver.track.kind === 'audio')[0];
+    if (tr && keep.length && tr.setCodecPreferences) { tr.setCodecPreferences(keep); call.__g711 = true; }
+  } catch (e) { }
+}
+function grdPhoneOnCall(call) {
+  if (!call) return;
+  grdPhone.call = call;
+  if (call.direction === 'inbound') grdForceG711(call);
+  const st = call.state || '';
+  const dir = call.direction || '';
+  if (dir === 'inbound' && (st === 'ringing' || st === 'early' || st === 'new')) {
+    grdPhone.ringing = true; grdPhone.open = true;
+    grdPhone.peer = call.callerNumber || 'Unknown number';
+    post('/api/guardian', { show: true });
+    grdRingStart();
+  } else if (st === 'active') {
+    grdPhone.ringing = false; grdPhone.inCall = true;
+    if (!grdPhone.startedAt) grdPhone.startedAt = Date.now();
+    grdRingStop();
+    grdTapStart(call);
+    if (!grdCallTimer) grdCallTimer = setInterval(() => { const el = $('grdCallTime'); if (el && grdPhone.startedAt) { const s = Math.floor((Date.now() - grdPhone.startedAt) / 1000); el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); } }, 1000);
+  } else if (st === 'hangup' || st === 'destroy') {
+    grdPhone.ringing = false; grdPhone.inCall = false; grdPhone.call = null; grdPhone.startedAt = 0;
+    grdRingStop();
+    grdTapStop();
+    if (grdCallTimer) { clearInterval(grdCallTimer); grdCallTimer = null; }
+  }
+  grdPhoneRefresh();
+}
+const GRD_WEBRTC_ENABLED = false; // 2026-10-28: Telnyx WebRTC media delivers silence on this account; SIP endpoints carry the line now
+async function grdPhoneInit() {
+  if (!GRD_WEBRTC_ENABLED) { grdPhone.status = 'SIP phone mode'; return; }
+  if (grdPhone.initTried) return;
+  grdPhone.initTried = true;
+  try {
+    const creds = await (await fetch('/api/guardian/webrtc')).json();
+    if (!creds.login) { grdPhone.status = 'No line yet'; return; }
+    grdPhone.myNumber = creds.number || '';
+    grdPhone.status = 'Starting phone...';
+    const mod = await import('https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2/+esm');
+    const TelnyxRTC = mod.TelnyxRTC || (mod.default && mod.default.TelnyxRTC ? mod.default.TelnyxRTC : mod.default);
+    const client = new TelnyxRTC({ login: creds.login, password: creds.password });
+    grdPhone.client = client;
+    client.on('telnyx.ready', () => { grdPhone.ready = true; grdPhone.status = 'Ready'; grdPhoneRefresh(); });
+    client.on('telnyx.error', () => { grdPhone.status = 'Phone trouble - Cosmo will look into it'; grdPhoneRefresh(); });
+    client.on('telnyx.notification', (n) => { if (n && n.type === 'callUpdate' && n.call) grdPhoneOnCall(n.call); });
+    client.connect();
+  } catch (e) { grdPhone.status = 'Phone unavailable right now'; }
+}
+function grdPhoneDial() {
+  if (!grdPhone.client || !grdPhone.ready) { grdPhone.status = 'The phone is still starting - one moment'; grdPhoneRefresh(); return; }
+  let d = grdPhone.num.replace(/[^0-9+]/g, '');
+  if (d.replace(/\D/g, '').length < 7) return;
+  if (d.charAt(0) !== '+') d = (d.length === 10 ? '+1' : '+') + d;
+  try {
+    const call = grdPhone.client.newCall({ destinationNumber: d, callerNumber: grdPhone.myNumber, audio: true, video: false });
+    grdPhone.call = call; grdPhone.peer = d; grdPhone.inCall = true; grdPhone.startedAt = Date.now();
+  } catch (e) { grdPhone.status = 'The microphone is not ready yet'; }
+  grdPhoneRefresh();
+}
+// ---- Guardian Ear (page side): tap both call streams, post PCM windows
+// to the box, which transcribes them live and saves the transcript.
+let grdTap = null;
+function grdTapStart(call) {
+  if (window.__GRD_NO_TAP) return; // A/B diagnostic 2026-10-27: tap fully off
+  if (grdTap) return;
+  const callId = (call && call.id) || ('c' + Date.now());
+  post('/api/guardian/call-start', { callId: callId, peer: grdPhone.peer || '', dir: (call && call.direction) || '' });
+  let ctx;
+  try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  const tap = { ctx: ctx, callId: callId, nodes: [] };
+  const mk = (stream, side) => {
+    if (!stream) return;
+    try {
+      const src = ctx.createMediaStreamSource(stream);
+      const proc = ctx.createScriptProcessor(4096, 1, 1);
+      const mute = ctx.createGain(); mute.gain.value = 0;
+      let acc = []; let accLen = 0;
+      proc.onaudioprocess = (e) => {
+        const d = e.inputBuffer.getChannelData(0);
+        acc.push(new Float32Array(d)); accLen += d.length;
+        if (accLen >= ctx.sampleRate * 2) {
+          const all = new Float32Array(accLen);
+          let o = 0; for (const c of acc) { all.set(c, o); o += c.length; }
+          acc = []; accLen = 0;
+          const pcm = new Int16Array(all.length);
+          for (let i = 0; i < all.length; i++) { const s = Math.max(-1, Math.min(1, all[i])); pcm[i] = s < 0 ? s * 32768 : s * 32767; }
+          const bytes = new Uint8Array(pcm.buffer);
+          let bin = '';
+          for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+          post('/api/guardian/audio', { callId: callId, side: side, rate: ctx.sampleRate, pcm: btoa(bin) });
+        }
+      };
+      src.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
+      tap.nodes.push(src, proc, mute);
+    } catch (e) { }
+  };
+  // Tap CLONES: the interruptor mutes/replaces the original tracks, and
+  // transcription must keep hearing both sides no matter what.
+  const cloneOf = (s) => { try { const t = s && s.getAudioTracks()[0]; return t ? new MediaStream([t.clone()]) : null; } catch (e) { return null; } };
+  mk(cloneOf(call.localStream), 'local');
+  // The SDK's remoteStream is a SILENT placeholder (measured RMS 0.0000 on
+  // live calls) - the caller's real audio is on the peer connection's
+  // receiver track. Tap that; fall back to remoteStream if no pc handle.
+  let remoteSrc = null;
+  try {
+    const pc = call.peer && call.peer.instance;
+    const recv = pc && pc.getReceivers().filter((r) => r.track && r.track.kind === 'audio')[0];
+    if (recv) remoteSrc = new MediaStream([recv.track.clone()]);
+  } catch (e) { }
+  mk(remoteSrc || cloneOf(call.remoteStream), 'remote');
+  grdTap = tap;
+}
+// ---- The Interruptor (2026-10-27): Cosmo steps INTO the call.
+// Both parties are cut off from each other; Cosmo's voice goes to both;
+// each side can still talk to Cosmo (transcription keeps running).
+let grdIntr = { active: false, ctx: null, dest: null, sender: null, micTrack: null, recvTrack: null };
+const GRD_LINE_IN = 'This is Cosmo, the Guardian, stepping into this call. From now on, this call goes through me. You can each talk to me, but you cannot hear each other. Caller, stay on the line and speak with me.';
+const GRD_LINE_OUT = 'This is Cosmo. I am stepping back now. You can talk to each other again.';
+function grdSay(text, done) {
+  let doneOnce = false;
+  const fin = () => { if (!doneOnce) { doneOnce = true; if (done) done(); } };
+  done = fin;
+  try {
+    fetch('/api/guardian/say', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text }) })
+      .then((r) => r.blob())
+      .then((blob) => {
+        const el = new Audio();
+        el.src = URL.createObjectURL(blob);
+        let routed = false;
+        if (grdIntr.active && grdIntr.ctx) {
+          try {
+            const srcNode = grdIntr.ctx.createMediaElementSource(el);
+            srcNode.connect(grdIntr.ctx.destination);
+            srcNode.connect(grdIntr.dest);
+            routed = true;
+          } catch (e) { }
+        }
+        el.onended = () => { if (done) done(); };
+        el.onerror = () => { if (done) done(); };
+        el.play().catch(() => { if (done) done(); });
+        if (!routed && done) setTimeout(done, 4000);
+      })
+      .catch(() => { if (done) done(); });
+  } catch (e) { if (done) done(); }
+}
+function grdInterrupt() {
+  const call = grdPhone.call;
+  if (!call || grdIntr.active) return;
+  try {
+    const pc = call.peer && call.peer.instance;
+    if (!pc) return;
+    const sender = pc.getSenders().filter((s) => s.track && s.track.kind === 'audio')[0];
+    const recv = pc.getReceivers().filter((r) => r.track && r.track.kind === 'audio')[0];
+    if (!sender) return;
+    grdIntr.micTrack = sender.track;
+    grdIntr.sender = sender;
+    grdIntr.recvTrack = recv ? recv.track : null;
+    if (grdIntr.recvTrack) grdIntr.recvTrack.enabled = false; // she stops hearing the caller
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.resume) ctx.resume();
+    grdIntr.ctx = ctx;
+    grdIntr.dest = ctx.createMediaStreamDestination();
+    const cosmoTrack = grdIntr.dest.stream.getAudioTracks()[0];
+    sender.replaceTrack(cosmoTrack).then(() => {
+      grdIntr.active = true;
+      post('/api/guardian/interrupt', { on: true });
+      grdSay(GRD_LINE_IN);
+      grdPhoneRefresh();
+    }).catch(() => {});
+  } catch (e) { }
+}
+function grdRelease() {
+  if (!grdIntr.active) return;
+  grdSay(GRD_LINE_OUT, () => {
+    try {
+      if (grdIntr.sender && grdIntr.micTrack) grdIntr.sender.replaceTrack(grdIntr.micTrack).catch(() => {});
+      if (grdIntr.recvTrack) grdIntr.recvTrack.enabled = true;
+      if (grdIntr.ctx) grdIntr.ctx.close();
+    } catch (e) { }
+    grdIntr = { active: false, ctx: null, dest: null, sender: null, micTrack: null, recvTrack: null };
+    post('/api/guardian/interrupt', { on: false });
+    post('/api/guardian/intr', { cmd: '' });
+    grdPhoneRefresh();
+  });
+}
+function grdTapStop() {
+  if (grdIntr.ctx) { try { grdIntr.ctx.close(); } catch (e) { } }
+  grdIntr = { active: false, ctx: null, dest: null, sender: null, micTrack: null, recvTrack: null };
+  if (!grdTap) return;
+  const t = grdTap; grdTap = null;
+  t.nodes.forEach((n) => { try { n.disconnect(); } catch (e) { } });
+  if (t.ctx) { try { t.ctx.close(); } catch (e) { } }
+  post('/api/guardian/call-end', { callId: t.callId });
+}
+function grdPhoneView(line, g) {
+  let h = '';
+  if (grdPhone.ringing) {
+    h += '<div class="grd-big grd-pulse">Someone is calling you</div>' +
+      '<div class="grd-num">' + esc(fmtPhone(grdPhone.peer) || grdPhone.peer) + '</div>' +
+      '<p class="grd-note-lg">Your Guardian is checking this caller. If it is someone you know, tap ANSWER.</p>' +
+      '<div class="network-actions"><button class="app-pin2 grd-huge" id="grdDecline">NO THANKS</button><button class="app-go grd-huge" id="grdAnswer">ANSWER</button></div>';
+    return h;
+  }
+  if (grdPhone.inCall) {
+    const live = (g && g.live) || null;
+    h += '<div class="grd-big" style="font-size:30px">On a call with</div>' +
+      '<div class="grd-num">' + esc(fmtPhone(grdPhone.peer) || grdPhone.peer) + '</div>' +
+      '<div class="grd-wait" id="grdCallTime">0:00</div>';
+    if (live && live.alert) {
+      h += '<div class="grd-alert"><b>THIS CALL MAY BE A SCAM</b><br>' + esc(live.alert.why) + '<br>If it feels wrong, hang up. A real grandchild, bank, or officer will never rush you.</div>';
+    }
+    if (live && live.interrupted) {
+      h += '<div class="grd-steppedin">COSMO HAS STEPPED IN<br><span>You and the caller now talk only to Cosmo &mdash; you cannot hear each other.</span></div>' +
+        '<div class="network-actions"><button class="app-pin2" id="grdRelease">LET THEM TALK AGAIN</button></div>';
+    } else {
+      h += '<div class="network-actions"><button class="app-pin2" id="grdStepIn">COSMO, STEP IN</button></div>';
+    }
+    h += '<div class="grd-listen">' + (live ? '&#128737;&#65039; Guardian is listening and writing this call down' : 'Guardian is starting to listen...') + '</div>';
+    if (live && live.lines && live.lines.length) {
+      h += '<div class="grd-transcript">' + live.lines.slice(-6).map((l) => '<div class="grd-tline"><b>' + esc(l.who) + ':</b> ' + esc(l.text) + '</div>').join('') + '</div>';
+    }
+    h += '<div class="network-actions"><button class="app-pin2 grd-huge" id="grdHangup" style="background:#7f1d2d">HANG UP</button></div>' +
+      '<div class="grd-details-link"><button class="app-pin2" id="grdPhoneBack">BACK</button></div>';
+    return h;
+  }
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
+  h += '<div class="grd-big" style="font-size:28px">Call someone</div>' +
+    '<div class="grd-disp">' + esc(grdPhone.num || ' ') + '</div>' +
+    '<div class="grd-statusline">' + esc(grdPhone.status) + '</div>' +
+    '<div class="grd-pad">' + keys.map((k) => '<button class="grd-key" data-k="' + k + '">' + k + '</button>').join('') + '</div>' +
+    '<div class="network-actions"><button class="app-pin2" id="grdBksp">DELETE</button><button class="app-pin2" id="grdPhoneBack">BACK</button><button class="app-go grd-huge" id="grdDial">CALL</button></div>';
+  return h;
+}
+let grdLastScan = 0;
+function fmtPhone(n) { return /^\+1\d{10}$/.test(n || '') ? n.replace(/^\+1(\d{3})(\d{3})(\d{4})$/, '+1 $1-$2-$3') : (n || ''); }
+function grdGoto(step) { post('/api/guardian/wizard', { step: step }); lastGuardianSig = ''; }
+function grdRelTime(ts) { if (!ts) return 'never'; const s = Math.max(0, Math.floor((Date.now() - ts) / 1000)); if (s < 90) return 'just now'; if (s < 3600) return Math.floor(s / 60) + ' min ago'; if (s < 86400) return Math.floor(s / 3600) + ' hr ago'; return Math.floor(s / 86400) + ' d ago'; }
+function grdMainView(snap) {
+  const g = snap.guardian || {};
+  const line = g.line || {};
+  const live = line.status === 'live';
+  const pc = snap.pc || {};
+  const pcs = (snap.pcs && snap.pcs.length) ? snap.pcs : (pc && pc.name ? [pc] : []);
+  const pcLine = pcs.length ? pcs.map((x) => esc(x.name || 'PC')).join(', ') + (pcs.some((x) => x.online && (Date.now() - (x.lastSeen || 0)) < 180000) ? ' - connected' : ' - last seen ' + grdRelTime(Math.max.apply(null, pcs.map((x) => x.lastSeen || 0)))) : 'No computers yet - tap to add one';
+  let h = '<div class="grd-big">Your Guardians</div>' +
+    '<p class="grd-note">Two Guardians watch over this home. Tap one to open it.</p>' +
+    '<button class="grd-gcard" id="grdSecPhone"><span class="grd-gico">&#128737;&#65039;&#128222;</span><span class="grd-gname">PHONE GUARDIAN</span><span class="grd-gsub">' + (live ? esc(fmtPhone(line.number)) + ' - protected' : 'Not set up yet - tap to start') + '</span></button>' +
+    '<button class="grd-gcard" id="grdSecPc"><span class="grd-gico">&#128737;&#65039;&#128187;</span><span class="grd-gname">PC GUARDIAN</span><span class="grd-gsub">' + pcLine + '</span></button>';
+  if (g.live) h += '<div class="grd-step">A call is being guarded right now - open Phone Guardian to see it.</div>';
+  return h;
+}
+function grdPcView(snap) {
+  const pc = snap.pc || {};
+  const pcs = (snap.pcs && snap.pcs.length) ? snap.pcs : (pc && pc.name ? [pc] : []);
+  let h = '<div class="network-actions"><button class="app-pin2" id="grdSecMain">&#8592; YOUR GUARDIANS</button></div>' +
+    '<div class="grd-big" style="font-size:30px">PC Guardian</div>' +
+    '<p class="grd-note">These computers are guarded: Cosmo keeps an eye on their health, watches for scam pages, and can lend a hand on the screen when asked.</p>';
+  if (!pcs.length) h += '<div class="grd-step">No computers connected yet. Add one below.</div>';
+  h += pcs.map((x) => {
+    const health = x.health || {};
+    const isOn = x.online && (Date.now() - (x.lastSeen || 0)) < 180000;
+    return '<div class="grd-pcrow"><div class="grd-pcname">' + netDot(isOn ? 'up' : 'down') + '<span>' + esc(x.name || 'PC') + '</span></div>' +
+      '<div class="grd-pcdet">' + esc(x.os || '') + (x.user ? ' - signed in as ' + esc(x.user) : '') + '<br>' + (isOn ? 'Connected now' : 'Last seen ' + grdRelTime(x.lastSeen)) + (x.foreground ? '<br>On screen: ' + esc(x.foreground) : '') + (typeof health.updatesPending === 'number' ? '<br>Updates waiting: ' + health.updatesPending : '') + '</div>' +
+      '<div class="network-actions"><button class="app-pin2" id="grdPcCheck">CHECK THIS PC</button></div></div>';
+  }).join('');
+  h += '<div class="network-actions"><button class="app-go grd-huge" id="grdPcAdd">ADD A PC</button></div>';
+  if (grdPcAddOpen) {
+    h += '<div class="grd-addpanel"><p class="grd-note-lg">This box is now showing itself on your network as <b>FUSEBOX</b> - with just one file in it, the installer.</p>' +
+      '<div class="grd-checks">' +
+      '<div class="grd-check"><span class="grd-ball">1</span><span>On the Windows computer, open <b>File Explorer</b> and click <b>Network</b> on the left.</span></div>' +
+      '<div class="grd-check"><span class="grd-ball">2</span><span>Double-click <b>FUSEBOX</b>.</span></div>' +
+      '<div class="grd-check"><span class="grd-ball">3</span><span>Double-click the file <b>Install PC Guardian</b>. If Windows asks, say Yes.</span></div></div>' +
+      '<p class="grd-note">It installs itself in about a minute, and the computer appears in the list above. When you are done adding computers, tap DONE and the box stops showing itself.</p>' +
+      '<div class="network-actions"><button class="app-go grd-huge" id="grdPcShareDone">DONE</button></div>' +
+      '<p class="grd-note">No FUSEBOX under Network? On that computer, open Windows PowerShell and paste this line instead:</p>' +
+      '<div class="grd-code">powershell -ep bypass -c "iwr http://192.168.1.10:3180/pc/install.ps1 -UseBasicParsing | iex"</div></div>';
+  }
+  return h;
+}
+function renderGuardian(snap) {
+  const ov = $('guardianOverlay');
+  if (!ov) return;
+  const view = snap.guardianView || { visible: false };
+  ov.classList.toggle('hidden', !view.visible);
+  if (!view.visible) { grdWasVisible = false; return; }
+  if (!grdWasVisible) { grdWasVisible = true; grdSection = 'main'; grdDetails = false; grdCallsOpen = false; grdCallSel = null; grdPortOpen = false; grdWantNumbers = false; grdPcAddOpen = false; lastGuardianSig = ''; }
+  const g = snap.guardian || {};
+  const sig = JSON.stringify(g) + '|' + grdPortOpen + '|' + grdDetails + '|' + grdWantNumbers + '|' + grdPhone.open + '|' + grdPhone.ringing + '|' + grdPhone.inCall + '|' + grdPhone.status + '|' + grdPhone.num + '|' + grdPhone.peer + '|' + grdCallsOpen + '|' + grdCallSel + '|' + ((g.live && g.live.lines) ? g.live.lines.length : 0) + '|' + (g.live && g.live.alert ? 'A' : '') + '|' + grdSection + '|' + (grdPcAddOpen ? '1' : '0');
+  // Interruptor obedience: runs even when the view itself is unchanged.
+  if (g.live && grdPhone.inCall) {
+    if (g.live.alert && !grdIntr.active && !g.live.intrCmd) post('/api/guardian/intr', { cmd: 'in' });
+    if (g.live.intrCmd === 'in' && !grdIntr.active) grdInterrupt();
+    if (g.live.intrCmd === 'out' && grdIntr.active) grdRelease();
+  }
+  if (sig === lastGuardianSig) return;
+  const body = $('guardianBody');
+  if (body && body.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;
+  lastGuardianSig = sig;
+  const ad = g.adapter || {};
+  const line = g.line || {};
+  const setup = g.setup || {};
+  const port = g.porting || {};
+  const wiz = g.wizard || { step: 'welcome' };
+  const live = line.status === 'live';
+  let h = '';
+  if (grdDetails) {
+    h += '<div class="fb-sec">SETUP DETAILS</div>' +
+      '<div class="net-row">' + netDot(ad.registered ? 'up' : (ad.found ? 'seen' : 'down')) + '<span class="net-name">' + esc(ad.model || 'No adapter') + '</span><span class="net-detail">' + esc(ad.ip || '') + ' &middot; ' + esc(ad.mac || '') + '<br>' + (ad.registered ? 'SIP registered' : 'Not registered') + '</span></div>' +
+      '<div class="net-row"><span class="net-name">Line</span><span class="net-detail">' + esc(line.number || 'none') + ' &middot; status ' + esc(line.status || '') + '<br>Setup step: ' + esc(wiz.step || '') + (setup.error ? '<br>Error: ' + esc(setup.error) : '') + (setup.debug ? '<br>Probe: ' + esc(setup.debug) : '') + '</span></div>' +
+      '<div class="network-actions"><button class="app-go" id="grdScan">SCAN FOR ADAPTER</button><button class="app-pin2" id="grdDetailsBtn">BACK</button></div>' +
+      '<div class="fb-sec">SIP PHONE SETUP (testing)</div>' +
+      '<div class="net-row"><span class="net-name">Server</span><span class="net-detail">sip.telnyx.com port 5060</span></div>' +
+      '<div class="net-row"><span class="net-name">Username</span><span class="net-detail" id="grdSipUser">...</span></div>' +
+      '<div class="net-row"><span class="net-name">Password</span><span class="net-detail" id="grdSipPass">...</span></div>' +
+      '<div class="grd-note">For a desk IP phone: one account, these three values. It rings with the Guardian line.</div>' +
+      '<div class="fb-sec">FAMILY PASSWORD</div>' +
+      '<div class="net-row"><span class="net-name">Status</span><span class="net-detail">' + (g.familyPwSet ? 'Set - the Guardian can check callers against it' : 'Not set - set one below') + '</span></div>' +
+      '<div class="grd-pwrow"><input class="grd-in" id="grdFamPwIn" type="text" placeholder="Type the family password" autocomplete="off"><button class="app-go" id="grdFamPwSave">SAVE</button></div>' +
+      '<div class="grd-note">A word or phrase only your family knows. When the Guardian steps into a suspicious call, it can ask the caller for it.</div>';
+    body.innerHTML = h;
+    fetch('/api/guardian/webrtc').then(r => r.json()).then(c => {
+      const u = document.getElementById('grdSipUser'), p = document.getElementById('grdSipPass');
+      if (u) u.textContent = (c && c.login) || '-';
+      if (p) p.textContent = (c && c.password) || '-';
+    }).catch(() => {});
+    fetch('/api/guardian/familypw').then(r => r.json()).then(c => {
+      const i = document.getElementById('grdFamPwIn');
+      if (i && c && c.password) i.value = c.password;
+    }).catch(() => {});
+    return;
+  }
+  if (live) {
+    grdPhoneInit();
+    if (grdPhone.open || grdPhone.ringing) { body.innerHTML = grdPhoneView(line, g); return; }
+    const gl = g.live || null;
+    if (gl) {
+      const el = Math.max(0, Math.floor((Date.now() - (gl.startedAt || Date.now())) / 1000));
+      const elStr = Math.floor(el / 60) + ':' + String(el % 60).padStart(2, '0');
+      h += '<div class="grd-big" style="font-size:30px">On a call with</div>' +
+        '<div class="grd-num">' + esc(fmtPhone(gl.peer) || gl.peer || '') + '</div>' +
+        '<div class="grd-wait">' + elStr + '</div>';
+      if (gl.alert) {
+        h += '<div class="grd-alert"><b>THIS CALL MAY BE A SCAM</b><br>' + esc(gl.alert.why) + '<br>If it feels wrong, hang up. A real grandchild, bank, or officer will never rush you.</div>';
+      }
+      h += '<div class="grd-listen">&#128737;&#65039; Guardian is listening and writing this call down</div>';
+      if (gl.lines && gl.lines.length) {
+        h += '<div class="grd-transcript">' + gl.lines.slice(-6).map((l) => '<div class="grd-tline"><b>' + esc(l.who) + ':</b> ' + esc(l.text) + '</div>').join('') + '</div>';
+      }
+      h += '<div class="network-actions">' +
+        '<button class="app-pin2 grd-huge" id="grdMuteHer"' + (gl.mutedHer ? ' style="background:#b45309"' : '') + '>' + (gl.mutedHer ? 'HER SIDE IS MUTED' : 'MUTE HER SIDE') + '</button>' +
+        '<button class="app-pin2 grd-huge" id="grdMuteThem"' + (gl.mutedThem ? ' style="background:#b45309"' : '') + '>' + (gl.mutedThem ? 'THEIR SIDE IS MUTED' : 'MUTE THEIR SIDE') + '</button></div>' +
+        '<p class="grd-note">Muting a side silences it for the other person. The call itself is never touched.</p>';
+      if (gl.interrupted) {
+        h += '<div class="grd-steppedin">COSMO HAS STEPPED IN<br><span>You and the caller now talk only to Cosmo &mdash; you cannot hear each other.</span></div>' +
+          '<div class="network-actions"><button class="app-pin2 grd-huge" id="grdAskPw2">ASK FOR THE PASSWORD</button></div>' +
+          '<div class="network-actions"><button class="app-pin2 grd-huge" id="grdStepBack2">LET THEM TALK AGAIN</button></div>' +
+          '<div class="network-actions"><button class="app-pin2 grd-huge" id="grdHangup2" style="background:#7f1d2d">HANG UP THE CALL</button></div>';
+      } else {
+        h += '<div class="network-actions"><button class="app-pin2 grd-huge" id="grdStepIn2">COSMO, STEP IN</button></div>';
+      }
+      body.innerHTML = h;
+      return;
+    }
+    if (grdSection === 'pc') { body.innerHTML = grdPcView(snap); return; }
+    if (grdSection === 'main') { body.innerHTML = grdMainView(snap); return; }
+    if (grdCallSel !== null && (g.calls || [])[grdCallSel]) {
+      const c = g.calls[grdCallSel];
+      h += '<div class="grd-big" style="font-size:28px">Call with ' + esc(fmtPhone(c.peer) || c.peer || 'unknown') + '</div>' +
+        '<div class="grd-statusline">' + esc(new Date(c.startedAt).toLocaleString()) + (c.alert ? ' - flagged as a possible scam' : '') + '</div>' +
+        '<div class="grd-transcript grd-full">' + (c.lines && c.lines.length ? c.lines.map((l) => '<div class="grd-tline"><b>' + esc(l.who) + ':</b> ' + esc(l.text) + '</div>').join('') : '<div class="grd-tline">Nothing was said on this call.</div>') + '</div>' +
+        '<div class="network-actions"><button class="app-pin2" id="grdCallBack2">BACK TO CALLS</button></div>';
+      body.innerHTML = h;
+      return;
+    }
+    if (grdCallsOpen) {
+      h += '<div class="grd-big" style="font-size:28px">Your calls</div>' +
+        '<p class="grd-note">Every call, written down. Tap one to read it.</p>' +
+        (g.calls || []).map((c, i) => '<button class="grd-callrow" data-ci="' + i + '"><span>' + esc(fmtPhone(c.peer) || c.peer || 'unknown') + (c.alert ? ' &#128737;&#65039;' : '') + '</span><span class="grd-callwhen">' + esc(new Date(c.startedAt).toLocaleString()) + ' &middot; ' + ((c.lines || []).length) + ' lines</span></button>').join('') +
+        '<div class="network-actions"><button class="app-pin2" id="grdCallsBack">BACK</button></div>';
+      body.innerHTML = h;
+      return;
+    }
+    h += '<div class="network-actions"><button class="app-pin2" id="grdSecMain">&#8592; YOUR GUARDIANS</button></div>' +
+      '<div class="grd-done-ico">&#128737;&#65039;</div>' +
+      '<div class="grd-big">Your phone is protected</div>' +
+      '<div class="grd-num">' + esc(fmtPhone(line.number)) + '</div>' +
+      '<p class="grd-note">When someone calls, your Guardian checks who it is before your phone rings. The people you trust get straight through.</p>' +
+      '<div class="network-actions"><button class="app-go grd-huge" id="grdCallOpen">MAKE A CALL</button><button class="app-go" id="grdRing">TEST MY PHONE</button></div>' +
+      ((g.calls || []).length ? '<div class="network-actions"><button class="app-pin2" id="grdCallsOpen">READ MY CALLS (' + (g.calls || []).length + ')</button></div>' : '') +
+      (port.status && port.status !== 'requested' ? '<div class="grd-step">Your old number transfer: ' + esc(port.status) + (port.note ? ' - ' + esc(port.note) : '') + '</div>' : '') +
+      (port.status === 'requested' ? '<div class="grd-step">Your old number transfer was requested - Cosmo is sending it in now.</div>' : '') +
+      '<p class="grd-note">And if this box is ever off or unplugged, your phone still rings like a normal phone. Nothing to worry about.</p>' +
+      '<div class="grd-details-link"><button class="app-pin2" id="grdDetailsBtn">SETUP DETAILS</button></div>';
+    body.innerHTML = h;
+    return;
+  }
+  if (grdSection === 'pc') { body.innerHTML = grdPcView(snap); return; }
+  if (grdSection === 'main') { body.innerHTML = grdMainView(snap); return; }
+  const steps = ['welcome', 'plug', 'number', 'password', 'testing'];
+  let step = wiz.step || 'welcome';
+  if (!steps.includes(step)) step = 'welcome';
+  if (step === 'testing' && !setup.busy && line.status !== 'connecting' && line.status !== 'programming') step = 'password';
+  const dots = ['plug', 'number', 'password', 'testing'];
+  const dotIdx = dots.indexOf(step);
+  if (dotIdx >= 0) {
+    h += '<div class="grd-dots">' + dots.map((d, i) => '<span class="grd-dot' + (i < dotIdx ? ' done' : (i === dotIdx ? ' now' : '')) + '"></span>').join('') + '</div>';
+  }
+  if (step === 'welcome') {
+    h += '<div class="grd-big">Let\'s set up your phone</div>' +
+      '<p class="grd-note-lg">This takes about five minutes, one small step at a time. Your phone keeps working the whole time, and nothing can break. Cosmo will guide you.</p>' +
+      '<div class="network-actions"><button class="app-go grd-huge" id="grdWStart">START</button></div>';
+  } else if (step === 'plug') {
+    if (!ad.found && Date.now() - grdLastScan > 6000) { grdLastScan = Date.now(); post('/api/guardian/scan', {}); }
+    h += '<div class="grd-big">Plug in the phone box</div>' +
+      '<div class="grd-checks">' +
+      '<div class="grd-check"><span class="grd-ball">1</span><span>Plug the power cord into the wall and into the phone box</span></div>' +
+      '<div class="grd-check"><span class="grd-ball">2</span><span>Plug the internet cable into the phone box, and the other end into your router</span></div>' +
+      '<div class="grd-check"><span class="grd-ball">3</span><span>Plug your phone cord into the phone box, in the hole that says PHONE 1</span></div></div>';
+    if (ad.found) {
+      h += '<div class="grd-step">&#10003; Found it! Your phone box is on and Cosmo can see it.</div>' +
+        '<div class="network-actions"><button class="app-pin2" data-wstep="welcome">BACK</button><button class="app-go grd-huge" data-wstep="number">CONTINUE</button></div>';
+    } else {
+      h += '<div class="grd-wait">Looking for your phone box...</div>' +
+        '<div class="network-actions"><button class="app-pin2" data-wstep="welcome">BACK</button></div>';
+    }
+  } else if (step === 'number') {
+    h += '<div class="grd-big">Your phone number</div>';
+    if (line.number) {
+      h += '<p class="grd-note-lg">Your new number is ready:</p><div class="grd-num">' + esc(fmtPhone(line.number)) + '</div>' +
+        '<p class="grd-note">Write it down if you like - it will also be on this screen whenever you need it.</p>' +
+        '<div class="network-actions"><button class="app-pin2" data-wstep="plug">BACK</button><button class="app-go grd-huge" data-wstep="password">CONTINUE</button></div>';
+    } else if (grdPortOpen) {
+      h += '<p class="grd-note-lg">To keep your current number, Cosmo needs a few things from your phone bill. Take your time - every box is one line from the bill.</p>' +
+        '<div class="grd-form">' +
+        '<input id="grdPortNum" class="grd-in grd-in-lg" placeholder="Your current phone number">' +
+        '<input id="grdPortCarrier" class="grd-in grd-in-lg" placeholder="Your phone company - like Verizon or Frontier">' +
+        '<input id="grdPortName" class="grd-in grd-in-lg" placeholder="The name on the bill, exactly as printed">' +
+        '<input id="grdPortAcct" class="grd-in grd-in-lg" placeholder="Account number from the bill">' +
+        '<input id="grdPortPin" class="grd-in grd-in-lg" type="password" placeholder="Account PIN, if you have one (you may not)">' +
+        '<input id="grdPortAddr" class="grd-in grd-in-lg" placeholder="The address on the bill">' +
+        '<button class="app-go grd-huge" id="grdPortBtn">START THE TRANSFER</button>' +
+        '<p class="grd-note">Transfers take a few days - the phone companies do that part. Your phone keeps working the whole time. Cosmo watches the transfer and shows you how it is going.</p></div>' +
+        '<div class="network-actions"><button class="app-pin2" id="grdPortToggle">BACK TO THE CHOICES</button></div>';
+      if (port.status === 'requested') h += '<div class="grd-step">All filled in - Cosmo is sending your transfer in now.</div>';
+    } else if (grdWantNumbers) {
+      const cands = g.candidates || [];
+      if (cands.length) {
+        h += '<p class="grd-note-lg">Cosmo found these numbers near you. Tap the one you like best:</p>' +
+          '<div class="grd-cands">' + cands.map((n) => '<button class="grd-cand" data-pick="' + esc(n) + '">' + esc(fmtPhone(n)) + '</button>').join('') + '</div>' +
+          '<div class="network-actions"><button class="app-pin2" id="grdMoreNums">SHOW ME DIFFERENT NUMBERS</button></div>';
+      } else {
+        h += '<div class="grd-wait">Cosmo is finding numbers near you...</div>';
+      }
+      h += '<div class="network-actions"><button class="app-pin2" id="grdNumBack">BACK</button></div>';
+    } else {
+      h += '<p class="grd-note-lg">Do you want to keep the phone number you have now, or get a brand-new one?</p>' +
+        '<div class="grd-twobtn"><button class="app-go grd-huge" id="grdKeepNum">KEEP MY NUMBER</button><button class="app-go grd-huge" id="grdNewNum">GET A NEW NUMBER</button></div>' +
+        '<p class="grd-note">Keeping your number takes a few days to move over. A new number can be ready today.</p>' +
+        '<div class="network-actions"><button class="app-pin2" data-wstep="plug">BACK</button></div>';
+    }
+  } else if (step === 'password') {
+    h += '<div class="grd-big">One code from the phone box</div>';
+    if (setup.busy) {
+      h += '<div class="grd-wait">' + esc(setup.step || 'Setting up your phone box...') + '</div>';
+    } else if (setup.needsPassword) {
+      h += '<p class="grd-note-lg">Turn the phone box over. There is a sticker on the bottom. Find the words <b>ADMIN PASSWORD</b> - a code is printed right after them. Type that code here, exactly as it is printed:</p>' +
+        '<div class="grd-formrow"><input type="text" id="grdPw" class="grd-in grd-in-lg" placeholder="The code from the sticker" autocomplete="off" autocapitalize="off"></div>' +
+        (setup.error ? '<div class="grd-err">' + esc(setup.error) + '</div>' : '') +
+        '<p class="grd-note">If it does not work, wait one minute and try again - nothing breaks. The code stays on this box only.</p>' +
+        '<div class="network-actions"><button class="app-pin2" data-wstep="number">BACK</button><button class="app-go grd-huge" id="grdPwBtn">THAT\'S THE CODE</button></div>';
+    } else if (line.number) {
+      h += '<div class="grd-big" style="font-size:28px">Connecting your number</div>' +
+        '<div class="grd-wait grd-pulse">' + esc(setup.step || 'Talking to the phone company...') + '</div>' +
+        '<p class="grd-note">This can take a few minutes. Your phone still works like normal while you wait - nothing is wrong, and you can leave this screen and come back.</p>' +
+        '<div class="network-actions"><button class="app-pin2" data-wstep="number">BACK</button><button class="app-go grd-huge" id="grdRetry">TRY AGAIN</button></div>';
+    } else {
+      h += '<p class="grd-note-lg">First, let\'s pick your number.</p>' +
+        '<div class="network-actions"><button class="app-go grd-huge" data-wstep="number">CHOOSE MY NUMBER</button></div>';
+    }
+  } else if (step === 'testing') {
+    if (setup.busy || line.status === 'connecting' || line.status === 'programming') {
+      h += '<div class="grd-big">Almost there</div><div class="grd-wait">' + esc(setup.step || 'Connecting your number...') + '</div>' +
+        '<p class="grd-note">This can take a minute. You can leave this screen open.</p>';
+    } else {
+      h += '<div class="grd-big" style="font-size:28px">Connecting your number</div>' +
+        '<div class="grd-wait grd-pulse">' + esc(setup.step || 'Talking to the phone company...') + '</div>' +
+        '<p class="grd-note">This is taking a while. Your phone still works like normal. Tap TRY AGAIN and Cosmo will set it up once more.</p>' +
+        '<div class="network-actions"><button class="app-pin2" data-wstep="password">BACK</button><button class="app-go grd-huge" id="grdRetry">TRY AGAIN</button></div>';
+    }
+  }
+  h += '<div class="grd-details-link"><button class="app-pin2" id="grdDetailsBtn">SETUP DETAILS</button></div>';
+  body.innerHTML = h;
+}
+
+let lastSettingsSig = '';
+let lastSettings = null;
+let wifiBusy = null;
+let wifiSel = null;
+let wifiPw = '';
+function wifiBars(sig) {
+  if (sig >= 75) return '\u{2582}\u{2584}\u{2586}\u{2588}';
+  if (sig >= 50) return '\u{2582}\u{2584}\u{2586}';
+  if (sig >= 30) return '\u{2582}\u{2584}';
+  return '\u{2582}';
+}
+let lastShopSig = '';
+function renderShop(snap) {
+  const ov = $('shopOverlay');
+  if (!ov) return;
+  const view = snap.shopView || { visible: false };
+  ov.classList.toggle('hidden', !view.visible);
+  if (!view.visible) return;
+  const s = snap.shop || {};
+  const sig = JSON.stringify(s);
+  if (sig === lastShopSig) return;
+  lastShopSig = sig;
+  const wasSearch = document.activeElement && document.activeElement.id === 'shopSearch';
+  const inst = new Set(s.installed || []);
+  let h = '';
+  if (s.error) h += '<div class="grd-err">' + esc(s.error) + '</div>';
+  if (s.installMsg) h += '<div class="grd-step">' + esc(s.installMsg) + '</div>';
+  h += '<input id="shopSearch" class="shop-search" type="text" placeholder="Search the shop..." value="' + esc(s.query || '') + '">';
+  const cats = s.cats || [];
+  if (cats.length) {
+    h += '<div class="shop-chips"><button class="shop-chip' + (!s.category ? ' on' : '') + '" data-shopcat="">ALL</button>' + cats.map((c) => '<button class="shop-chip' + (s.category === c ? ' on' : '') + '" data-shopcat="' + esc(c) + '">' + esc(c.toUpperCase()) + '</button>').join('') + '</div>';
+  }
+  const total = (typeof s.total === 'number') ? s.total : (s.apps || []).length;
+  if ((s.apps || []).length) h += '<p class="shop-count">Showing ' + (s.apps || []).length + ' of ' + total + ' apps' + (s.category ? ' in ' + esc(s.category) : '') + (s.query ? ' matching "' + esc(s.query) + '"' : '') + '</p>';
+  if (!(s.apps || []).length && !s.error) h += '<p class="grd-note-lg">' + ((s.query || s.category) ? 'Nothing matches that. Try a different search.' : 'No apps here yet. When apps are added to the shop, they will show up here.') + '</p>';
+  h += (s.apps || []).map((a) => {
+    const isIn = inst.has(a.package);
+    const busy = s.busy === a.package;
+    return '<div class="shop-row"><div class="shop-ico">' + (a.icon ? '<img src="' + esc(a.icon) + '" alt="">' : esc((a.name || 'A').slice(0, 1))) + '</div>' +
+      '<div class="shop-meta"><div class="shop-name">' + esc(a.name) + (a.version ? ' <span class="shop-ver">' + esc(a.version) + '</span>' : '') + '</div>' +
+      '<div class="shop-desc">' + esc(a.description) + '</div></div>' +
+      (busy ? '<button class="app-pin2 grd-huge" disabled>WORKING...</button>' : isIn ? '<button class="app-go grd-huge" data-launch="' + esc(a.package) + '">OPEN</button>' : '<button class="app-go grd-huge" data-install="' + esc(a.package) + '">INSTALL</button>') +
+      '</div>';
+  }).join('');
+  h += '<div class="network-actions"><button class="app-pin2" id="shopRefresh">REFRESH THE SHOP</button></div>';
+  const body = $('shopBody');
+  if (body) body.innerHTML = h;
+  if (wasSearch) { const inp = $('shopSearch'); if (inp) { inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) {} } }
+}
+let shopSearchTimer = null;
+document.addEventListener('input', (ev) => {
+  if (ev.target && ev.target.id === 'shopSearch') {
+    clearTimeout(shopSearchTimer);
+    const v = ev.target.value;
+    shopSearchTimer = setTimeout(() => { post('/api/shop/search', { q: v }); }, 350);
+  }
+});
+function renderSettings(snap) {
+  const ov = $('settingsOverlay');
+  if (!ov) return;
+  const view = snap.settingsView || { visible: false };
+  ov.classList.toggle('hidden', !view.visible);
+  lastSettings = snap.settings || null;
+  if (!view.visible) { closeWifiPanel(); return; }
+  const w = (snap.settings && snap.settings.wifi) || {};
+  if (wifiBusy && w.updatedAt && w.updatedAt !== wifiBusy.since) wifiBusy = null;
+  const sig = JSON.stringify(w) + '|' + (wifiBusy ? wifiBusy.label : '');
+  if (sig === lastSettingsSig) return;
+  lastSettingsSig = sig;
+  const box = $('settingsBody');
+  const upd = w.updatedAt ? new Date(w.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'never';
+  let h = '<div class="fb-sec">WI-FI</div>';
+  if (!w.radio) {
+    h += '<div class="net-chips"><span class="net-chip bad">WI-FI <b>OFF</b></span></div>';
+  } else if (w.connected) {
+    h += '<div class="net-chips"><span class="net-chip">CONNECTED <b>' + esc(w.connected.ssid) + '</b></span>' +
+      (w.connected.ip ? '<span class="net-chip">IP <b>' + esc(w.connected.ip) + '</b></span>' : '') +
+      '<span class="net-chip">UPDATED <b>' + esc(upd) + '</b></span></div>';
+  } else {
+    h += '<div class="net-chips"><span class="net-chip bad">WI-FI <b>NOT CONNECTED</b></span><span class="net-chip">UPDATED <b>' + esc(upd) + '</b></span></div>';
+  }
+  if (w.lastError) h += '<div class="wifi-err">' + esc(w.lastError) + '</div>';
+  h += '<div class="network-actions">' +
+    '<button class="app-go" id="wifiRescan">' + (wifiBusy ? wifiBusy.label : 'SCAN FOR NETWORKS') + '</button>' +
+    (w.radio ? '<button class="app-pin2" id="wifiRadioOff">TURN WI-FI OFF</button>' : '<button class="app-go" id="wifiRadioOn">TURN WI-FI ON</button>') +
+    (w.connected ? '<button class="app-pin2" id="wifiDisconnect">DISCONNECT</button>' : '') +
+    '</div>';
+  if (w.radio) {
+    const saved = w.saved || [];
+    const rows = (w.networks || []).map((n) => {
+      const tags = (n.inUse ? '<span class="wifi-tag on">CONNECTED</span>' : '') + (!n.inUse && saved.indexOf(n.ssid) >= 0 ? '<span class="wifi-tag">SAVED</span>' : '');
+      return '<div class="wifi-row" data-wifissid="' + encodeURIComponent(n.ssid) + '"><span class="wifi-bars">' + wifiBars(n.signal) + '</span><span class="wifi-name">' + esc(n.ssid) + '</span>' + (n.secured ? '<span class="wifi-lock">\u{1F512}</span>' : '') + tags + '</div>';
+    }).join('');
+    h += rows || '<div class="net-host">No networks found yet - tap SCAN FOR NETWORKS.</div>';
+  }
+  box.innerHTML = h;
+}
+function closeWifiPanel() {
+  const had = !!wifiSel;
+  wifiSel = null; wifiPw = '';
+  const p = $('wifiPanel');
+  if (p) { p.classList.add('hidden'); p.innerHTML = ''; }
+  const card = document.querySelector('.settings-card');
+  if (card) card.classList.remove('panel-open');
+}
+function openWifiPanel(ssid) {
+  const w = (lastSettings && lastSettings.wifi) || {};
+  const net = (w.networks || []).find((n) => n.ssid === ssid) || { ssid, secured: false, signal: 0 };
+  const isSaved = (w.saved || []).indexOf(ssid) >= 0;
+  wifiSel = { ssid, secured: !!net.secured, saved: isSaved, inUse: !!net.inUse };
+  wifiPw = '';
+  renderWifiPanel();
+  const card = document.querySelector('.settings-card');
+  if (card) card.classList.add('panel-open');
+}
+function renderWifiPanel() {
+  const p = $('wifiPanel');
+  if (!p || !wifiSel) return;
+  const needsPw = wifiSel.secured && !wifiSel.saved && !wifiSel.inUse;
+  let h = '<div class="wifi-panel-head"><span class="wifi-name">' + esc(wifiSel.ssid) + '</span><button class="app-pin2" id="wifiPanelX">CLOSE</button></div>';
+  if (wifiSel.inUse) {
+    h += '<div class="net-host">This is the network you are connected to.</div>';
+  } else if (needsPw) {
+    h += '<div class="wifi-pwlabel">PASSWORD</div>' +
+      '<div class="wifi-pwrow"><input id="wifiPwInput" class="wifi-pwinput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type the Wi-Fi password">' +
+      '<button class="app-pin2" id="wifiPwEye">SHOW</button></div>';
+  } else {
+    h += '<div class="net-host">' + (wifiSel.saved ? 'Saved network - tap CONNECT to join it.' : 'Open network - no password needed.') + '</div>';
+  }
+  h += '<div class="network-actions">';
+  if (!wifiSel.inUse) h += '<button class="app-go" id="wifiGo">' + (wifiBusy && wifiBusy.kind === 'connect' ? wifiBusy.label : 'CONNECT') + '</button>';
+  if (wifiSel.saved && !wifiSel.inUse) h += '<button class="app-pin2" id="wifiForget">FORGET</button>';
+  h += '</div>';
+  p.innerHTML = h;
+  p.classList.remove('hidden');
+  const inp = $('wifiPwInput');
+  if (inp) setTimeout(() => { try { inp.focus(); } catch (e) {} }, 60);
+}
 let lastPaperSig = '';
 let paperPdfOpen = false;
 function renderPaper(snap) {
@@ -685,7 +1417,10 @@ function render(snap) {
   renderApps(snap);
   renderPaper(snap);
   renderNetwork(snap);
-  renderAppDock(snap);
+  renderGuardian(snap);
+  renderShop(snap);
+  renderSettings(snap);
+  renderDrawer(snap);
   lastInbox = snap.inbox || { emails: [], updatedAt: null };
   lastMailView = snap.mailView || null;
   renderMail();
@@ -727,7 +1462,6 @@ setInterval(() => {
 }, 30000);
 
 // Node info line (static for this build; the bus can overwrite later)
-$('nodeInfo').textContent = 'Gadget · paired';
 
 // ---- Auto-scroll (mouseless kiosk: nothing on this screen can be scrolled
 // by hand, so long content scrolls itself — slow down, pause, back up) ----
@@ -786,7 +1520,7 @@ function post(path, body) { return fetch(path, { method: 'POST', headers: { 'Con
 // ---- Button dock (2026-10-26): the bottom buttons have two styles - the
 // text bar (default) and a mac-style icon dock with hover magnification.
 // Style is server state (state.navStyle) so voice, touch and restarts agree.
-const NAV_ICONS = { apps: '\u{1F9E9}', facebook: 'f', messenger: '\u26A1', texts: '\u{1F4AC}', instagram: '\u{1F4F8}', calendar: '\u{1F4C5}', mail: '\u{1F4E7}', music: '\u{1F3B5}', cameras: '\u{1F4F7}', home: '\u{1F3E0}', help: '\u{1F4A1}' };
+const NAV_ICONS = { browser: '\u{1F981}', navstyle: '\u{1F39B}\u{FE0F}', apps: '\u{1F9E9}', facebook: 'f', messenger: '\u26A1', texts: '\u{1F4AC}', instagram: '\u{1F4F8}', calendar: '\u{1F4C5}', mail: '\u{1F4E7}', music: '\u{1F3B5}', cameras: '\u{1F4F7}', home: '\u{1F3E0}', help: '\u{1F4A1}', settings: '\u2699\u{FE0F}' };
 function initNavDock() {
   const nav = $('boardNav');
   if (!nav || nav.dataset.dockInit) return;
@@ -803,14 +1537,6 @@ function initNavDock() {
     const dot = document.createElement('span'); dot.className = 'nav-dot';
     btn.append(ic, lb, dot);
   }
-  const tgl = document.createElement('button');
-  tgl.id = 'navStyleBtn';
-  tgl.innerHTML = '<span class="nav-icon">\u{1F39B}\u{FE0F}</span><span class="nav-label">Dock</span><span class="nav-dot"></span>';
-  tgl.dataset.tip = 'Dock';
-  nav.insertBefore(tgl, nav.firstChild);
-  tgl.addEventListener('click', () => {
-    post('/api/navstyle', { style: document.body.classList.contains('dock-nav') ? 'bar' : 'dock' });
-  });
   // Touch screen: no hover. The tapped icon magnifies (+ name shows) as the tap feedback.
   let tapTimer = null;
   nav.addEventListener('pointerdown', (ev) => {
@@ -836,7 +1562,10 @@ function applyNavStyle(snap) {
 initNavDock();
 
 function hideAllOverlays() {
+  const dro = $('drawerOverlay');
+  if (dro) dro.classList.add('hidden');
   post('/api/help', { clear: true });
+  post('/api/shop', { clear: true });
   post('/api/mail', { clear: true });
   post('/api/music', { clear: true });
   post('/api/weather', { clear: true });
@@ -853,6 +1582,8 @@ function hideAllOverlays() {
   post('/api/app', { clear: true });
   post('/api/paper', { clear: true });
   post('/api/network', { clear: true });
+  post('/api/guardian', { clear: true });
+  post('/api/settings', { clear: true });
 }
 function flashBtn(btn, text) {
   if (!btn || btn.dataset.busy) return;
@@ -883,6 +1614,10 @@ function calCellDate(cell) {
   return dstr(addDays(anchor, idx - anchor.getDay()));
 }
 document.addEventListener('click', (ev) => {
+  const dTile = ev.target.closest('[data-drawer]');
+  if (dTile) { openDrawerTarget(dTile.dataset.drawer); return; }
+  if (ev.target.closest('#drawerBtn')) { const o = $('drawerOverlay'); if (o) o.classList.remove('hidden'); post('/api/android', { front: false }); return; }
+  if (ev.target.id === 'drawerOverlay') { ev.target.classList.add('hidden'); return; }
   const nav = ev.target.closest('#boardNav button');
   if (nav && nav.dataset.nav) {
     const k = nav.dataset.nav;
@@ -896,17 +1631,20 @@ document.addEventListener('click', (ev) => {
     else if (k === 'music') post('/api/music', { show: true });
     else if (k === 'help') post('/api/help', { show: true });
     else if (k === 'home') post('/api/ha', { show: true });
+    else if (k === 'settings') post('/api/settings', { show: true });
     else if (k === 'cameras' && lastCameras.length) post('/api/camera', { id: lastCameras[0].id });
     return;
   }
   const apin = ev.target.closest('[data-apppin]');
-  if (apin) { const a = (lastApps || []).find((x) => x.id === apin.dataset.apppin); post('/api/apps/dock', { id: apin.dataset.apppin, inDock: !(a && a.inDock) }); return; }
+  if (apin) { const a = (lastApps || []).find((x) => x.id === apin.dataset.apppin); post('/api/apps/dock', { id: apin.dataset.apppin, inDrawer: !(a && a.inDrawer) }); return; }
   const aadd = ev.target.closest('[data-appadd]');
   if (aadd) { post('/api/apps/add', { id: aadd.dataset.appadd }); return; }
   const ago2 = ev.target.closest('[data-appgo]');
   if (ago2) { const a = (lastApps || []).find((x) => x.id === ago2.dataset.appgo); if (a && a.target && APP_TARGETS[a.target]) APP_TARGETS[a.target](); return; }
   const aopen = ev.target.closest('[data-appopen]');
-  if (aopen) { post('/api/app', { id: aopen.dataset.appopen }); return; }
+  if (aopen) { const o = $('drawerOverlay'); if (o) o.classList.add('hidden'); post('/api/app', { id: aopen.dataset.appopen }); return; }
+  const droid = ev.target.closest('[data-android]');
+  if (droid) { const o = $('drawerOverlay'); if (o) o.classList.add('hidden'); post('/api/shop/launch', { package: droid.dataset.android }); return; }
   if (ev.target.closest('#appsCustom')) { post('/api/action', { kind: 'apps-custom' }); return; }
   if (ev.target.closest('#appsBuild')) { post('/api/action', { kind: 'apps-build' }); return; }
   const aback = ev.target.closest('#appBackApps');
@@ -915,6 +1653,90 @@ document.addEventListener('click', (ev) => {
   if (anav) { post('/api/app', { id: anav.dataset.appid }); return; }
   const acard = ev.target.closest('[data-appid]');
   if (acard) { post('/api/app', { id: acard.dataset.appid }); return; }
+  const wrow = ev.target.closest('[data-wifissid]');
+  if (wrow) { openWifiPanel(decodeURIComponent(wrow.dataset.wifissid)); return; }
+  if (ev.target.closest('#wifiRescan')) { wifiBusy = { kind: 'scan', label: 'SCANNING...', since: lastSettings && lastSettings.wifi ? lastSettings.wifi.updatedAt : null }; lastSettingsSig = ''; post('/api/settings/wifi/scan', {}); if (lastSnap) renderSettings(lastSnap); return; }
+  if (ev.target.closest('#wifiRadioOn')) { post('/api/settings/wifi/radio', { on: true }); return; }
+  if (ev.target.closest('#wifiRadioOff')) { post('/api/settings/wifi/radio', { on: false }); closeWifiPanel(); return; }
+  if (ev.target.closest('#wifiDisconnect')) { post('/api/settings/wifi/disconnect', {}); closeWifiPanel(); return; }
+  if (ev.target.closest('#wifiPanelX')) { closeWifiPanel(); return; }
+  if (ev.target.closest('#wifiPwEye')) {
+    const inp = $('wifiPwInput');
+    const eye = ev.target.closest('#wifiPwEye');
+    if (inp) { const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; eye.textContent = show ? 'HIDE' : 'SHOW'; try { inp.focus(); } catch (e) {} }
+    return;
+  }
+  if (ev.target.closest('#wifiGo')) {
+    if (wifiSel) {
+      wifiBusy = { kind: 'connect', label: 'CONNECTING TO ' + wifiSel.ssid.toUpperCase() + '...', since: lastSettings && lastSettings.wifi ? lastSettings.wifi.updatedAt : null };
+      const body = { ssid: wifiSel.ssid };
+      if (wifiSel.secured && !wifiSel.saved) { const inp = $('wifiPwInput'); body.password = inp ? inp.value : ''; }
+      post('/api/settings/wifi/connect', body);
+      closeWifiPanel();
+      lastSettingsSig = '';
+      if (lastSnap) renderSettings(lastSnap);
+    }
+    return;
+  }
+  if (ev.target.closest('#wifiForget')) { if (wifiSel) { post('/api/settings/wifi/forget', { ssid: wifiSel.ssid }); closeWifiPanel(); } return; }
+  const wst = ev.target.closest('[data-wstep]');
+  if (wst) { grdGoto(wst.dataset.wstep); return; }
+  const gpk = ev.target.closest('[data-pick]');
+  if (gpk) { post('/api/action', { kind: 'guardian-pick', number: gpk.dataset.pick }); grdWantNumbers = false; grdGoto('password'); return; }
+  if (ev.target.closest('#grdWStart')) { grdGoto('plug'); return; }
+  if (ev.target.closest('#grdDetailsBtn')) { grdDetails = !grdDetails; lastGuardianSig = ''; if (lastSnap) renderGuardian(lastSnap); return; }
+  if (ev.target.closest('#grdKeepNum')) { grdPortOpen = true; lastGuardianSig = ''; if (lastSnap) renderGuardian(lastSnap); return; }
+  if (ev.target.closest('#grdNewNum')) { grdWantNumbers = true; post('/api/action', { kind: 'guardian-numbers' }); lastGuardianSig = ''; if (lastSnap) renderGuardian(lastSnap); return; }
+  if (ev.target.closest('#grdMoreNums')) { post('/api/action', { kind: 'guardian-numbers' }); lastGuardianSig = ''; if (lastSnap) renderGuardian(lastSnap); return; }
+  if (ev.target.closest('#grdNumBack')) { grdWantNumbers = false; lastGuardianSig = ''; if (lastSnap) renderGuardian(lastSnap); return; }
+  if (ev.target.closest('#grdRetry')) { post('/api/guardian/retry', {}); flashBtn(ev.target.closest('#grdRetry'), 'TRYING...'); return; }
+  if (ev.target.closest('#grdScan')) { post('/api/guardian/scan', {}); flashBtn(ev.target.closest('#grdScan'), 'LOOKING...'); return; }
+  if (ev.target.closest('#grdNew')) { post('/api/action', { kind: 'guardian-setup-new' }); flashBtn(ev.target.closest('#grdNew'), 'STARTING...'); return; }
+  if (ev.target.closest('#grdRing')) { post('/api/action', { kind: 'guardian-ring' }); flashBtn(ev.target.closest('#grdRing'), 'RINGING...'); return; }
+  if (ev.target.closest('#grdMuteHer')) { const on = !(lastSnap && lastSnap.guardian && lastSnap.guardian.live && lastSnap.guardian.live.mutedHer); post('/api/guardian/mute', { side: 'her', on: on }); return; }
+  if (ev.target.closest('#grdMuteThem')) { const on = !(lastSnap && lastSnap.guardian && lastSnap.guardian.live && lastSnap.guardian.live.mutedThem); post('/api/guardian/mute', { side: 'them', on: on }); return; }
+  if (ev.target.closest('#grdStepIn2')) { post('/api/guardian/intr', { cmd: 'in' }); return; }
+  if (ev.target.closest('#grdStepBack2')) { post('/api/guardian/intr', { cmd: 'out' }); return; }
+  if (ev.target.closest('#grdSecPhone')) { grdSection = 'phone'; grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdSecPc')) { grdSection = 'pc'; grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdSecMain')) { grdSection = 'main'; grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdPcAdd')) { grdPcAddOpen = !grdPcAddOpen; post('/api/pc/share', { on: grdPcAddOpen }); grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdPcShareDone')) { grdPcAddOpen = false; post('/api/pc/share', { on: false }); grdPhoneRefresh(); return; }
+  const shopInst = ev.target.closest('[data-install]');
+  if (shopInst) { post('/api/shop/install', { package: shopInst.getAttribute('data-install') }); return; }
+  const shopLaunch = ev.target.closest('[data-launch]');
+  if (shopLaunch) { post('/api/shop/launch', { package: shopLaunch.getAttribute('data-launch') }); return; }
+  if (ev.target.closest('#shopRefresh')) { post('/api/shop/refresh', {}); return; }
+  const shopcatEl = ev.target.closest('[data-shopcat]');
+  if (shopcatEl) { post('/api/shop/search', { category: shopcatEl.getAttribute('data-shopcat') || '' }); return; }
+  if (ev.target.closest('#grdPcCheck')) { post('/api/pc/command', { command: 'health' }); return; }
+  if (ev.target.closest('#grdAskPw2')) { post('/api/guardian/askpw', {}); return; }
+  if (ev.target.closest('#grdHangup2')) { post('/api/guardian/hangup', {}); return; }
+  if (ev.target.closest('#grdFamPwSave')) { const inp = document.getElementById('grdFamPwIn'); const v = inp ? inp.value.trim() : ''; if (v) { post('/api/guardian/familypw', { password: v }); if (inp) inp.value = ''; } return; }
+  if (ev.target.closest('#grdCallOpen')) { grdPhone.open = true; grdPhoneInit(); grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdCallsOpen')) { grdCallsOpen = true; grdCallSel = null; grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdCallsBack')) { grdCallsOpen = false; grdCallSel = null; grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdCallBack2')) { grdCallSel = null; grdPhoneRefresh(); return; }
+  const grdRow = ev.target.closest('.grd-callrow');
+  if (grdRow) { grdCallSel = Number(grdRow.getAttribute('data-ci')); grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdPhoneBack')) { grdPhone.open = false; grdPhoneRefresh(); return; }
+  const grdKey = ev.target.closest('.grd-key');
+  if (grdKey) {
+    const k = grdKey.getAttribute('data-k');
+    if (grdPhone.inCall && grdPhone.call && grdPhone.call.sendDTMF) { try { grdPhone.call.sendDTMF(k); } catch (e) { } return; }
+    if (grdPhone.num.length < 16) { grdPhone.num += k; grdPhoneRefresh(); }
+    return;
+  }
+  if (ev.target.closest('#grdBksp')) { grdPhone.num = grdPhone.num.slice(0, -1); grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdDial')) { grdPhoneDial(); return; }
+  if (ev.target.closest('#grdAnswer')) { if (grdPhone.call && grdPhone.call.answer) { try { grdPhone.call.answer(); } catch (e) { } } grdPhone.ringing = false; grdPhone.inCall = true; grdPhone.startedAt = Date.now(); grdRingStop(); grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdDecline')) { if (grdPhone.call && grdPhone.call.hangup) { try { grdPhone.call.hangup(); } catch (e) { } } grdPhone.ringing = false; grdRingStop(); grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdHangup')) { if (grdPhone.call && grdPhone.call.hangup) { try { grdPhone.call.hangup(); } catch (e) { } } grdPhone.inCall = false; grdPhone.call = null; grdPhone.startedAt = 0; if (grdCallTimer) { clearInterval(grdCallTimer); grdCallTimer = null; } grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdStepIn')) { post('/api/guardian/intr', { cmd: 'in' }); return; }
+  if (ev.target.closest('#grdRelease')) { post('/api/guardian/intr', { cmd: 'out' }); return; }
+  if (ev.target.closest('#grdPwBtn')) { const v = ($('grdPw') || {}).value || ''; if (v) { post('/api/guardian/adminpw', { password: v }); $('grdPw').value = ''; } return; }
+  if (ev.target.closest('#grdPortToggle')) { grdPortOpen = !grdPortOpen; lastGuardianSig = ''; if (lastSnap) renderGuardian(lastSnap); return; }
+  if (ev.target.closest('#grdPortBtn')) { const gv = (id) => (($(id)) || {}).value || ''; post('/api/guardian/port', { number: gv('grdPortNum'), carrier: gv('grdPortCarrier'), name: gv('grdPortName'), account: gv('grdPortAcct'), pin: gv('grdPortPin'), address: gv('grdPortAddr') }); grdPortOpen = false; lastGuardianSig = ''; if (lastSnap) renderGuardian(lastSnap); return; }
   if (ev.target.closest('#netRefresh')) { post('/api/action', { kind: 'network-refresh' }); return; }
   if (ev.target.closest('#netWol')) { post('/api/action', { kind: 'network-wol' }); return; }
   if (ev.target.closest('#paperBuild')) { post('/api/action', { kind: 'paper-build' }); return; }
@@ -1023,7 +1845,7 @@ for (const [el, sc] of [[$('queue'), queueScroller], [$('stream'), streamScrolle
 // Keep the touch chrome in sync with what's on screen.
 setInterval(() => {
   const vis = (id) => !$(id).classList.contains('hidden');
-  const any = vis('helpOverlay') || vis('mailOverlay') || vis('musicOverlay') || vis('camOverlay') || vis('calOverlay') || vis('focusOverlay') || vis('weatherOverlay') || vis('homeOverlay') || vis('imageOverlay') || vis('facebookOverlay') || vis('messengerOverlay') || vis('smsOverlay') || vis('instaOverlay') || vis('appsOverlay') || vis('appOverlay') || vis('paperOverlay') || vis('networkOverlay');
+  const any = vis('helpOverlay') || vis('mailOverlay') || vis('musicOverlay') || vis('camOverlay') || vis('calOverlay') || vis('focusOverlay') || vis('weatherOverlay') || vis('homeOverlay') || vis('imageOverlay') || vis('facebookOverlay') || vis('messengerOverlay') || vis('smsOverlay') || vis('instaOverlay') || vis('appsOverlay') || vis('appOverlay') || vis('paperOverlay') || vis('networkOverlay') || vis('guardianOverlay') || vis('shopOverlay') || vis('settingsOverlay') || vis('drawerOverlay');
   $('touchClose').classList.toggle('hidden', !any);
   $('boardNav').style.display = any ? 'none' : 'flex';
   const card = lastFocusId != null ? lastCards.find((c) => c.id === lastFocusId) : null;
@@ -1036,7 +1858,7 @@ setInterval(() => {
   }
   $('btnCamYes').classList.toggle('hidden', !(vis('camOverlay') && lastCameraView && lastCameraView.identify));
   $('camBar').classList.toggle('hidden', !vis('camOverlay'));
-  const openMap = { calendar: 'calOverlay', mail: 'mailOverlay', music: 'musicOverlay', cameras: 'camOverlay', home: 'homeOverlay', help: 'helpOverlay', facebook: 'facebookOverlay', messenger: 'messengerOverlay', texts: 'smsOverlay', instagram: 'instaOverlay', apps: 'appsOverlay' };
+  const openMap = { calendar: 'calOverlay', mail: 'mailOverlay', music: 'musicOverlay', cameras: 'camOverlay', home: 'homeOverlay', help: 'helpOverlay', facebook: 'facebookOverlay', messenger: 'messengerOverlay', texts: 'smsOverlay', instagram: 'instaOverlay', apps: 'appsOverlay', settings: 'settingsOverlay' };
   for (const btn of document.querySelectorAll('#boardNav button[data-nav]')) btn.classList.toggle('active', vis(openMap[btn.dataset.nav] || ''));
 }, 500);
 
@@ -1280,3 +2102,7 @@ document.addEventListener('click', (ev) => {
   if (!b) return;
   post('/api/action', { kind: 'music-device', id: b.dataset.did, name: b.dataset.dname });
 });
+
+// Start the app phone shortly after the board loads, so incoming calls
+// ring here even if the Guardian page was never opened.
+setTimeout(grdPhoneInit, 5000);

@@ -1,12 +1,1 @@
-{
- "ack-01.wav": "Yes?",
- "ack-02.wav": "I am listening.",
- "ack-03.wav": "Go ahead.",
- "ack-04.wav": "I am here.",
- "ack-05.wav": "What do you need?",
- "ack-06.wav": "Listening.",
- "ack-07.wav": "Yeah?",
- "ack-08.wav": "At your service.",
- "ack-09.wav": "Mm-hm, go on.",
- "ack-10.wav": "You called?"
-}
+{"ack-01.wav":"Yes?","ack-02.wav":"I am listening.","ack-03.wav":"Go ahead.","ack-04.wav":"I am here.","ack-05.wav":"What do you need?","ack-06.wav":"Listening.","ack-07.wav":"Yeah?","ack-08.wav":"At your service.","ack-09.wav":"Mm-hm, go on.","ack-10.wav":"You called?"}

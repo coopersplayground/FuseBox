@@ -1,5 +1,5 @@
 # Cosmo PC Agent installer - run once on the PC.
-# Downloads the agent from the Fuse_Box box on the home network, installs it
+# Downloads the agent from the Muse box on the home network, installs it
 # under the user profile, starts it at every logon, and starts it now.
 # Safe to re-run: it stops the old agent first and picks up the newest
 # version from the box.

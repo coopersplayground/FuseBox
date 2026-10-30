@@ -23,5 +23,8 @@
   }
  },
  "whisper_host": "127.0.0.1",
- "whisper_port": 10300
+ "whisper_port": 10300,
+ "local_router": true,
+ "local_router_model": "llama3.2:3b",
+ "spark_tier": true
 }

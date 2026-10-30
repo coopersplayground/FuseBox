@@ -1,5 +1,5 @@
 #!/home/cosmo/cosmo-listener/venv/bin/python
-"""Cosmo listener for the box - gives Cosmo (via the gadget SDK) a voice.
+"""Cosmo listener for Server 2 - gives Cosmo (via the Muse gadget) a voice.
 
 Loop:
   mic (webcam, ALSA) -> energy VAD segments -> local faster-whisper (Wyoming,

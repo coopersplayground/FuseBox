@@ -7,8 +7,8 @@ from datetime import datetime
 
 BASE = '/home/cosmo/cosmo-ui'
 cfg = json.load(open(BASE + '/config.json'))
-LAT = cfg.get('weatherLat', 40.7128)
-LON = cfg.get('weatherLon', -74.006)
+LAT = cfg.get('weatherLat', 41.1062)
+LON = cfg.get('weatherLon', -75.8427)
 PLACE = cfg.get('weatherPlace', 'New York, NY')
 UI = 'http://127.0.0.1:3180'
 

@@ -65,12 +65,12 @@ def message_for(a):
                 "Apps page and its own page. This page is the home for everything built that way.")
     if k == 'paper-build':
         return ("[touch] The owner tapped MAKE A NEW EDITION in the Daily Newspaper app. Build a "
-                "fresh edition for today the way the demo newspaper is built (fresh news only, "
+                "fresh edition for today the way The Daily Newspaper is built (fresh news only, "
                 "the usual sections), show him the draft first, and refresh the app front page "
                 "with ui.py paper when it is ready. Do not print without his go-ahead.")
     if k == 'paper-print':
         return ("[touch] The owner tapped PRINT IT in the Daily Newspaper app. Print the current "
-                "edition PDF on the Epson printer (the demo newspaper flow) and "
+                "edition PDF on the Epson printer (the established Daily Newspaper flow) and "
                 "confirm when it is printing.")
     if k == 'insta-open':
         return ("[touch] The owner tapped Instagram post #%s in the Instagram phone. Fetch that "
@@ -79,7 +79,7 @@ def message_for(a):
                 "caption and the comments." % a.get('n'))
     if k == 'messenger-open':
         return ("[touch] The owner tapped Messenger conversation #%s. Fetch that conversation's "
-                "recent messages (messenger-cli messages --cid) and open it with "
+                "recent messages (hatch_messenger_cli messages --cid) and open it with "
                 "ui.py messenger-thread, then read him the latest messages." % a.get('n'))
     if k == 'birthday-draft':
         return ("[touch] The owner tapped birthday #%s (%s) on the Facebook page. Draft a short warm "
@@ -117,7 +117,7 @@ def main():
                     elif os.path.exists('/home/cosmo/bin/wake-gaming-rig'):
                         cmd = ['/home/cosmo/bin/wake-gaming-rig']
                     else:
-                        cmd = ['wakeonlan', '00:00:00:00:00:00']
+                        cmd = ['wakeonlan', '00:11:22:33:44:99']
                     r = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
                     print('local action', k, 'rc=%s' % r.returncode, (r.stdout or r.stderr or '')[:160], flush=True)
                     http('POST', '/api/action', {'ack': [aid]})

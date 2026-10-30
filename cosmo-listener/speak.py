@@ -34,7 +34,7 @@ PIDFILE = STATE / "speaking.pid"
 STOPFLAG = STATE / "stop.flag"
 CONFIG = BASE / "config.json"
 
-EL_VOICE_ID = ""  # fallback only - set your ElevenLabs voice ids in config.json (voices)
+EL_VOICE_ID = "wDsJlOXPqcvIUKdLXjDs"  # Cosmo's ElevenLabs voice (set 2026-09-19)
 EL_KEY_FILE = Path.home() / ".config" / "cosmo-voice" / "elevenlabs_api_key"
 
 

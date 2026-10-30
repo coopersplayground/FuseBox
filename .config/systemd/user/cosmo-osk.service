@@ -1,0 +1,13 @@
+[Unit]
+Description=Fuse_Box on-screen keyboard (cosmo-osk)
+After=default.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/cosmo/cosmo-osk/cosmo-osk.py
+Environment=DISPLAY=:0
+Environment=HOME=/home/cosmo
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

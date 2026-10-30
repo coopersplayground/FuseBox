@@ -1,0 +1,11 @@
+[Unit]
+Description=Guardian ear - streams Asterisk call audio into the board ear pipeline
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/cosmo/guardian-ear.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
