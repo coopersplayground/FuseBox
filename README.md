@@ -18,7 +18,7 @@ WATCH THE VIDEO:
   
 [![Watch the video on YouTube](https://img.youtube.com/vi/KEzhON5Ny28/hqdefault.jpg)](https://www.youtube.com/watch?v=KEzhON5Ny28)
 
-
+# Fuse_Box
 Fuse_Box is not a new AI model, and it is not an agent harness looking for
 a problem. It is a physical appliance — a screen, a microphone, and a
 speaker in the room, designed to run on a Raspberry Pi 5 with 8 GB of RAM —
