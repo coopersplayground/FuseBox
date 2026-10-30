@@ -183,6 +183,7 @@ the claims can be checked.
 
 | Path | What it is |
 | --- | --- |
+| `install.sh` | The one-command installer: dependencies, appliance user, services, smoke test, reboot |
 | `cosmo-ui/` | The board: `server.js`, `public/` (kiosk page), `feeders/`, `config.json` |
 | `cosmo-listener/` | The voice loop: listener, speech, UI driver (`ui.py`), HA helper, status tool |
 | `guardian/` | The phone Guardian: Asterisk PBX generator, per-leg call transcription (the Ear), line resampler |
@@ -233,18 +234,34 @@ avatar instead; those stay on the owner's machine and are **not** part of
 this repo. To use clips, drop them into `cosmo-ui/public/avatar/` (see the
 `.gitkeep` there) and set `AVATAR_MODE` to `real`.
 
-## Quick start (sketch)
+## Quick start — one command
 
-1. On a small Linux box: create the `cosmo` user, clone this repo, copy
-   `cosmo-ui/` and `cosmo-listener/` into `~/`, and install the units from
-   `.config/systemd/user/` (plus the kiosk pieces from `usr/` and `etc/`
-   for a dedicated screen).
-2. `cd ~/cosmo-listener && python3 -m venv venv && venv/bin/pip install -r requirements.txt`
-3. Point `cosmo-ui/config.json` at your weather location and (optionally)
-   your Frigate / Home Assistant installs; put any API keys in the files
-   listed above.
-4. Start `cosmo-ui` and `cosmo-listener`; the board seeds itself with the
-   demo cards, and the listener starts waiting for "Hey Cosmo".
+On a clean **Ubuntu 24.04 (x86_64)** machine with at least ~6 GB of RAM
+and ~20 GB free:
 
-Whisper, Piper, and Kokoro run as local Wyoming/HTTP services on the box —
-see `cosmo-listener/config.json` for the ports the loop expects.
+```sh
+git clone https://github.com/coopersplayground/FuseBox.git && cd FuseBox && sudo ./install.sh
+```
+
+That is the whole install. The installer checks the machine, installs
+every dependency (Node for the board, the Python voice loop, Chrome and
+Brave for the screens, Asterisk for the phone Guardian, Ollama with the
+small Llama 3.2 judge, local Whisper + Piper voice services, Waydroid
+for the Android side), creates the appliance's `cosmo` user, lays the
+tree into place, enables every service, smoke-tests the board, and
+reboots into the Fuse Box — board full screen, voice live, demo data on
+the board. It is idempotent (run it again to update) and logs to
+`/var/log/fusebox-install.log`.
+
+Flags: `--no-android` skips Waydroid and the app shop, `--no-reboot`
+stays up at the end, `--dry-run` prints every action and changes
+nothing. Components report OK / SKIPPED / DEGRADED at the end — a
+machine whose kernel lacks Android's binder module, for example, still
+comes up as a Fuse Box, just without the Android side.
+
+After the reboot, the only setup left is the owner's own: complete the
+Guardian setup on the board to bring the phone line up (the PBX config
+is generated on the box from the line details entered there — a watcher
+service runs the generator the moment they land), set the weather
+location in `cosmo-ui/config.json`, and drop in API keys as files only
+if you want the cloud tiers (see Configuration & secrets above).

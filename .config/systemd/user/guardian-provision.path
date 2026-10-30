@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch for Guardian line credentials and provision the PBX when they land
+
+[Path]
+PathChanged=/home/cosmo/.config/cosmo-guardian/secrets.json
+Unit=guardian-provision.service
+
+[Install]
+WantedBy=default.target

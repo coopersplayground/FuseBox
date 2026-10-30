@@ -14,3 +14,7 @@ the Meta Global AI Developer Hackathon (Oct 26 – Nov 4, 2026).
   text-fraud warning call, the Fuse Shop.
 - **[Day 4 (Oct 29)](day-4.md)** — cold-start recovery verified, the
   rules question settled, and this repository caught up.
+- **Installer (Oct 29, evening)** — `install.sh` at the repo root: one
+  command (clone + `sudo ./install.sh`) installs every dependency and
+  turns a clean Ubuntu 24.04 machine into a Fuse Box, then reboots into
+  it. Built and proven the same evening in a clean VM.

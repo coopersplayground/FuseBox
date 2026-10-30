@@ -1,0 +1,7 @@
+[Unit]
+Description=Guardian provision - (re)generate the Asterisk PBX config from the on-box line credentials
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/cosmo/setup-asterisk.py
