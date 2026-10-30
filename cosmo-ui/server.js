@@ -1601,7 +1601,7 @@ const server = http.createServer(async (req, res) => {
     if (r.updatesPending !== undefined && r.updatesPending >= 0) bits.push(r.updatesPending + ' updates waiting');
     if (r.defenderOn !== undefined) bits.push(r.defenderOn ? 'antivirus on' : 'ANTIVIRUS OFF');
     const rkeys = Object.keys(b.report || {});
-    if (!(rkeys.length === 1 && rkeys[0] === 'updatesPending')) addCard({ kind: 'system', title: 'Laptop health check', body: bits.join(' - ') + '.', meta: 'PC agent', source: 'pc' });
+    if (!(rkeys.length === 1 && rkeys[0] === 'updatesPending')) addCard({ kind: 'system', title: 'Laptop health check', body: bits.join(' - ') + '.', meta: 'PC Companion', source: 'pc' });
     save(); broadcast('snapshot', snapshot());
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true }));

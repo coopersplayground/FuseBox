@@ -1,7 +1,8 @@
-# Cosmo PC Agent v3.5 - watches over this PC for Cosmo (Muse Home) and,
-# during a control session the user starts, lets Cosmo use the mouse,
-# keyboard and shell. Always-on, connects OUT to the Muse box on the
-# home network. No inbound ports, no admin rights needed. One file.
+# Fuse Box PC Companion v3.5 - watches over this PC for the Fuse Box
+# Guardian and, during a control session the user starts, lets the
+# Guardian use the mouse, keyboard and shell. Always-on, connects OUT
+# to the Fuse Box on the home network. No inbound ports, no admin
+# rights needed. One file.
 # v3: control sessions (banner + stop button + 10-min idle auto-lock),
 # mouse/keyboard/shell actions, auto-snapshot after every action,
 # per-command results with shell output, background update scan,

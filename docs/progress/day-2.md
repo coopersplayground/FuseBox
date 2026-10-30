@@ -34,7 +34,7 @@ phone, call in from a mobile, both clean. The board got the Guardian
 app: line status, call list, and a setup flow a senior can run from the
 screen.
 
-**PC watcher.** Every snapshot the PC agent sends is now judged on the
+**PC watcher.** Every snapshot the PC Companion sends is now judged on the
 box: OCR text first, a small text model second, a vision model only when
 text cannot decide. The verdict lands on the board with the snapshot
 attached.

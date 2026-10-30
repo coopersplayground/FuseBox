@@ -414,7 +414,7 @@ def main():
         if not pc.get("snapshotAt"):
             print("NO SNAPSHOT: request one with ui.py pc-snap first.")
             sys.exit(3)
-        call("POST", "/api/image", {"show": True, "src": "/pc/latest.jpg", "title": "Laptop screen - " + str(pc.get("name") or "PC"), "credit": "Cosmo PC agent"})
+        call("POST", "/api/image", {"show": True, "src": "/pc/latest.jpg", "title": "Laptop screen - " + str(pc.get("name") or "PC"), "credit": "Cosmo PC Companion"})
         print("ON SCREEN: the latest laptop snapshot.")
     elif cmd == "network":
         data = json.load(sys.stdin)
