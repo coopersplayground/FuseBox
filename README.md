@@ -38,11 +38,11 @@ is configured locally by whoever installs it.
 Scareware works by panicking people into calling a number. The Guardian
 watches for exactly that:
 
-- Every screen snapshot from a connected PC is judged for scams —
-  **text first**: OCR text from the screen, judged by a small local model
-  (Llama 3.2 3B). A staged scam drill is caught in about 6 seconds; a clean
-  desktop clears in about 2. A small vision model loads on demand only when
-  text cannot decide, then unloads.
+- Every screen snapshot from a connected PC is judged for scams by
+  **Muse Glimmer**, a Meta open-weights vision model: it reads the screen
+  directly, text included — there is no separate OCR step. If vision
+  cannot decide, a resident text judge (Llama 3.2 3B) rules from the
+  screen's text context instead.
 - In a live test on Day 1 — a real rotating scareware page, run
   deliberately on the owner's own machine — the appliance flagged it:
   it spoke the warning aloud ("do not call, do not click"), put the alert
@@ -75,12 +75,12 @@ was slow and fragile, so control was rebuilt around text.
 
 | Tier | How it works | Cost / speed |
 | --- | --- | --- |
-| 0 — Rules + text | Commands, the Windows UI Automation (UIA) control tree, and OCR keywords, in a one-file agent on the user's PC — no dependencies, no admin rights | Free, instant |
-| 1 — Small judge | OCR text judged by the resident 3B model on the hub | Seconds |
-| 2 — Vision fallback | Muse Glimmer (Meta open weights), loaded on demand only when UIA is blind | A visitor in RAM, never the driver |
+| 0 — Rules + text | Commands and the Windows UI Automation (UIA) control tree, read by the one-file PC Companion on the user's PC — no dependencies, no admin rights | Free, instant |
+| 1 — Vision judge | Screen snapshots judged by Muse Glimmer (Meta open weights) — it reads the screen directly, text included | Seconds |
+| 2 — Text fallback | Llama 3.2 3B, resident on the hub, judging from text context when vision cannot decide | Seconds |
 | 3 — Full judgment | The full agent, for real work and decisions | Only when the lower tiers cannot |
 
-Proven on a real PC on Day 1: the agent returned a calculator window as 47
+Proven on a real PC on Day 1: the Companion returned a calculator window as 47
 named controls with positions; "Seven" and "Eight" were invoked **by
 name** and the display read back as text — "Display is 78" — with zero
 screenshots. A follow-up sequence (close, reopen, 4 × 48 =, close) ran the
@@ -96,7 +96,7 @@ screen as text — teaching instead of taking over.
 **The hardware hand.** Protected windows can refuse synthetic input
 silently (observed live against an antivirus window on Day 1). So control
 has a third rung: one command vocabulary delivered interchangeably by the
-Windows agent, a Pi in USB gadget mode (keyboard + absolute mouse, works
+Windows companion app, a Pi in USB gadget mode (keyboard + absolute mouse, works
 at login, UAC, and pre-boot screens), or an ESP32-S3 Bluetooth dongle. The
 backend was built and proven **byte-exact** through a development sink
 before any hardware arrived: a spoken command produces the identical HID
@@ -160,7 +160,7 @@ ESP32 firmware source are ready for the parts.
   took the fall. The rules now: no model larger than the job, no model
   resident without a reason, no screenshot where text will do. The full
   stack is budgeted against the Pi 5's 8 GB — roughly 1.5 GB for OS +
-  board + voice, ~2.5 GB for the resident 3B, the vision fallback visiting
+  board + voice, ~2.5 GB for the resident 3B, the vision judge visiting
   rather than living in RAM, and ~3.5–4 GB of headroom.
 
 ## Honest status
