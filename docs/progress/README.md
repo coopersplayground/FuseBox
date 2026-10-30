@@ -15,6 +15,10 @@ the Meta Global AI Developer Hackathon (Oct 26 – Nov 4, 2026).
 - **[Day 4 (Oct 29)](day-4.md)** — cold-start recovery verified, the
   rules question settled, and this repository caught up.
 - **Installer (Oct 29, evening)** — `install.sh` at the repo root: one
-  command (clone + `sudo ./install.sh`) installs every dependency and
-  turns a clean Ubuntu 24.04 machine into a Fuse Box, then reboots into
-  it. Built and proven the same evening in a clean VM.
+  command (clone + `sudo bash install.sh`) installs every dependency
+  and turns a clean Ubuntu 24.04 machine into a Fuse Box, then reboots
+  into it. Exercised the same evening in a clean VM.
+- **[Day 5 (Oct 30)](day-5.md)** — the installer, then the compliance
+  swap: every runtime model is Meta (Muse Voice Transcribe in,
+  Whisper and the local TTS models out), spoken output via the
+  browser.

@@ -2,7 +2,7 @@
 """Cosmo listener for Server 2 - gives Cosmo (via the Muse gadget) a voice.
 
 Loop:
-  mic (webcam, ALSA) -> energy VAD segments -> local faster-whisper (Wyoming,
+  mic (webcam, ALSA) -> energy VAD segments -> Muse Voice Transcribe (Meta API),
   :10300) -> wake-phrase spot ("Hey Cosmo") -> transcript is sent to Cosmo with
   `musegadget send-user-msg --session-id <voice session>`.
 Cosmo speaks back by running ~/cosmo-listener/speak.py on this box through the
@@ -61,8 +61,7 @@ FRAME_BYTES = FRAME_SAMPLES * 2
 def cfg():
     defaults = {
         "mic_device": "plughw:CARD=WBC0E01,DEV=0",
-        "whisper_host": "127.0.0.1",
-        "whisper_port": 10300,
+        "meta_api_key_path": "~/.config/cosmo-voice/meta_api_key",
         "vad_start_frames": 3,       # consecutive loud frames to open a segment
         "vad_end_silence_s": 1.4,    # trailing silence that closes a segment
         "min_segment_s": 0.6,
@@ -153,33 +152,56 @@ def rms(frame: bytes) -> float:
     return math.sqrt(sum(s * s for s in samples) / n)
 
 
-# ---------------------------------------------------------------- whisper
-async def _transcribe(pcm: bytes, c) -> str:
-    from wyoming.asr import Transcribe, Transcript
-    from wyoming.audio import AudioChunk, AudioStart, AudioStop
-    from wyoming.client import AsyncTcpClient
-
-    client = AsyncTcpClient(c["whisper_host"], c["whisper_port"])
-    await client.connect()
+# ------------------------------------------------------- meta transcription
+# All speech-to-text is Muse Voice Transcribe (Meta) on the Meta Model API:
+# one-shot file endpoint, key read per call from meta_api_key_path
+# (default ~/.config/cosmo-voice/meta_api_key, on the box only).
+def _meta_key(c) -> str:
     try:
-        await client.write_event(Transcribe(language="en").event())
-        await client.write_event(AudioStart(rate=RATE, width=2, channels=1).event())
-        step = 8192
-        for i in range(0, len(pcm), step):
-            await client.write_event(AudioChunk(
-                rate=RATE, width=2, channels=1, audio=pcm[i:i + step]).event())
-        await client.write_event(AudioStop().event())
-        text = ""
-        while True:
-            event = await client.read_event()
-            if event is None:
-                break
-            if Transcript.is_type(event.type):
-                text = Transcript.from_event(event).text
-                break
-        return text.strip()
-    finally:
-        await client.disconnect()
+        p = Path(c.get("meta_api_key_path", "~/.config/cosmo-voice/meta_api_key")).expanduser()
+        return p.read_text().strip()
+    except Exception:
+        return ""
+
+
+def _pcm_to_wav16k(pcm: bytes, rate: int) -> bytes:
+    import audioop, io
+    if rate != 16000:
+        pcm, _ = audioop.ratecv(pcm, 2, 1, rate, 16000, None)
+    buf = io.BytesIO()
+    w = wave.open(buf, "wb")
+    w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000)
+    w.writeframes(pcm); w.close()
+    return buf.getvalue()
+
+
+def _meta_transcribe(pcm: bytes, c) -> str:
+    key = _meta_key(c)
+    if not key or len(pcm) < 3200:
+        return ""
+    import urllib.request
+    wav = _pcm_to_wav16k(pcm, RATE)
+    b = "----cosmo" + uuid.uuid4().hex
+    req_json = json.dumps({"model": "muse-voice-transcribe-1.0",
+                           "mode": "PUSH_TO_TALK", "audioEncoding": "WAV"})
+    body = b"".join([
+        f"--{b}\r\nContent-Disposition: form-data; name=\"request\"\r\nContent-Type: application/json\r\n\r\n{req_json}\r\n".encode(),
+        f"--{b}\r\nContent-Disposition: form-data; name=\"audio\"; filename=\"audio.wav\"\r\nContent-Type: audio/wav\r\n\r\n".encode() + wav + b"\r\n",
+        f"--{b}--\r\n".encode()])
+    req = urllib.request.Request(
+        "https://api.meta.ai/v1/asr/transcribe", data=body, method="POST",
+        headers={"Content-Type": f"multipart/form-data; boundary={b}",
+                 "Authorization": "Bearer " + key})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return str(json.loads(r.read()).get("transcript", "")).strip()
+    except Exception as e:
+        log(f"meta transcribe fail: {e}")
+        return ""
+
+
+async def _transcribe(pcm: bytes, c) -> str:
+    return _meta_transcribe(pcm, c)
 
 
 def transcribe(pcm: bytes, c) -> str:

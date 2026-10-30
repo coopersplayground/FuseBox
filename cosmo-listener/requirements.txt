@@ -1,2 +1,2 @@
-# The listener's Wyoming-protocol client library (the rest is stdlib).
-wyoming==1.10.2
+# The listener is stdlib-only: transcription is an HTTPS call to the
+# Meta Model API, and spoken output goes to the board's browser.

@@ -16,7 +16,7 @@ BOARD = "http://127.0.0.1:3180"
 STATE = os.path.expanduser("~/.guardian-ear-state.json")
 CHUNK = 51200  # 3.2 s of 8 kHz 16-bit mono
 NAME = re.compile(r"^guardian-(in|out)-(\d{8})-(\d{6})-(\+?\d+)-(her|them)\.raw$")
-BIG_WHISPER = ("192.168.1.50", 10301)  # large-v3-turbo, guardian-whisper container
+META_KEY_PATH = os.path.expanduser("~/.config/cosmo-voice/meta_api_key")
 ACC = {}  # callId -> {"local": bytearray, "remote": bytearray} (memory only)
 LIVE = set()  # callIds in a live call right now (main loop maintains)
 FINAL_LOCK = threading.Lock()  # one final pass at a time
@@ -45,59 +45,36 @@ def save_state(s):
         json.dump(s, f)
     os.replace(tmp, STATE)
 
-def _send_event(sock, ev):
-    data = ev.pop("data", None)
-    payload = ev.pop("payload", None)
-    db = b""
-    if data is not None:
-        db = json.dumps(data).encode()
-        ev["data_length"] = len(db)
-    if payload is not None:
-        ev["payload_length"] = len(payload)
-    else:
-        payload = b""
-    sock.sendall(json.dumps(ev).encode() + b"\n" + db + payload)
-
-def _read_event(sock, buf):
-    while b"\n" not in buf:
-        chunk = sock.recv(65536)
-        if not chunk:
-            raise ConnectionError("closed")
-        buf += chunk
-    line, buf = buf.split(b"\n", 1)
-    ev = json.loads(line)
-    dl = ev.get("data_length", 0)
-    while len(buf) < dl:
-        buf += sock.recv(65536)
-    if dl:
-        ev["data"] = json.loads(buf[:dl])
-        buf = buf[dl:]
-    pl = ev.get("payload_length", 0)
-    while len(buf) < pl:
-        buf += sock.recv(65536)
-    if pl:
-        ev["payload"] = buf[:pl]
-        buf = buf[pl:]
-    return ev, buf
-
 def transcribe_big(pcm):
+    # Final-pass transcription is Muse Voice Transcribe (Meta), one-shot
+    # file endpoint - the same model the live path uses.
+    import audioop, io, urllib.request, uuid, wave
     try:
-        s = socket.create_connection(BIG_WHISPER, timeout=180)
-        _send_event(s, {"type": "transcribe", "data": {"language": "en"}})
-        _send_event(s, {"type": "audio-start", "data": {"rate": 8000, "width": 2, "channels": 1}})
-        for i in range(0, len(pcm), 32000):
-            _send_event(s, {"type": "audio-chunk", "data": {"rate": 8000, "width": 2, "channels": 1}, "payload": bytes(pcm[i:i + 32000])})
-        _send_event(s, {"type": "audio-stop"})
-        buf = b""
-        for _ in range(40):
-            ev, buf = _read_event(s, buf)
-            if ev.get("type") == "transcript":
-                s.close()
-                return (ev.get("data") or {}).get("text", "").strip()
-        s.close()
+        key = open(META_KEY_PATH).read().strip()
+        if not key or len(pcm) < 3200:
+            return ""
+        pcm16, _ = audioop.ratecv(bytes(pcm), 2, 1, 8000, 16000, None)
+        buf = io.BytesIO()
+        w = wave.open(buf, "wb")
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000)
+        w.writeframes(pcm16); w.close()
+        b = "----ear" + uuid.uuid4().hex
+        req_json = json.dumps({"model": "muse-voice-transcribe-1.0",
+                               "mode": "PUSH_TO_TALK", "audioEncoding": "WAV"})
+        body = b"".join([
+            f"--{b}\r\nContent-Disposition: form-data; name=\"request\"\r\nContent-Type: application/json\r\n\r\n{req_json}\r\n".encode(),
+            f"--{b}\r\nContent-Disposition: form-data; name=\"audio\"; filename=\"audio.wav\"\r\nContent-Type: audio/wav\r\n\r\n".encode() + buf.getvalue() + b"\r\n",
+            f"--{b}--\r\n".encode()])
+        req = urllib.request.Request(
+            "https://api.meta.ai/v1/asr/transcribe", data=body, method="POST",
+            headers={"Content-Type": f"multipart/form-data; boundary={b}",
+                     "Authorization": "Bearer " + key})
+        with urllib.request.urlopen(req, timeout=180) as r:
+            return str(json.loads(r.read()).get("transcript", "")).strip()
     except Exception as e:
         print("big transcribe fail", e, flush=True)
     return ""
+
 
 def sentences(text):
     parts = re.split(r"(?<=[.!?])\s+", text.strip())
@@ -118,7 +95,7 @@ def norm_text(t):
     return re.sub(r"[^a-z ]", "", t.lower()).strip()
 
 def is_artifact(text, dur_ms, mean_rms):
-    """Whisper invents stock phrases ('Thank you.') on stray sounds.
+    """Transcription invents stock phrases ('Thank you.') on stray sounds.
     Drop a line only if it is a known phantom phrase AND short/quiet -
     a real 'thank you' spoken at normal level survives."""
     return norm_text(text) in ARTIFACTS and (dur_ms < 1400 or mean_rms < 700)

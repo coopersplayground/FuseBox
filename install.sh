@@ -99,7 +99,7 @@ run apt-get update
 run apt-get install -y \
   curl git ca-certificates gnupg software-properties-common rsync unzip acl \
   python3 python3-venv python3-pip python3-gi gir1.2-gtk-3.0 \
-  alsa-utils ffmpeg tesseract-ocr xdotool x11-utils xinit xserver-xorg \
+  alsa-utils ffmpeg espeak-ng xdotool x11-utils xinit xserver-xorg \
   asterisk cron
 note "System packages: OK"
 
@@ -173,85 +173,13 @@ as_cosmo "$FB_HOME/cosmo-listener/venv/bin/pip" install --quiet --upgrade pip
 as_cosmo "$FB_HOME/cosmo-listener/venv/bin/pip" install --quiet -r "$FB_HOME/cosmo-listener/requirements.txt"
 note "Listener venv: OK"
 
-# ---------------------------------------------------------------- voice services (Wyoming)
-say "Local voice services (Whisper + Piper, no accounts needed)"
-run install -d /opt/wyoming
-run install -d -o "$FB_USER" -g "$FB_USER" "$FB_HOME/wyoming-data/whisper" "$FB_HOME/wyoming-data/whisper-big" "$FB_HOME/wyoming-data/piper"
-run python3 -m venv /opt/wyoming/whisper
-run /opt/wyoming/whisper/bin/pip install --quiet wyoming-faster-whisper
-run python3 -m venv /opt/wyoming/piper
-run /opt/wyoming/piper/bin/pip install --quiet wyoming-piper
-put /etc/systemd/system/wyoming-whisper.service <<EOF
-[Unit]
-Description=Wyoming Faster Whisper (live call + voice transcription)
-After=network-online.target
-[Service]
-User=$FB_USER
-ExecStart=/opt/wyoming/whisper/bin/wyoming-faster-whisper --uri tcp://127.0.0.1:10300 --model base-int8 --language en --data-dir $FB_HOME/wyoming-data/whisper --download-dir $FB_HOME/wyoming-data/whisper
-Restart=on-failure
-[Install]
-WantedBy=multi-user.target
-EOF
-put /etc/systemd/system/wyoming-piper.service <<EOF
-[Unit]
-Description=Wyoming Piper (local speech)
-After=network-online.target
-[Service]
-User=$FB_USER
-ExecStart=/opt/wyoming/piper/bin/wyoming-piper --uri tcp://127.0.0.1:10200 --voice en_US-lessac-medium --data-dir $FB_HOME/wyoming-data/piper --download-dir $FB_HOME/wyoming-data/piper
-Restart=on-failure
-[Install]
-WantedBy=multi-user.target
-EOF
-run systemctl daemon-reload
-run systemctl enable --now wyoming-whisper.service wyoming-piper.service
-# The Wyoming servers bind their port only after the model/voice download
-# finishes - wait for the ports, not the process state, before claiming OK.
-wait_port() { # wait_port PORT SECONDS
-  [ "$DRY" = 1 ] && return 0
-  local end=$(( SECONDS + $2 ))
-  while [ "$SECONDS" -lt "$end" ]; do
-    (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null && { exec 3>&- 3<&-; return 0; }
-    sleep 3
-  done
-  return 1
-}
-VOICE_OK=1
-wait_port 10300 240 || VOICE_OK=0
-wait_port 10200 240 || VOICE_OK=0
-if [ "$VOICE_OK" = 1 ]; then
-  note "Voice services (live whisper + piper): OK"
-else
-  note "Voice services (live whisper + piper): DEGRADED - check: journalctl -u wyoming-whisper -u wyoming-piper"
-fi
-
-# The Guardian's end-of-call deep pass wants a bigger model on its own port.
-# Try the best model first; fall back so the port always answers.
-BIG_MODEL=""
-for m in large-v3-turbo large-v3 base-int8; do
-  put /etc/systemd/system/wyoming-whisper-big.service <<EOF
-[Unit]
-Description=Wyoming Faster Whisper - big model (Guardian final pass)
-After=network-online.target
-[Service]
-User=$FB_USER
-ExecStart=/opt/wyoming/whisper/bin/wyoming-faster-whisper --uri tcp://127.0.0.1:10301 --model $m --language en --data-dir $FB_HOME/wyoming-data/whisper-big --download-dir $FB_HOME/wyoming-data/whisper-big
-Restart=on-failure
-[Install]
-WantedBy=multi-user.target
-EOF
-  run systemctl daemon-reload
-  if [ "$DRY" = 1 ]; then BIG_MODEL="$m"; break; fi
-  systemctl reset-failed wyoming-whisper-big.service 2>/dev/null
-  systemctl restart wyoming-whisper-big.service 2>/dev/null
-  if wait_port 10301 300; then BIG_MODEL="$m"; break; fi
-done
-if [ -n "$BIG_MODEL" ]; then
-  run systemctl enable wyoming-whisper-big.service
-  note "Voice service (big whisper, $BIG_MODEL): OK"
-else
-  note "Voice service (big whisper): DEGRADED - final-pass transcription unavailable"
-fi
+# ---------------------------------------------------------------- voice: Meta + browser
+# No local AI voice services are installed - by design. Speech-to-text is
+# Muse Voice Transcribe on the Meta Model API (the owner drops the key at
+# ~/.config/cosmo-voice/meta_api_key), and spoken output is the browser's
+# built-in speechSynthesis, with espeak-ng (installed above) rendering the
+# Guardian's phone prompts and acting as the local fallback voice.
+note "Voice: Meta transcription API + browser speech (no local AI voice models)"
 
 # ---------------------------------------------------------------- Ollama judge
 say "Local judge (Ollama + Llama 3.2 3B)"
@@ -360,8 +288,9 @@ echo
 echo "This machine is now a Fuse Box."
 echo "  Board:    http://127.0.0.1:3180/ (full screen on this machine's display)"
 echo "  Next:     complete the Guardian setup on the board to bring the phone"
-echo "            line up; add API keys as files only if you want the cloud"
-echo "            tiers (see README - Configuration & secrets)."
+echo "            line up, and drop the Meta Model API key at"
+echo "            ~/.config/cosmo-voice/meta_api_key to enable voice and"
+echo "            transcription (see README - Configuration & secrets)."
 echo "  Log:      $LOG"
 if [ "$BOARD_OK" != 1 ]; then
   echo "The board did not come up - not rebooting. Fix the above, then reboot."

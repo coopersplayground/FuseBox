@@ -1,29 +1,12 @@
 {
- "active_voice": "1",
- "el_speed": 1.2,
- "engine_order": [
-  "elevenlabs-v3",
-  "kokoro",
-  "piper"
- ],
- "kokoro_url": "http://127.0.0.1:8880/v1/audio/speech",
- "kokoro_voice": "am_michael",
+ "board_url": "http://127.0.0.1:3180",
+ "meta_api_key_path": "~/.config/cosmo-voice/meta_api_key",
  "mic_device": "plughw:CARD=Device,DEV=0",
- "piper_host": "127.0.0.1",
- "piper_port": 10200,
  "play_devices": [
   "plughw:CARD=Generic_1,DEV=9",
   "plughw:CARD=Generic,DEV=0"
  ],
  "threshold_min": 150,
- "voices": {
-  "1": {
-   "label": "Voice 1 (your ElevenLabs voice id here)",
-   "voice_id": ""
-  }
- },
- "whisper_host": "127.0.0.1",
- "whisper_port": 10300,
  "local_router": true,
  "local_router_model": "llama3.2:3b",
  "spark_tier": true

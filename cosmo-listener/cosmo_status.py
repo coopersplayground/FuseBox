@@ -97,7 +97,7 @@ def main():
         detail = "Say 'Hey Cosmo'"
 
     mic = cfg.get("mic_device", "?").replace("plughw:CARD=", "").replace(",DEV=0", "")
-    engines = cfg.get("engine_order", ["kokoro"])
+    engines = ["browser speech"]
     session = ""
     try:
         session = (BASE / "session-id").read_text().strip()[:8]

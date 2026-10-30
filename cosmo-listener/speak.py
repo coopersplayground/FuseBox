@@ -1,12 +1,10 @@
 #!/home/cosmo/cosmo-listener/venv/bin/python
-"""Cosmo speak path for Server 2.
+"""Cosmo speak path.
 
-Synthesizes text to speech and plays it in the room.
-Engine chain (first success wins):
-  1. Kokoro-FastAPI (local, open voices)  http://127.0.0.1:8880/v1/audio/speech
-  2. Piper via Wyoming (local, open voices)  tcp 127.0.0.1:10200
-  3. ElevenLabs v3 (only if a key file exists at
-     ~/.config/cosmo-voice/elevenlabs_api_key) - Cosmo's EL voice.
+Spoken output uses NO AI model: the board page speaks queued lines with
+the browser's built-in speechSynthesis (a browser feature, per the
+contest rules). If the board is unreachable, espeak-ng (a rule-based
+formant synthesizer) speaks through the local speakers instead.
 
 Usage:
   speak.py "text to speak"
@@ -34,16 +32,11 @@ PIDFILE = STATE / "speaking.pid"
 STOPFLAG = STATE / "stop.flag"
 CONFIG = BASE / "config.json"
 
-EL_VOICE_ID = "wDsJlOXPqcvIUKdLXjDs"  # Cosmo's ElevenLabs voice (set 2026-09-19)
-EL_KEY_FILE = Path.home() / ".config" / "cosmo-voice" / "elevenlabs_api_key"
 
 
 def cfg():
     defaults = {
-        "kokoro_url": "http://127.0.0.1:8880/v1/audio/speech",
-        "kokoro_voice": "am_michael",
-        "piper_host": "127.0.0.1",
-        "piper_port": 10200,
+        "board_url": "http://127.0.0.1:3180",
         "lead_in_s": 0.9,
         "play_devices": ["plughw:CARD=Generic_1,DEV=9",
                          "plughw:CARD=Generic,DEV=0"],
@@ -88,120 +81,41 @@ def _clear_speaking():
         pass
 
 
-def synth_kokoro(text, c):
-    body = json.dumps({
-        "model": "tts-1",
-        "input": text,
-        "voice": c["kokoro_voice"],
-        "response_format": "wav",
-    }).encode()
-    req = urllib.request.Request(c["kokoro_url"], data=body,
-                                 headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=25) as resp:
-        data = resp.read()
-    if len(data) < 1000:
-        raise RuntimeError("kokoro returned tiny payload")
-    return data  # wav bytes
+def synth_espeak(text):
+    r = subprocess.run(["espeak-ng", "--stdout", "-v", "en-US", "-s", "165",
+                        str(text)], capture_output=True, timeout=30)
+    if r.returncode != 0 or not r.stdout:
+        raise RuntimeError("espeak-ng failed")
+    return r.stdout
 
 
-async def _piper(text, c):
-    from wyoming.audio import AudioStart, AudioStop
-    from wyoming.client import AsyncTcpClient
-    from wyoming.tts import Synthesize
-
-    client = AsyncTcpClient(c["piper_host"], c["piper_port"])
-    await client.connect()
-    try:
-        await client.write_event(Synthesize(text=text).event())
-        rate, width, channels = 22050, 2, 1
-        pcm = bytearray()
-        while True:
-            event = await client.read_event()
-            if event is None:
-                break
-            if AudioStart.is_type(event.type):
-                a = AudioStart.from_event(event)
-                rate, width, channels = a.rate, a.width, a.channels
-            elif event.type == "audio-chunk":
-                from wyoming.audio import AudioChunk
-                pcm += AudioChunk.from_event(event).audio
-            elif AudioStop.is_type(event.type):
-                break
-        if not pcm:
-            raise RuntimeError("piper returned no audio")
-        buf = io.BytesIO()
-        with wave.open(buf, "wb") as w:
-            w.setnchannels(channels)
-            w.setsampwidth(width)
-            w.setframerate(rate)
-            w.writeframes(bytes(pcm))
-        return buf.getvalue()
-    finally:
-        await client.disconnect()
-
-
-def synth_piper(text, c):
-    return asyncio.run(_piper(text, c))
-
-
-def active_voice_id(c):
-    voices = c.get("voices", {})
-    active = str(c.get("active_voice", "1"))
-    v = voices.get(active, {})
-    return v.get("voice_id") or EL_VOICE_ID
-
-
-def synth_elevenlabs(text, c, voice_id=None):
-    key = EL_KEY_FILE.read_text().strip()
-    vid = voice_id or active_voice_id(c)
-    url = (f"https://api.elevenlabs.io/v1/text-to-speech/{vid}"
-           "?output_format=pcm_24000")
-    body = json.dumps({"text": text, "model_id": "eleven_v3",
-                       "voice_settings": {"stability": 0.5,
-                                          "similarity_boost": 0.75,
-                                          "speed": float(c.get("el_speed", 1.1))}}).encode()
-    req = urllib.request.Request(url, data=body, headers={
-        "Content-Type": "application/json", "xi-api-key": key})
-    with urllib.request.urlopen(req, timeout=25) as resp:
-        pcm = resp.read()
-    if len(pcm) < 1000:
-        raise RuntimeError("elevenlabs returned tiny payload")
-    buf = io.BytesIO()
-    with wave.open(buf, "wb") as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(24000)
-        w.writeframes(pcm)
-    return buf.getvalue()
-
-
-def el_available():
-    try:
-        return EL_KEY_FILE.exists() and len(EL_KEY_FILE.read_text().strip()) > 0
-    except Exception:
-        return False
-
-
-def synthesize(text, voice_id=None):
+def _board_post(path, payload, timeout=5):
+    import urllib.request
     c = cfg()
-    available = {"kokoro": synth_kokoro, "piper": synth_piper}
-    if el_available():
-        available["elevenlabs-v3"] = (
-            lambda t, cc: synth_elevenlabs(t, cc, voice_id))
-    order = [n for n in c.get("engine_order",
-                              ["elevenlabs-v3", "kokoro", "piper"])
-             if n in available]
-    for name in available:  # engines not listed in engine_order go last
-        if name not in order:
-            order.append(name)
-    errors = []
-    for name in order:
-        try:
-            wav = available[name](text, c)
-            return name, wav
-        except Exception as e:  # noqa: BLE001
-            errors.append(f"{name}: {e}")
-    raise RuntimeError("all TTS engines failed: " + " | ".join(errors))
+    base = str(c.get("board_url", "http://127.0.0.1:3180")).rstrip("/")
+    req = urllib.request.Request(base + path,
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.status
+
+
+def say(text):
+    """Spoken output without any AI model: the board page speaks with the
+    browser's built-in speechSynthesis (a browser feature). Fallback:
+    espeak-ng (rule-based formant synthesis) through the local speakers."""
+    try:
+        if _board_post("/api/tts-say", {"text": text}) == 200:
+            return "browser"
+    except Exception as e:
+        log(f"board say failed ({e}); espeak fallback")
+    wav = synth_espeak(text)
+    out = STATE / "last-speak.wav"
+    out.write_bytes(wav)
+    r = play_wav(out)
+    if r == "failed":
+        raise RuntimeError("espeak fallback playback failed")
+    return "espeak"
 
 
 def alsa_candidates():
@@ -304,6 +218,10 @@ def play_wav(path):
 
 
 def stop_current():
+    try:
+        _board_post("/api/tts-stop", {})
+    except Exception:
+        pass
     if PIDFILE.exists():
         try:
             pid = int(PIDFILE.read_text().strip())
@@ -320,14 +238,8 @@ def main():
         print("usage: speak.py [--voice N] [--file wav | --render out.wav] text",
               file=sys.stderr)
         return 2
-    voice_override_id = None
     if args[0] == "--voice":
-        v = cfg().get("voices", {}).get(str(args[1]), {})
-        voice_override_id = v.get("voice_id")
-        if not voice_override_id:
-            print(f"unknown voice: {args[1]}", file=sys.stderr)
-            return 2
-        args = args[2:]
+        args = args[2:]  # voice choice belongs to the browser now; accepted and ignored
     if args[0] == "--stop":
         print("stopped" if stop_current() else "not speaking")
         return 0
@@ -340,6 +252,18 @@ def main():
                 label, engine = manifest[p.name], "ack"
         except Exception:
             pass
+        if not p.exists():
+            _write_speaking(label, "browser")
+            try:
+                eng = say(label)
+                r = "played"
+            except Exception:
+                r = "failed"
+            finally:
+                _clear_speaking()
+            log(f"file-missing {args[1]} -> spoke label via {eng if r == 'played' else '?'}")
+            print(r)
+            return 0 if r != "failed" else 1
         _write_speaking(label, engine)
         try:
             r = play_wav(p)
@@ -360,16 +284,18 @@ def main():
     if PIDFILE.exists():
         stop_current()
         time.sleep(0.3)
-    engine, wav = synthesize(text, voice_override_id)
-    out = render_to or (STATE / "last-speak.wav")
-    out.write_bytes(wav)
     if render_to:
-        log(f"render engine={engine} chars={len(text)} text={text!r}")
-        print(f"rendered:{engine}")
+        render_to.write_bytes(synth_espeak(text))
+        log(f"render engine=espeak chars={len(text)} text={text!r}")
+        print("rendered:espeak")
         return 0
-    _write_speaking(text, engine)
+    _write_speaking(text, "browser")
     try:
-        r = play_wav(out)
+        engine = say(text)
+        r = "played"
+    except Exception as e:
+        engine, r = "none", "failed"
+        log(f"speak failed: {e}")
     finally:
         _clear_speaking()
     log(f"speak engine={engine} result={r} chars={len(text)} text={text!r}")

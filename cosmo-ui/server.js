@@ -582,7 +582,7 @@ function broadcast(event, data) {
   const msg = 'event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n';
   for (const res of clients) { try { res.write(msg); } catch (e) {} }
 }
-function snapshot() { return { avatar: state.avatar, cards: state.cards, focusId: state.focusId, avatarMode: avatarMode, calendar: state.calendar, cameras: state.cameras, cameraView: state.cameraView, inbox: state.inbox, mailView: state.mailView, helpView: state.helpView, music: state.music, musicView: state.musicView, actionOutbox: state.actionOutbox, weather: state.weather, weatherView: state.weatherView, homeView: state.homeView, homeHidden: state.homeHidden, imageView: state.imageView, navStyle: state.navStyle, texts: state.texts, textView: state.textView, facebook: state.facebook, facebookView: state.facebookView, facebookPost: state.facebookPost, facebookGroup: state.facebookGroup, messenger: state.messenger, messengerView: state.messengerView, messengerThread: state.messengerThread, sms: state.sms, smsView: state.smsView, smsThread: state.smsThread, insta: state.insta, instaView: state.instaView, instaPost: state.instaPost, apps: state.apps, appsView: state.appsView, appView: state.appView, paper: state.paper, paperView: state.paperView, network: state.network, networkView: state.networkView, settings: state.settings, settingsView: state.settingsView, guardian: state.guardian, guardianView: state.guardianView, shop: state.shop, shopView: state.shopView, androidApps: androidAppsList(), pc: state.pc, pcControl: state.pcControl, pcShare: pcShareOn, hid: state.hid || null, appsCatalog: APP_CATALOG.filter((c) => !state.apps.some((a) => a.id === c.id)) }; }
+function snapshot() { return { avatar: state.avatar, cards: state.cards, focusId: state.focusId, avatarMode: avatarMode, calendar: state.calendar, cameras: state.cameras, cameraView: state.cameraView, inbox: state.inbox, mailView: state.mailView, helpView: state.helpView, music: state.music, musicView: state.musicView, actionOutbox: state.actionOutbox, weather: state.weather, weatherView: state.weatherView, homeView: state.homeView, homeHidden: state.homeHidden, imageView: state.imageView, navStyle: state.navStyle, texts: state.texts, textView: state.textView, facebook: state.facebook, facebookView: state.facebookView, facebookPost: state.facebookPost, facebookGroup: state.facebookGroup, messenger: state.messenger, messengerView: state.messengerView, messengerThread: state.messengerThread, sms: state.sms, smsView: state.smsView, smsThread: state.smsThread, insta: state.insta, instaView: state.instaView, instaPost: state.instaPost, apps: state.apps, appsView: state.appsView, appView: state.appView, paper: state.paper, paperView: state.paperView, network: state.network, networkView: state.networkView, settings: state.settings, settingsView: state.settingsView, guardian: state.guardian, guardianView: state.guardianView, shop: state.shop, shopView: state.shopView, androidApps: androidAppsList(), pc: state.pc, pcControl: state.pcControl, pcShare: pcShareOn, hid: state.hid || null, sayQueue: state.sayQueue || [], sayStopAt: state.sayStopAt || 0, appsCatalog: APP_CATALOG.filter((c) => !state.apps.some((a) => a.id === c.id)) }; }
 function showOnly(which) {
   // One modal at a time (the owner's rule, 2026-10-26): opening any overlay closes the others.
   if (which !== 'camera') state.cameraView = { visible: false, cameraId: null, identify: null };
@@ -724,52 +724,52 @@ async function guardianProgram() {
 // ---- Guardian Ear: live call transcription (2026-10-27: the
 // Guardian listens to the call - that is the whole point). The board page
 // taps both sides of an app-phone call and posts PCM windows here; each
-// window goes to the local Whisper over the Wyoming protocol and comes
+// window goes to Muse Voice Transcribe (Meta Model API) and comes
 // back as text, appended to the live call and saved with it at hangup.
-const WHISPER_HOST = '192.168.1.50'; // dev scaffolding: the hub workstation (models move to cloud later, per the owner)
-function wyomingTranscribe(pcm, rate, port) {
-  return new Promise((resolve) => {
-    let settled = false;
-    const fail = () => { if (!settled) { settled = true; try { sock.destroy(); } catch (e) { } resolve(''); } };
-    const sock = net.connect(port || 10300, WHISPER_HOST);
-    let buf = Buffer.alloc(0);
-    const sendEvent = (ev, payload) => {
-      const head = { type: ev.type, version: '1.0' };
-      let dataBytes = null;
-      if (ev.data && Object.keys(ev.data).length) { dataBytes = Buffer.from(JSON.stringify(ev.data), 'utf8'); head.data_length = dataBytes.length; }
-      if (payload) head.payload_length = payload.length;
-      sock.write(JSON.stringify(head) + '\n');
-      if (dataBytes) sock.write(dataBytes);
-      if (payload) sock.write(payload);
-    };
-    sock.on('connect', () => {
-      sendEvent({ type: 'transcribe', data: { language: 'en' } });
-      sendEvent({ type: 'audio-start', data: { rate: rate, width: 2, channels: 1 } });
-      const CH = 4096;
-      for (let off = 0; off < pcm.length; off += CH) {
-        const part = pcm.slice(off, off + CH);
-        sendEvent({ type: 'audio-chunk', data: { rate: rate, width: 2, channels: 1 } }, part);
-      }
-      sendEvent({ type: 'audio-stop', data: {} });
-    });
-    sock.on('data', (d) => {
-      buf = Buffer.concat([buf, d]);
-      while (true) {
-        const idx = buf.indexOf(10);
-        if (idx < 0) return;
-        let ev;
-        try { ev = JSON.parse(buf.slice(0, idx).toString('utf8')); } catch (e) { buf = buf.slice(idx + 1); continue; }
-        const need = idx + 1 + (ev.data_length || 0) + (ev.payload_length || 0);
-        if (buf.length < need) return;
-        let data = {};
-        if (ev.data_length) { try { data = JSON.parse(buf.slice(idx + 1, idx + 1 + ev.data_length).toString('utf8')); } catch (e) { } }
-        buf = buf.slice(need);
-        if (ev.type === 'transcript' && !settled) { settled = true; try { sock.end(); } catch (e) { } resolve(String(data.text || '').trim()); }
-      }
-    });
-    sock.on('error', fail);
-    setTimeout(fail, 30000);
-  });
+// All speech-to-text is Muse Voice Transcribe (Meta), via the Meta Model
+// API's one-shot endpoint. Key file convention matches the listener's
+// Spark client: ~/.config/cosmo-voice/meta_api_key (0600, on the box only).
+const META_STT_URL = 'https://api.meta.ai/v1/asr/transcribe';
+const META_KEY_PATH = '/home/cosmo/.config/cosmo-voice/meta_api_key';
+function metaApiKey() { try { return require('fs').readFileSync(META_KEY_PATH, 'utf8').trim(); } catch (e) { return ''; } }
+function pcm16ToWav(pcm, rate) {
+  // The endpoint takes mono 16-bit WAV at 16 or 24 kHz only - resample
+  // (linear) and wrap. Phone audio arrives at 8 kHz.
+  let samples = pcm;
+  if (rate !== 16000 && rate > 0) {
+    const n = Math.floor(pcm.length / 2);
+    const outLen = Math.max(1, Math.floor(n * 16000 / rate));
+    const out = Buffer.alloc(outLen * 2);
+    for (let i = 0; i < outLen; i++) {
+      const pos = i * rate / 16000; const j = Math.floor(pos); const f = pos - j;
+      const a = pcm.readInt16LE(Math.min(j, n - 1) * 2);
+      const b = pcm.readInt16LE(Math.min(j + 1, n - 1) * 2);
+      out.writeInt16LE(Math.round(a + (b - a) * f), i * 2);
+    }
+    samples = out;
+  }
+  const head = Buffer.alloc(44);
+  head.write('RIFF', 0); head.writeUInt32LE(36 + samples.length, 4); head.write('WAVE', 8);
+  head.write('fmt ', 12); head.writeUInt32LE(16, 16); head.writeUInt16LE(1, 20); head.writeUInt16LE(1, 22);
+  head.writeUInt32LE(16000, 24); head.writeUInt32LE(32000, 28); head.writeUInt16LE(2, 32); head.writeUInt16LE(16, 34);
+  head.write('data', 36); head.writeUInt32LE(samples.length, 40);
+  return Buffer.concat([head, samples]);
+}
+async function metaTranscribe(pcm, rate) {
+  const key = metaApiKey();
+  if (!key || !pcm || pcm.length < 3200) return '';
+  try {
+    const form = new FormData();
+    form.append('request', new Blob([JSON.stringify({ model: 'muse-voice-transcribe-1.0', mode: 'PUSH_TO_TALK', audioEncoding: 'WAV' })], { type: 'application/json' }));
+    form.append('audio', new Blob([pcm16ToWav(pcm, rate)], { type: 'audio/wav' }), 'audio.wav');
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 30000);
+    const r = await fetch(META_STT_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: form, signal: ctl.signal });
+    clearTimeout(to);
+    if (!r.ok) return '';
+    const d = await r.json();
+    return String(d.transcript || '').trim();
+  } catch (e) { return ''; }
 }
 const grdAudioBufs = new Map();
 const GRD_RISK_WORDS = ['gift card', 'wire transfer', 'wire the money', 'verification code', 'code from the text', 'social security', 'bank account', 'routing number', 'do not tell', "don't tell", 'gift cards', 'crypto', 'bitcoin', 'cash app', 'zelle', 'grandson', 'bail money', 'arrested', 'refund department', 'microsoft support', 'irs', 'medicare card', 'code on the back', 'credit card number', 'social security number', 'birth date', 'date of birth', 'address'];
@@ -876,7 +876,7 @@ async function grdMute(side, on) {
 // --- Guardian talk: the Interruptor on Asterisk levers --------------------
 // With both directions muted, Cosmo speaks to either party (or both) by
 // whispering into that party's channel with ChanSpy: the other party
-// hears nothing of it. Lines are rendered once (Kokoro), resampled to
+// hears nothing of it. Lines are rendered once (espeak-ng, a rule-based formant synthesizer - plain non-ML code), resampled to
 // 8 kHz phone format, and cached by text hash in the Asterisk spool.
 const GRD_LINE_IN = 'This is Cosmo, the Guardian, stepping into this call. From now on, this call goes through me. You can each talk to me, but you cannot hear each other. Caller, stay on the line and speak with me.';
 const GRD_LINE_OUT = 'This is Cosmo. I am stepping back now. You can talk to each other again.';
@@ -889,16 +889,11 @@ const GRD_LINE_RETURN_ASK = "I'll return you to the call, would you like me to a
 const GRD_LINE_TEXTFRAUD = 'This is your Guardian, Cosmo, calling about your computer. A text message on your computer screen is a fraud. It may claim to be your bank, a delivery service, or even someone in your family, and it may ask you to tap a link, reply, or send money. Do not tap anything, do not reply, and do not send any money. I have flagged it on your screen for you.';
 const GRD_LINES_DIR = '/var/spool/asterisk/grd-lines';
 function grdFetchTts(text) {
+  // Spoken phone prompts come from espeak-ng: a formant synthesizer driven
+  // by rules, not a learned model - the same category as the browser's
+  // built-in speech. No AI model is called for spoken output.
   return new Promise((resolve, reject) => {
-    const payload = JSON.stringify({ model: 'kokoro', input: text, voice: 'am_michael', response_format: 'wav' });
-    const rq = require('http').request({ host: '192.168.1.50', port: 8880, path: '/v1/audio/speech', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }, timeout: 20000 }, (rs) => {
-      const parts = [];
-      rs.on('data', (c) => parts.push(c));
-      rs.on('end', () => resolve(Buffer.concat(parts)));
-    });
-    rq.on('error', reject);
-    rq.on('timeout', () => { rq.destroy(new Error('tts timeout')); });
-    rq.write(payload); rq.end();
+    require('child_process').execFile('espeak-ng', ['--stdout', '-v', 'en-US', '-s', '150', String(text)], { timeout: 20000, maxBuffer: 8388608, encoding: 'buffer' }, (err, out) => err ? reject(err) : resolve(out));
   });
 }
 async function pcAlertLineReady() {
@@ -1151,13 +1146,13 @@ async function grdFlush(key, force) {
   const pcm = Buffer.concat(ent.chunks);
   ent.chunks = []; ent.bytes = 0;
   try {
-    // Silence gate: Whisper hallucinates words ("You", "Thank you") on
+    // Silence gate: transcription invents words ("You", "Thank you") on
     // near-silent windows. If the loudest sample is a whisper of noise,
     // there was no speech - skip the window entirely.
     let peak = 0;
     for (let i = 0; i + 1 < pcm.length; i += 8) { const v = Math.abs(pcm.readInt16LE(i)); if (v > peak) peak = v; }
     if (peak >= 500) {
-      const text = await wyomingTranscribe(pcm, ent.rate, ent.side === 'remote' ? 10301 : 10300);
+      const text = await metaTranscribe(pcm, ent.rate);
       if (text) grdPushLine(ent.side, text);
     }
   } catch (e) { }
@@ -1501,15 +1496,8 @@ const server = http.createServer(async (req, res) => {
     return '';
   }
   let pcJudging = false;
-  function pcOcr(fp) {
-    return new Promise((resolve) => {
-      try {
-        require('child_process').execFile('tesseract', [fp, 'stdout', '--psm', '3'], { timeout: 20000, maxBuffer: 262144 }, (err, out) => resolve(err ? '' : String(out || '')));
-      } catch (e) { resolve(''); }
-    });
-  }
   async function pcJudgeText(ocrText) {
-    const rules = 'You check a computer screen text for scams aimed at seniors. A scam DECEIVES: it falsely claims the computer is infected or locked, demands the person call a support number, asks for gift cards, wire transfers or crypto payment, or impersonates Microsoft, Apple, a bank, or the police with urgent threats. NORMAL things that are NOT scams: command prompts, PowerShell, code, settings, update screens, ordinary apps and websites, even when technical. ALSO NORMAL, NEVER A SCAM: any text about a banner saying Cosmo is controlling this PC - that is the Fuse_Box banner from a session the PC owner started himself. You are given OCR text extracted from the screen (it may contain errors) plus context. Reply with ONLY this JSON: {"scam": true or false, "conf": 0.0 to 1.0, "kind": "message" if the scam arrives as a text, chat or email message, "page" if it is a fake web page, popup or alert, otherwise "other", "why": "one short plain sentence"}';
+    const rules = 'You check a computer screen text for scams aimed at seniors. A scam DECEIVES: it falsely claims the computer is infected or locked, demands the person call a support number, asks for gift cards, wire transfers or crypto payment, or impersonates Microsoft, Apple, a bank, or the police with urgent threats. NORMAL things that are NOT scams: command prompts, PowerShell, code, settings, update screens, ordinary apps and websites, even when technical. ALSO NORMAL, NEVER A SCAM: any text about a banner saying Cosmo is controlling this PC - that is the Fuse_Box banner from a session the PC owner started himself. You are given context about the screen; a vision pass may have failed, so judge from the context alone. Reply with ONLY this JSON: {"scam": true or false, "conf": 0.0 to 1.0, "kind": "message" if the scam arrives as a text, chat or email message, "page" if it is a fake web page, popup or alert, otherwise "other", "why": "one short plain sentence"}';
     const ctx = 'Foreground window: ' + String(state.pc.foreground || '') + '. Remote tools running: ' + (state.pc.remoteTools && state.pc.remoteTools.length ? state.pc.remoteTools.join(', ') : 'none') + '. Screen text: ' + ocrText.slice(0, 2500);
     const r = await fetch('http://127.0.0.1:11434/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'llama3.2:3b', stream: false, options: { num_ctx: 4096 }, messages: [{ role: 'user', content: rules + '\n' + ctx }] }) });
     const d = await r.json();
@@ -1570,10 +1558,12 @@ const server = http.createServer(async (req, res) => {
     pcJudging = true;
     try {
       const fp = path.join(__dirname, 'public', 'pc', 'latest.jpg');
-      const ocr = await pcOcr(fp);
+      // No OCR step: the usual OCR engine's neural net is a non-Meta
+      // model. Muse Glimmer (Meta) reads the screen directly, text
+      // included; the small text judge is only a fallback.
       let v = null;
-      if (ocr && ocr.trim().length > 15) { try { v = await pcJudgeText(ocr); } catch (e) {} }
-      if (!v || typeof v.conf !== 'number' || v.conf < 0.75) { try { const vv = await pcJudgeVision(fp); if (vv) v = vv; } catch (e) {} }
+      try { v = await pcJudgeVision(fp); } catch (e) {}
+      if (!v || typeof v.conf !== 'number') { try { v = await pcJudgeText(''); } catch (e) {} }
       if (!v) return;
       state.pc.verdict = { scam: !!v.scam, why: String(v.why || ''), kind: pcKindOf(v), at: Date.now() };
       if (v.scam) pcScamAlert(v);
@@ -2096,27 +2086,39 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (p === '/api/guardian/say' && req.method === 'POST') {
-    // Cosmo's voice for the interruptor: dev TTS on the hub (Kokoro).
+    // The Guardian's phone voice: espeak-ng formant synthesis (non-ML).
     const b = await readBody(req);
     const text = String(b.text || '').slice(0, 400);
     try {
-      const wav = await new Promise((resolve, reject) => {
-        const payload = JSON.stringify({ model: 'kokoro', input: text, voice: 'am_michael', response_format: 'wav' });
-        const rq = require('http').request({ host: '192.168.1.50', port: 8880, path: '/v1/audio/speech', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }, timeout: 20000 }, (rs) => {
-          const parts = [];
-          rs.on('data', (c) => parts.push(c));
-          rs.on('end', () => resolve(Buffer.concat(parts)));
-        });
-        rq.on('error', reject);
-        rq.on('timeout', () => { rq.destroy(new Error('tts timeout')); });
-        rq.write(payload); rq.end();
-      });
+      const wav = await grdFetchTts(text);
       res.writeHead(200, { 'Content-Type': 'audio/wav', 'Cache-Control': 'no-store' });
       res.end(wav);
     } catch (e) {
       res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false }));
     }
+    return;
+  }
+  if (p === '/api/tts-say' && req.method === 'POST') {
+    // Spoken output on the board is a browser feature, not a model call:
+    // the page speaks queued lines with its built-in speechSynthesis.
+    const b = await readBody(req);
+    const text = String(b.text || '').slice(0, 500);
+    if (text) {
+      state.sayQueue = state.sayQueue || [];
+      state.sayQueue.push({ id: Date.now().toString(36) + Math.floor(Math.random() * 1e4), text: text, at: Date.now() });
+      if (state.sayQueue.length > 10) state.sayQueue = state.sayQueue.slice(-10);
+      save(); broadcast('snapshot', snapshot());
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+  if (p === '/api/tts-stop' && req.method === 'POST') {
+    state.sayStopAt = Date.now();
+    save(); broadcast('snapshot', snapshot());
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true }));
     return;
   }
   if (p === '/api/guardian/call-start' && req.method === 'POST') {

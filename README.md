@@ -113,14 +113,13 @@ ESP32 firmware source are ready for the parts.
   30 min). Watchdogs wake an agent only on a real failure. A model is
   involved only where judgment is needed.
 - **Voice in three tiers** (`cosmo-listener/`) — microphone → energy VAD →
-  local Whisper (Wyoming protocol) → wake-phrase spotting ("Hey Cosmo");
-  all audio processing is local and only a transcript leaves the room,
-  after the wake phrase. A resident local 3B router handles reflexes
+  Muse Voice Transcribe (Meta Model API) → wake-phrase spotting
+  ("Hey Cosmo") on the returned transcript. A resident local 3B router handles reflexes
   (open a page, show a camera — silently; the user can see the screen). A
   fast cloud tier (Meta Model API) answers factual questions from board
   data in about 2–3 seconds and is **answer-only by design**: ask it to act
   and the request falls through to the full agent. Speech returns through
-  ElevenLabs v3, Kokoro, or Piper, with barge-in. `sudo cosmo` on the box
+  the browser's built-in speechSynthesis, with barge-in. `sudo cosmo` on the box
   shows a live WAITING / LISTENING / THINKING / SPEAKING status.
 - **Android apps and the Fuse Shop** (`android/`) — the box runs Android
   apps (Waydroid) full screen, with one big close button and the
@@ -196,22 +195,51 @@ the claims can be checked.
 The reference install runs as a dedicated `cosmo` user, so paths read
 `/home/cosmo/...`; adjust the units and configs if your user differs.
 
+## Which parts are Meta models, which are browser features
+
+Every AI model this project calls at runtime is a Meta model:
+
+| Job | Model | Where it runs |
+| --- | --- | --- |
+| Judgment, conversation, one-sentence answers | Muse Spark 1.3 | Meta Model API |
+| Speech-to-text (voice loop, Guardian call transcription) | Muse Voice Transcribe 1.0 | Meta Model API |
+| Vision: screen scam judge, camera questions | Muse Glimmer (open weights, Apache 2.0) | **On the box owner's own hardware** (Ollama) |
+| Text reflexes: intent router, screen-text judge fallback | Llama 3.2 3B (open weights) | On the box (Ollama) |
+
+The open-weight story, for the Best Build category: **Muse Glimmer runs
+inside the app itself**, served by Ollama on the owner's hardware — it
+is the vision tier of the PC Guardian's scam judge and the camera
+question answerer, in the live serving path (not a CI judge). Llama 3.2
+3B, also open weights, runs beside it for text reflexes. Hosted Muse
+Spark and Muse Voice Transcribe cover judgment and transcription;
+combining hosted and open-weight Meta models is deliberate.
+
+**Spoken output is not a model call.** The board speaks with the
+browser's built-in `speechSynthesis` — a browser feature. The
+Guardian's phone prompts are rendered by espeak-ng, a rule-based
+formant synthesizer (plain non-ML code), cached as ordinary WAV files.
+There is no text-to-speech model in the runtime path, and no non-Meta
+model runs anywhere in the project: no Whisper, no openWakeWord, no
+local TTS models, no third-party OCR (the screen judge reads with
+Glimmer). Plain non-ML code — Asterisk (the PBX), ffmpeg, the Wyoming
+and ordinary HTTP plumbing — does the rest.
+
 ## Configuration & secrets
 
 **No secrets are in this repo, by design.** The code reads credentials
 from files on the box at runtime, and those files are git-ignored:
 
-- ElevenLabs API key: `~/.config/cosmo-voice/elevenlabs_api_key` (0600) —
-  optional; without it, speech falls back to local Kokoro/Piper.
-- Meta Model API key: `~/.config/cosmo-voice/meta_api_key` (0600) — only
-  for the fast cloud reflex tier.
+- Meta Model API key: `~/.config/cosmo-voice/meta_api_key` (0600) —
+  powers the cloud reflex tier (Muse Spark) and all speech-to-text
+  (Muse Voice Transcribe). Without it the box still runs; voice input
+  and call transcription simply stay off.
 - Home Assistant long-lived token: the path set by `haTokenPath` in
   `cosmo-ui/config.json`.
 - Guardian phone credentials (SIP user/password, line number) and the
   family password: `~/.config/cosmo-guardian/secrets.json` (0600) —
   entered on the box's own screen, never typed into a chat or a terminal.
-- Voice profiles (ElevenLabs voice IDs), weather location, camera and
-  integration settings: `cosmo-listener/config.json` and
+- Weather location, camera and integration settings:
+  `cosmo-listener/config.json` and
   `cosmo-ui/config.json` — shipped here with placeholder/demo values.
 
 Mail, messages, social, and music are driven by the agent session through
@@ -246,7 +274,7 @@ git clone https://github.com/coopersplayground/FuseBox.git && cd FuseBox && sudo
 That is the whole install. The installer checks the machine, installs
 every dependency (Node for the board, the Python voice loop, Chrome and
 Brave for the screens, Asterisk for the phone Guardian, Ollama with the
-small Llama 3.2 judge, local Whisper + Piper voice services, Waydroid
+small Llama 3.2 judge, espeak-ng for the Guardian's phone prompts, Waydroid
 for the Android side), creates the appliance's `cosmo` user, lays the
 tree into place, enables every service, smoke-tests the board, and
 reboots into the Fuse Box — board full screen, voice live, demo data on

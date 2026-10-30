@@ -1432,6 +1432,23 @@ function render(snap) {
   lastHomeView = snap.homeView || null;
   homeHidden = snap.homeHidden || [];
   renderHome();
+  renderSpeech(snap);
+}
+
+// Spoken output is a browser feature, not a model call: lines the box
+// wants said out loud arrive in state.sayQueue and are spoken here with
+// the browser's built-in speechSynthesis. sayStopAt cancels (barge-in).
+const _saySeen = new Set();
+let _sayStopAt = 0;
+function renderSpeech(snap) {
+  if (!('speechSynthesis' in window)) return;
+  if (snap.sayStopAt && snap.sayStopAt !== _sayStopAt) { _sayStopAt = snap.sayStopAt; try { speechSynthesis.cancel(); } catch (e) {} }
+  for (const item of (snap.sayQueue || [])) {
+    if (!item || _saySeen.has(item.id)) continue;
+    _saySeen.add(item.id);
+    if (Date.now() - (item.at || 0) > 60000) continue;
+    try { speechSynthesis.speak(new SpeechSynthesisUtterance(String(item.text || ''))); } catch (e) {}
+  }
 }
 
 function connect() {
