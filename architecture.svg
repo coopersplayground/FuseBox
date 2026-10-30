@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1670" viewBox="0 0 2560 1670">
+<rect width="2560" height="1670" fill="#05070d"/>
+<defs><pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M64 0H0V64" fill="none" stroke="#0b1220" stroke-width="1"/></pattern></defs>
+<rect width="2560" height="1670" fill="url(#grid)"/>
+<text x="90" y="83" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="46" font-weight="700" fill="#f2f6fc" text-anchor="start" letter-spacing="6">FUSE_BOX GUARDIAN</text>
+<text x="90" y="173" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="86" font-weight="700" fill="#f2f6fc" text-anchor="start">Distributed AI execution architecture</text>
+<text x="90" y="242" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="37" font-weight="400" fill="#93a4bb" text-anchor="start">One intelligence layer. Three codebases. Connected voice, screen, and telephony workflows.</text>
+<rect x="90" y="280" width="2380" height="420" rx="26" fill="#0a101c" stroke="#1e3a56" stroke-width="3"/>
+<text x="132" y="339" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="34" font-weight="700" fill="#35b6f2" text-anchor="start" letter-spacing="4">01   CORE SYSTEM</text>
+<rect x="130" y="385" width="560" height="255" rx="26" fill="#0a101c" stroke="#2fe6c8" stroke-width="3"/>
+<rect x="170" y="447" width="76" height="76" rx="14" fill="none" stroke="#2fe6c8" stroke-width="5"/>
+<rect x="192" y="469" width="32" height="32" rx="6" fill="none" stroke="#2fe6c8" stroke-width="4"/>
+<line x1="178" y1="429" x2="178" y2="447" stroke="#2fe6c8" stroke-width="5"/>
+<line x1="178" y1="523" x2="178" y2="541" stroke="#2fe6c8" stroke-width="5"/>
+<line x1="202" y1="429" x2="202" y2="447" stroke="#2fe6c8" stroke-width="5"/>
+<line x1="202" y1="523" x2="202" y2="541" stroke="#2fe6c8" stroke-width="5"/>
+<line x1="226" y1="429" x2="226" y2="447" stroke="#2fe6c8" stroke-width="5"/>
+<line x1="226" y1="523" x2="226" y2="541" stroke="#2fe6c8" stroke-width="5"/>
+<text x="282" y="467" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="43" font-weight="700" fill="#f2f6fc" text-anchor="start">LINUX GADGET</text>
+<text x="282" y="531" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="35" font-weight="700" fill="#2fe6c8" text-anchor="start">Node.js local server</text>
+<text x="282" y="578" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="31" font-weight="400" fill="#93a4bb" text-anchor="start">Zero-dependency runtime</text>
+<line x1="700" y1="490" x2="862" y2="490" stroke="#2fe6c8" stroke-width="7"/>
+<polygon points="880,490 854,477 854,503" fill="#2fe6c8"/>
+<text x="790" y="465" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#2fe6c8" text-anchor="middle">WAKE</text>
+<rect x="890" y="385" width="800" height="255" rx="26" fill="#0a101c" stroke="#35b6f2" stroke-width="3"/>
+<circle cx="1010" cy="505" r="65" fill="none" stroke="#35b6f2" stroke-width="5"/>
+<circle cx="1010" cy="505" r="25" fill="none" stroke="#35b6f2" stroke-width="4"/>
+<circle cx="1010" cy="505" r="8" fill="#35b6f2"/>
+<circle cx="1071" cy="456" r="9" fill="#f5b93f"/>
+<text x="1120" y="464" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="46" font-weight="700" fill="#f2f6fc" text-anchor="start">MUSE SPARK</text>
+<text x="1120" y="515" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="35" font-weight="700" fill="#35b6f2" text-anchor="start">Session orchestration</text>
+<text x="1120" y="561" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="30" font-weight="400" fill="#93a4bb" text-anchor="start">Local code wakes the session</text>
+<text x="1120" y="601" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="30" font-weight="400" fill="#93a4bb" text-anchor="start">Muse calls back via Gadget executor</text>
+<line x1="1700" y1="490" x2="1862" y2="490" stroke="#4a86ff" stroke-width="7"/>
+<polygon points="1880,490 1854,477 1854,503" fill="#4a86ff"/>
+<text x="1790" y="465" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#4a86ff" text-anchor="middle">EXECUTE</text>
+<line x1="1880" y1="580" x2="1724" y2="580" stroke="#6b7d94" stroke-width="5" stroke-dasharray="26 18"/>
+<polygon points="1700,580 1722,569 1722,591" fill="#6b7d94"/>
+<text x="1790" y="613" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="17" font-weight="700" fill="#6b7d94" text-anchor="middle">RESULTS / CALLBACKS</text>
+<rect x="1890" y="385" width="540" height="255" rx="26" fill="#0a101c" stroke="#4a86ff" stroke-width="3"/>
+<rect x="1932" y="451" width="84" height="74" rx="8" fill="none" stroke="#4a86ff" stroke-width="5"/>
+<line x1="1974" y1="525" x2="1974" y2="543" stroke="#4a86ff" stroke-width="5"/>
+<line x1="1950" y1="543" x2="1998" y2="543" stroke="#4a86ff" stroke-width="5"/>
+<text x="2050" y="467" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="43" font-weight="700" fill="#f2f6fc" text-anchor="start">WINDOWS PC</text>
+<text x="2050" y="531" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="35" font-weight="700" fill="#4a86ff" text-anchor="start">PC Companion</text>
+<text x="2050" y="578" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="31" font-weight="400" fill="#93a4bb" text-anchor="start">UI Automation control</text>
+<text x="2050" y="617" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#2fe6c8" text-anchor="start">No AI models on the PC</text>
+<text x="90" y="765" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="34" font-weight="700" fill="#35b6f2" text-anchor="start" letter-spacing="4">02   THREE CODEBASES</text>
+<rect x="90" y="785" width="773" height="180" rx="26" fill="#0a101c" stroke="#2fe6c8" stroke-width="2"/>
+<rect x="118" y="813" width="16" height="124" rx="7" fill="#2fe6c8"/>
+<text x="164" y="837" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="33" font-weight="700" fill="#f2f6fc" text-anchor="start">01  NODE.JS SERVER</text>
+<text x="164" y="886" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="31" font-weight="700" fill="#2fe6c8" text-anchor="start">Runs on the Linux Gadget</text>
+<text x="164" y="929" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="400" fill="#93a4bb" text-anchor="start">Pairing • session wake • executor</text>
+<rect x="893" y="785" width="773" height="180" rx="26" fill="#0a101c" stroke="#b07fe8" stroke-width="2"/>
+<rect x="921" y="813" width="16" height="124" rx="7" fill="#b07fe8"/>
+<text x="967" y="837" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="33" font-weight="700" fill="#f2f6fc" text-anchor="start">02  PYTHON VOICE LAYER</text>
+<text x="967" y="886" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="31" font-weight="700" fill="#b07fe8" text-anchor="start">Voice and transcription</text>
+<text x="967" y="929" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="400" fill="#93a4bb" text-anchor="start">Muse Voice Transcribe • browser speech out</text>
+<rect x="1696" y="785" width="773" height="180" rx="26" fill="#0a101c" stroke="#4a86ff" stroke-width="2"/>
+<rect x="1724" y="813" width="16" height="124" rx="7" fill="#4a86ff"/>
+<text x="1770" y="837" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="33" font-weight="700" fill="#f2f6fc" text-anchor="start">03  PC COMPANION</text>
+<text x="1770" y="886" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="31" font-weight="700" fill="#4a86ff" text-anchor="start">Runs on the Windows PC</text>
+<text x="1770" y="929" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="400" fill="#93a4bb" text-anchor="start">UI Automation • screen interaction • zero models</text>
+<rect x="90" y="1010" width="1180" height="300" rx="26" fill="#0a101c" stroke="#f5b93f" stroke-width="2"/>
+<text x="128" y="1061" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="31" font-weight="700" fill="#f5b93f" text-anchor="start" letter-spacing="3">03   TIERED DECISION PIPELINE</text>
+<rect x="126" y="1102" width="252" height="128" rx="18" fill="#0a101c" stroke="#93a4bb" stroke-width="2"/>
+<text x="252.0" y="1142" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="700" fill="#f2f6fc" text-anchor="middle">SCREEN</text>
+<text x="252.0" y="1176" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="700" fill="#f2f6fc" text-anchor="middle">SNAPSHOT</text>
+<text x="252.0" y="1208" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#93a4bb" text-anchor="middle">Companion capture</text>
+<line x1="382" y1="1166.0" x2="391" y2="1166.0" stroke="#f5b93f" stroke-width="5"/>
+<polygon points="409,1166.0 383,1153.0 383,1179.0" fill="#f5b93f"/>
+<rect x="411" y="1102" width="252" height="128" rx="18" fill="#0a101c" stroke="#b07fe8" stroke-width="2"/>
+<text x="537.0" y="1154" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#f2f6fc" text-anchor="middle">MUSE GLIMMER</text>
+<text x="537.0" y="1208" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#b07fe8" text-anchor="middle">Vision judge</text>
+<line x1="667" y1="1166.0" x2="676" y2="1166.0" stroke="#2fe6c8" stroke-width="5"/>
+<polygon points="694,1166.0 668,1153.0 668,1179.0" fill="#2fe6c8"/>
+<rect x="696" y="1102" width="252" height="128" rx="18" fill="#0a101c" stroke="#4a86ff" stroke-width="2"/>
+<text x="822.0" y="1154" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#f2f6fc" text-anchor="middle">CONFIDENCE</text>
+<text x="822.0" y="1208" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#4a86ff" text-anchor="middle">≥ 0.75</text>
+<line x1="952" y1="1166.0" x2="961" y2="1166.0" stroke="#4a86ff" stroke-width="5"/>
+<polygon points="979,1166.0 953,1153.0 953,1179.0" fill="#4a86ff"/>
+<rect x="981" y="1102" width="252" height="128" rx="18" fill="#0a101c" stroke="#2fe6c8" stroke-width="2"/>
+<text x="1107.0" y="1154" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#f2f6fc" text-anchor="middle">LLAMA 3.2</text>
+<text x="1107.0" y="1208" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#2fe6c8" text-anchor="middle">Fallback</text>
+<text x="130" y="1265" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="24" font-weight="400" fill="#6b7d94" text-anchor="start">Glimmer reads the screen directly. Llama answers only if vision is unsure.</text>
+<rect x="1330" y="1010" width="1140" height="300" rx="26" fill="#0a101c" stroke="#b07fe8" stroke-width="2"/>
+<text x="1368" y="1061" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="31" font-weight="700" fill="#b07fe8" text-anchor="start" letter-spacing="3">04   TELEPHONY &amp; LIVE INTERVENTION</text>
+<rect x="1366" y="1102" width="270" height="128" rx="18" fill="#0a101c" stroke="#4a86ff" stroke-width="2"/>
+<text x="1501.0" y="1150" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="700" fill="#f2f6fc" text-anchor="middle">TELNYX</text>
+<text x="1501.0" y="1199" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="24" font-weight="700" fill="#4a86ff" text-anchor="middle">SIP trunk</text>
+<line x1="1640" y1="1166.0" x2="1648" y2="1166.0" stroke="#4a86ff" stroke-width="5"/>
+<polygon points="1666,1166.0 1640,1153.0 1640,1179.0" fill="#4a86ff"/>
+<rect x="1670" y="1102" width="300" height="128" rx="18" fill="#0a101c" stroke="#b07fe8" stroke-width="2"/>
+<text x="1820.0" y="1150" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="700" fill="#f2f6fc" text-anchor="middle">ASTERISK</text>
+<text x="1820.0" y="1199" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="24" font-weight="700" fill="#b07fe8" text-anchor="middle">B2BUA pass-through</text>
+<line x1="1974" y1="1166.0" x2="1982" y2="1166.0" stroke="#b07fe8" stroke-width="5"/>
+<polygon points="2000,1166.0 1974,1153.0 1974,1179.0" fill="#b07fe8"/>
+<rect x="2004" y="1102" width="452" height="128" rx="18" fill="#0a101c" stroke="#2fe6c8" stroke-width="2"/>
+<text x="2230.0" y="1150" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="700" fill="#f2f6fc" text-anchor="middle">VOICE WORKFLOWS</text>
+<text x="2230.0" y="1186" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="700" fill="#2fe6c8" text-anchor="middle">Recording • Muse Voice Transcribe</text>
+<text x="2230.0" y="1214" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="700" fill="#2fe6c8" text-anchor="middle">ConfBridge • family-password hold</text>
+<text x="1900.0" y="1270" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="28" font-weight="700" fill="#2fe6c8" text-anchor="middle">No AI models</text>
+<rect x="90" y="1355" width="2380" height="205" rx="26" fill="#0a101c" stroke="#34d399" stroke-width="2"/>
+<text x="132" y="1404" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="31" font-weight="700" fill="#34d399" text-anchor="start" letter-spacing="3">05   RUNTIME MODELS — 100% META</text>
+<rect x="132" y="1429" width="271" height="52" rx="14" fill="none" stroke="#34d399" stroke-width="2"/>
+<text x="154" y="1463" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="700" fill="#f2f6fc" text-anchor="start">MUSE SPARK · API</text>
+<rect x="427" y="1429" width="434" height="52" rx="14" fill="none" stroke="#34d399" stroke-width="2"/>
+<text x="449" y="1463" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="700" fill="#f2f6fc" text-anchor="start">MUSE VOICE TRANSCRIBE · API</text>
+<rect x="885" y="1429" width="571" height="52" rx="14" fill="none" stroke="#34d399" stroke-width="2"/>
+<text x="907" y="1463" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="700" fill="#f2f6fc" text-anchor="start">MUSE GLIMMER · OPEN WEIGHTS, ON-BOX</text>
+<rect x="1480" y="1429" width="502" height="52" rx="14" fill="none" stroke="#34d399" stroke-width="2"/>
+<text x="1502" y="1463" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="700" fill="#f2f6fc" text-anchor="start">LLAMA 3.2 · OPEN WEIGHTS, ON-BOX</text>
+<text x="132" y="1523" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">Spoken output: browser speechSynthesis — a browser feature, not a model · Phone prompts: espeak-ng (non-ML) · PC Companion: automation only, no models</text>
+<text x="90" y="1630" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#6b7d94" text-anchor="start" letter-spacing="3">SYSTEM FLOW  •  SCREEN AUTOMATION  •  VOICE  •  TELEPHONY</text>
+</svg>
