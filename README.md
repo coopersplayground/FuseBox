@@ -240,7 +240,7 @@ On a clean **Ubuntu 24.04 (x86_64)** machine with at least ~6 GB of RAM
 and ~20 GB free:
 
 ```sh
-git clone https://github.com/coopersplayground/FuseBox.git && cd FuseBox && sudo ./install.sh
+git clone https://github.com/coopersplayground/FuseBox.git && cd FuseBox && sudo bash install.sh
 ```
 
 That is the whole install. The installer checks the machine, installs

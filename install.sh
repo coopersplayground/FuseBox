@@ -2,7 +2,7 @@
 # Fuse_Box installer - turns a clean Ubuntu 24.04 (x86_64) machine into a Fuse Box.
 #
 #   git clone https://github.com/coopersplayground/FuseBox.git
-#   cd FuseBox && sudo ./install.sh
+#   cd FuseBox && sudo bash install.sh
 #
 # Flags:
 #   --no-android    skip Waydroid + the Fuse Shop catalog (Android apps)
@@ -175,7 +175,8 @@ note "Listener venv: OK"
 
 # ---------------------------------------------------------------- voice services (Wyoming)
 say "Local voice services (Whisper + Piper, no accounts needed)"
-run install -d /opt/wyoming "$FB_HOME/wyoming-data/whisper" "$FB_HOME/wyoming-data/whisper-big" "$FB_HOME/wyoming-data/piper"
+run install -d /opt/wyoming
+run install -d -o "$FB_USER" -g "$FB_USER" "$FB_HOME/wyoming-data/whisper" "$FB_HOME/wyoming-data/whisper-big" "$FB_HOME/wyoming-data/piper"
 run python3 -m venv /opt/wyoming/whisper
 run /opt/wyoming/whisper/bin/pip install --quiet wyoming-faster-whisper
 run python3 -m venv /opt/wyoming/piper
@@ -204,7 +205,25 @@ WantedBy=multi-user.target
 EOF
 run systemctl daemon-reload
 run systemctl enable --now wyoming-whisper.service wyoming-piper.service
-note "Voice services (live whisper + piper): OK"
+# The Wyoming servers bind their port only after the model/voice download
+# finishes - wait for the ports, not the process state, before claiming OK.
+wait_port() { # wait_port PORT SECONDS
+  [ "$DRY" = 1 ] && return 0
+  local end=$(( SECONDS + $2 ))
+  while [ "$SECONDS" -lt "$end" ]; do
+    (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null && { exec 3>&- 3<&-; return 0; }
+    sleep 3
+  done
+  return 1
+}
+VOICE_OK=1
+wait_port 10300 240 || VOICE_OK=0
+wait_port 10200 240 || VOICE_OK=0
+if [ "$VOICE_OK" = 1 ]; then
+  note "Voice services (live whisper + piper): OK"
+else
+  note "Voice services (live whisper + piper): DEGRADED - check: journalctl -u wyoming-whisper -u wyoming-piper"
+fi
 
 # The Guardian's end-of-call deep pass wants a bigger model on its own port.
 # Try the best model first; fall back so the port always answers.
@@ -223,9 +242,9 @@ WantedBy=multi-user.target
 EOF
   run systemctl daemon-reload
   if [ "$DRY" = 1 ]; then BIG_MODEL="$m"; break; fi
+  systemctl reset-failed wyoming-whisper-big.service 2>/dev/null
   systemctl restart wyoming-whisper-big.service 2>/dev/null
-  sleep 20
-  if systemctl is-active --quiet wyoming-whisper-big.service; then BIG_MODEL="$m"; break; fi
+  if wait_port 10301 300; then BIG_MODEL="$m"; break; fi
 done
 if [ -n "$BIG_MODEL" ]; then
   run systemctl enable wyoming-whisper-big.service
@@ -276,7 +295,12 @@ EOF
     run apt-get install -y waydroid
   fi
   ANDROID_OK=1
-  run modprobe binder_linux devices=binder,hwbinder,vndbinder || ANDROID_OK=0
+  if ! run modprobe binder_linux devices=binder,hwbinder,vndbinder; then
+    # Minimal images (cloud, some server installs) split binder into the
+    # kernel extras package - fetch it for the running kernel and retry.
+    run apt-get install -y "linux-modules-extra-$(uname -r)" || true
+    run modprobe binder_linux devices=binder,hwbinder,vndbinder || ANDROID_OK=0
+  fi
   if [ "$ANDROID_OK" = 1 ]; then
     run systemctl enable waydroid-container 2>/dev/null || true
     run_sh "waydroid init" || ANDROID_OK=0
