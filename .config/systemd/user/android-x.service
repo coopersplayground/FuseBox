@@ -1,0 +1,13 @@
+[Unit]
+Description=Fuse_Box Android window close button
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/cosmo/android-x/android-x.py
+Environment=DISPLAY=:0
+Environment=HOME=/home/cosmo
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

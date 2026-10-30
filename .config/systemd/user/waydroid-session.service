@@ -1,0 +1,12 @@
+[Unit]
+Description=Waydroid headless session (Weston + Android) for Fuse_Box
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/cosmo/waydroid-session.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
