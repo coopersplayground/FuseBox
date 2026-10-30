@@ -14,6 +14,8 @@ workflows.**
 ![Fuse Box Guardian — set up in minutes](architecture-3.svg)
 
 WATCH THE VIDEO:
+<p/>
+  
 [![Watch the video on YouTube](https://img.youtube.com/vi/KEzhON5Ny28/hqdefault.jpg)](https://www.youtube.com/watch?v=KEzhON5Ny28)
 
 
