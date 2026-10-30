@@ -1,5 +1,4 @@
 <p align="center"><strong>Coded 100% with Muse AI</strong></p>
-<p align="center"><strong>All Meta Models</strong></p>
 
 # Fuse_Box
 
@@ -8,6 +7,8 @@ use their computers, and takes action only through controlled, auditable
 workflows.**
 
 ![Fuse Box Guardian — distributed AI execution architecture](architecture.svg)
+
+![Fuse Box Guardian — inside Margaret's house](architecture-2.svg)
 
 Fuse_Box is not a new AI model, and it is not an agent harness looking for
 a problem. It is a physical appliance — a screen, a microphone, and a

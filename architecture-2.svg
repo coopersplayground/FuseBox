@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1700" viewBox="0 0 2560 1700">
+<rect width="2560" height="1700" fill="#05070d"/>
+<defs><pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M64 0H0V64" fill="none" stroke="#0b1220" stroke-width="1"/></pattern></defs>
+<rect width="2560" height="1700" fill="url(#grid)"/>
+<text x="90" y="83" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="46" font-weight="700" fill="#f2f6fc" text-anchor="start" letter-spacing="6">FUSE_BOX GUARDIAN</text>
+<text x="90" y="173" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="86" font-weight="700" fill="#f2f6fc" text-anchor="start">Inside Margaret's house</text>
+<text x="90" y="242" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="37" font-weight="400" fill="#93a4bb" text-anchor="start">One box, three promises, and a person who stays in charge of all of it.</text>
+<line x1="110" y1="560" x2="825" y2="330" stroke="#345474" stroke-width="7"/>
+<line x1="825" y1="330" x2="1540" y2="560" stroke="#345474" stroke-width="7"/>
+<line x1="110" y1="560" x2="1540" y2="560" stroke="#345474" stroke-width="4"/>
+<rect x="1180" y="400" width="60" height="100" rx="0" fill="none" stroke="#345474" stroke-width="5"/>
+<line x1="150" y1="560" x2="150" y2="1150" stroke="#345474" stroke-width="6"/>
+<line x1="1500" y1="560" x2="1500" y2="1150" stroke="#345474" stroke-width="6"/>
+<line x1="150" y1="1150" x2="1500" y2="1150" stroke="#345474" stroke-width="6"/>
+<rect x="215" y="615" width="290" height="190" rx="12" fill="none" stroke="#35b6f2" stroke-width="4"/>
+<rect x="237" y="637" width="68" height="52" rx="6" fill="none" stroke="#35b6f2" stroke-width="3"/>
+<rect x="325" y="637" width="68" height="52" rx="6" fill="none" stroke="#35b6f2" stroke-width="3"/>
+<rect x="413" y="637" width="68" height="52" rx="6" fill="none" stroke="#35b6f2" stroke-width="3"/>
+<rect x="237" y="715" width="68" height="52" rx="6" fill="none" stroke="#35b6f2" stroke-width="3"/>
+<rect x="325" y="715" width="68" height="52" rx="6" fill="none" stroke="#35b6f2" stroke-width="3"/>
+<rect x="413" y="715" width="68" height="52" rx="6" fill="none" stroke="#35b6f2" stroke-width="3"/>
+<text x="215" y="852" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="30" font-weight="700" fill="#f2f6fc" text-anchor="start">THE BOARD</text>
+<text x="215" y="888" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">Everything waits for her word</text>
+<text x="215" y="920" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">Cards: calls, mail, cameras, apps</text>
+<circle cx="820" cy="690" r="42" fill="none" stroke="#2fe6c8" stroke-width="6"/>
+<path d="M 758 776 A 62 60 0 0 1 882 776" fill="none" stroke="#2fe6c8" stroke-width="6"/>
+<text x="820" y="881" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="36" font-weight="700" fill="#f2f6fc" text-anchor="middle">MARGARET</text>
+<text x="820" y="918" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="middle">Asks out loud, or taps the board</text>
+<text x="820" y="952" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="700" fill="#2fe6c8" text-anchor="middle">Nothing happens without her say-so</text>
+<rect x="215" y="945" width="240" height="150" rx="8" fill="none" stroke="#4a86ff" stroke-width="4"/>
+<rect x="215" y="945" width="240" height="32" rx="0" fill="#b93030"/>
+<text x="335" y="965" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="16" font-weight="700" fill="#f2f6fc" text-anchor="middle">HELPING — HER SESSION</text>
+<line x1="335" y1="1095" x2="335" y2="1118" stroke="#4a86ff" stroke-width="4"/>
+<line x1="300" y1="1118" x2="370" y2="1118" stroke="#4a86ff" stroke-width="4"/>
+<text x="482" y="974" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="30" font-weight="700" fill="#f2f6fc" text-anchor="start">HER PC</text>
+<text x="482" y="1015" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">Help only inside her session</text>
+<text x="482" y="1049" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">Banner up • stop button • idle lock</text>
+<text x="482" y="1088" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="700" fill="#2fe6c8" text-anchor="start">Guide mode: she clicks, it teaches</text>
+<line x1="1055" y1="1005" x2="1465" y2="1005" stroke="#345474" stroke-width="5"/>
+<rect x="1080" y="925" width="125" height="75" rx="8" fill="none" stroke="#4a86ff" stroke-width="4"/>
+<circle cx="1142" cy="962" r="18" fill="none" stroke="#4a86ff" stroke-width="3"/>
+<rect x="1295" y="925" width="125" height="75" rx="8" fill="none" stroke="#b07fe8" stroke-width="4"/>
+<circle cx="1357" cy="962" r="18" fill="none" stroke="#b07fe8" stroke-width="3"/>
+<text x="1055" y="1054" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="30" font-weight="700" fill="#f2f6fc" text-anchor="start">HER PHONES</text>
+<text x="1055" y="1092" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">Both ring through the box first</text>
+<text x="1055" y="1124" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="25" font-weight="400" fill="#93a4bb" text-anchor="start">Desk phone + her old phone</text>
+<rect x="1640" y="334" width="14" height="40" rx="6" fill="#2fe6c8"/>
+<text x="1680" y="357" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="34" font-weight="700" fill="#f2f6fc" text-anchor="start">ASKS FIRST</text>
+<text x="1680" y="404" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="400" fill="#93a4bb" text-anchor="start">Nothing sends, spends, or speaks in her name</text>
+<text x="1680" y="442" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="400" fill="#93a4bb" text-anchor="start">without her voice saying so first. PC help runs</text>
+<text x="1680" y="480" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="400" fill="#93a4bb" text-anchor="start">under a banner — one tap and it stops.</text>
+<line x1="1508" y1="700" x2="1662" y2="350" stroke="#2fe6c8" stroke-width="3"/>
+<circle cx="1508" cy="700" r="8" fill="#2fe6c8"/>
+<rect x="1640" y="584" width="14" height="40" rx="6" fill="#f5b93f"/>
+<text x="1680" y="607" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="34" font-weight="700" fill="#f2f6fc" text-anchor="start">STEPS IN FAST</text>
+<text x="1680" y="654" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="400" fill="#93a4bb" text-anchor="start">Only the caller is ever scanned. Two scam</text>
+<text x="1680" y="692" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="400" fill="#93a4bb" text-anchor="start">phrases — or a single one, ‘social security</text>
+<text x="1680" y="730" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="400" fill="#93a4bb" text-anchor="start">number’ — and the Guardian splits the call,</text>
+<text x="1680" y="768" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="400" fill="#93a4bb" text-anchor="start">separates them, and asks for the family password.</text>
+<line x1="1508" y1="880" x2="1662" y2="600" stroke="#f5b93f" stroke-width="3"/>
+<circle cx="1508" cy="880" r="8" fill="#f5b93f"/>
+<rect x="1640" y="874" width="14" height="40" rx="6" fill="#b07fe8"/>
+<text x="1680" y="897" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="34" font-weight="700" fill="#f2f6fc" text-anchor="start">FAILS OPEN</text>
+<text x="1680" y="944" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="400" fill="#93a4bb" text-anchor="start">If the box is unplugged, crashed, or the power</text>
+<text x="1680" y="982" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="400" fill="#93a4bb" text-anchor="start">is out, her phones quietly register with the</text>
+<text x="1680" y="1020" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="400" fill="#93a4bb" text-anchor="start">carrier directly. A ringing phone never waits</text>
+<text x="1680" y="1058" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="400" fill="#93a4bb" text-anchor="start">on a computer.</text>
+<line x1="1508" y1="990" x2="1662" y2="890" stroke="#b07fe8" stroke-width="3"/>
+<circle cx="1508" cy="990" r="8" fill="#b07fe8"/>
+<rect x="90" y="1230" width="2380" height="350" rx="22" fill="#0a101c" stroke="#6b7d94" stroke-width="2"/>
+<text x="128" y="1278" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="30" font-weight="700" fill="#2fe6c8" text-anchor="start" letter-spacing="4">ONE CALL, AS SHE LIVES IT</text>
+<rect x="140" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="204" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="268" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="332" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="396" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="460" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="524" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="588" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="652" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="716" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="780" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="844" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="908" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="972" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1036" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1100" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1164" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1228" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1292" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1356" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1420" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1484" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1548" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1612" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1676" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1740" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1804" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1868" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1932" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="1996" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="2060" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="2124" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="2188" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="2252" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="2316" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="2380" y="1302" width="26" height="16" rx="4" fill="#1a2636"/>
+<rect x="128" y="1336" width="436" height="170" rx="16" fill="#0a101c" stroke="#4a86ff" stroke-width="2"/>
+<text x="148" y="1382" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="40" font-weight="700" fill="#4a86ff" text-anchor="start">1</text>
+<text x="148" y="1420" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#f2f6fc" text-anchor="start">THE PHONE RINGS</text>
+<text x="148" y="1458" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">Both phones ring. She picks</text>
+<text x="148" y="1486" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">up — a man from ‘the bank.’</text>
+<rect x="588" y="1336" width="436" height="170" rx="16" fill="#0a101c" stroke="#b07fe8" stroke-width="2"/>
+<text x="608" y="1382" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="40" font-weight="700" fill="#b07fe8" text-anchor="start">2</text>
+<text x="608" y="1420" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#f2f6fc" text-anchor="start">SHE TALKS, IT LISTENS</text>
+<text x="608" y="1458" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">The Guardian scans his words</text>
+<text x="608" y="1486" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">as they talk. Hers, never.</text>
+<rect x="1048" y="1336" width="436" height="170" rx="16" fill="#0a101c" stroke="#f5b93f" stroke-width="2"/>
+<text x="1068" y="1382" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="40" font-weight="700" fill="#f5b93f" text-anchor="start">3</text>
+<text x="1068" y="1420" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#f2f6fc" text-anchor="start">THE WORDS TRIP</text>
+<text x="1068" y="1458" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">‘Gift cards — and don’t tell</text>
+<text x="1068" y="1486" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">anyone.’ Two phrases. Enough.</text>
+<rect x="1508" y="1336" width="436" height="170" rx="16" fill="#0a101c" stroke="#2fe6c8" stroke-width="2"/>
+<text x="1528" y="1382" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="40" font-weight="700" fill="#2fe6c8" text-anchor="start">4</text>
+<text x="1528" y="1420" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#f2f6fc" text-anchor="start">THE CALL SPLITS</text>
+<text x="1528" y="1458" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">He hears hold music. She</text>
+<text x="1528" y="1486" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">hears what he really is.</text>
+<rect x="1968" y="1336" width="436" height="170" rx="16" fill="#0a101c" stroke="#34d399" stroke-width="2"/>
+<text x="1988" y="1382" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="40" font-weight="700" fill="#34d399" text-anchor="start">5</text>
+<text x="1988" y="1420" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#f2f6fc" text-anchor="start">HER WORD DECIDES</text>
+<text x="1988" y="1458" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">The phone goes quiet.</text>
+<text x="1988" y="1486" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">Her house is hers again.</text>
+<text x="132" y="1551" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="24" font-weight="400" fill="#6b7d94" text-anchor="start">A scam that shows up as a text on her PC makes the same phones ring with the same warning.</text>
+<text x="90" y="1658" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#6b7d94" text-anchor="start" letter-spacing="3">HER HOUSE  •  HER RULES  •  HER GUARDIAN</text>
+</svg>
