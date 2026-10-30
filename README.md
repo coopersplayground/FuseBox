@@ -39,20 +39,29 @@ watches for exactly that:
   (Llama 3.2 3B). A staged scam drill is caught in about 6 seconds; a clean
   desktop clears in about 2. A small vision model loads on demand only when
   text cannot decide, then unloads.
-- A real rotating scareware page — fake security alerts, each with a
-  different support number — was flagged live on Day 1: the appliance spoke
-  the warning aloud ("do not call, do not click"), put the alert on the
-  board, and the browser was closed and the desktop verified clean.
+- In a live test on Day 1 — a real rotating scareware page, run
+  deliberately on the owner's own machine — the appliance flagged it:
+  it spoke the warning aloud ("do not call, do not click"), put the alert
+  on the board, and the browser was closed and the desktop verified
+  clean.
 - The Guardian judges deceptive content only. Normal technical screens —
   command prompts, installers, settings — are explicitly not scams, and the
   appliance's own control banner carries a permanent in-code exemption,
   learned from a live false positive on Day 1.
-- Planned as must-haves, not stretch goals: calls terminate on the box
-  with a screening gate (unknown callers state name and business; family
-  rings through), a family code word, scam-guard monitoring on calls with
-  monitor / mute / whisper, and a spoken "is this real?" check that
-  cross-references a suspicious message against the cameras and the board.
-  The board's ring receiver is built; carrier ring wiring is in progress.
+- **The phone Guardian is built and proven on real calls (Days 2–3).**
+  House calls pass through the box (an Asterisk PBX in pass-through
+  between the carrier trunk and the phones), so a desk phone and an old
+  analog phone on an adapter both ring as always — and if the box is
+  down, the phones register with the carrier directly and ring anyway.
+  Both sides of every call are transcribed live on the box. Only the
+  caller's side is scanned against a scam watch list; two distinct hits
+  — or a single instant-trigger phrase — and the Guardian steps in: the
+  parties are separated, the caller hears hold music, and the person at
+  home hears what was flagged. The caller is then asked for a family
+  password before the call can be reconnected; a wrong answer ends it.
+  A scam that arrives as a *text on the PC screen* makes the house
+  phones ring with a spoken warning. Still ahead: the screening gate
+  for unknown callers and the spoken audit ("who called today?").
 
 ## Priority 2 — Text-first computer control
 
@@ -64,7 +73,7 @@ was slow and fragile, so control was rebuilt around text.
 | --- | --- | --- |
 | 0 — Rules + text | Commands, the Windows UI Automation (UIA) control tree, and OCR keywords, in a one-file agent on the user's PC — no dependencies, no admin rights | Free, instant |
 | 1 — Small judge | OCR text judged by the resident 3B model on the hub | Seconds |
-| 2 — Vision fallback | A small vision model (Qwen3-VL-4B), loaded on demand only when UIA is blind | ~13 s warm; a fallback, never the driver |
+| 2 — Vision fallback | Muse Glimmer (Meta open weights), loaded on demand only when UIA is blind | A visitor in RAM, never the driver |
 | 3 — Full judgment | The full agent, for real work and decisions | Only when the lower tiers cannot |
 
 Proven on a real PC on Day 1: the agent returned a calculator window as 47
@@ -113,6 +122,19 @@ ESP32 firmware source are ready for the parts.
   and the request falls through to the full agent. Speech returns through
   ElevenLabs v3, Kokoro, or Piper, with barge-in. `sudo cosmo` on the box
   shows a live WAITING / LISTENING / THINKING / SPEAKING status.
+- **Android apps and the Fuse Shop** (`android/`) — the box runs Android
+  apps (Waydroid) full screen, with one big close button and the
+  on-screen keyboard. The Fuse Shop is its store: a curated mirror of
+  the F-Droid catalog, filtered to apps a person would actually use
+  (launchers, keyboards, shells, and root tools are excluded by the sync
+  script). Installed apps appear as tiles in the board's drawer. The
+  kiosk browser rules are appliance rules everywhere: no pinch zoom, no
+  split view, no drag-to-split.
+- **Appliance shell** — the box boots straight to the board. One
+  floating on-screen keyboard (`cosmo-osk/`) types into any app, a
+  Settings page runs the box's own Wi-Fi from the screen, and every
+  service is a systemd unit that comes back on its own after power
+  loss. Day-by-day build notes live in `docs/progress/`.
 
 ## The safeguarding pattern, applied everywhere
 
@@ -144,14 +166,18 @@ Fuse_Box is a systems-integration project with meaningful implementation
 work behind it — Day 1 proved each of its three jobs at least once, live,
 on a real machine: protection from scareware, plain-language teaching on
 the user's own screen, and quiet machine-health checks in the background.
+Days 2–3 put the phone Guardian on real calls through real phones,
+including the step-in, the family-password check, and the warning call
+for scam texts — and found and fixed the failure that only back-to-back
+calls could expose.
 
 It is not yet a proven product. Whether it becomes genuinely
 differentiated will depend on proving the hardware (the Pi gadget and
-ESP32 transports are backend-proven, not yet run on the parts),
-demonstrating reliable scam protection beyond drills and one live catch,
-and showing that its safeguards outperform a conventional agent given
-similar tools. The code in this repository is the current state of that
-work, published so the claims can be checked.
+ESP32 transports are backend-proven, not yet run on the parts), on a
+real senior — not the builder — using it on camera, and on showing that
+its safeguards outperform a conventional agent given similar tools. The
+code in this repository is the current state of that work, published so
+the claims can be checked.
 
 ## Layout
 
@@ -159,6 +185,11 @@ work, published so the claims can be checked.
 | --- | --- |
 | `cosmo-ui/` | The board: `server.js`, `public/` (kiosk page), `feeders/`, `config.json` |
 | `cosmo-listener/` | The voice loop: listener, speech, UI driver (`ui.py`), HA helper, status tool |
+| `guardian/` | The phone Guardian: Asterisk PBX generator, per-leg call transcription (the Ear), line resampler |
+| `android/` | Android on the box: Waydroid session script, full-screen close button, Fuse Shop catalog sync |
+| `cosmo-osk/` | The system on-screen keyboard that types into any app |
+| `cosmo-hid/` | The hardware hand: Pi USB gadget + ESP32-S3 input transports |
+| `docs/progress/` | Day-by-day build notes |
 | `usr/`, `etc/`, `.config/` | Install tree: kiosk session + systemd units, mirroring where files land on the box |
 
 The reference install runs as a dedicated `cosmo` user, so paths read
@@ -175,6 +206,9 @@ from files on the box at runtime, and those files are git-ignored:
   for the fast cloud reflex tier.
 - Home Assistant long-lived token: the path set by `haTokenPath` in
   `cosmo-ui/config.json`.
+- Guardian phone credentials (SIP user/password, line number) and the
+  family password: `~/.config/cosmo-guardian/secrets.json` (0600) —
+  entered on the box's own screen, never typed into a chat or a terminal.
 - Voice profiles (ElevenLabs voice IDs), weather location, camera and
   integration settings: `cosmo-listener/config.json` and
   `cosmo-ui/config.json` — shipped here with placeholder/demo values.

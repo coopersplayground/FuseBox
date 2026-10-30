@@ -1,5 +1,5 @@
 [Unit]
-Description=Cosmo listener - Hey Cosmo voice for the Fuse_Box gadget
+Description=Cosmo listener - Hey Cosmo voice for the Muse gadget on Server 2
 After=network.target
 
 [Service]
