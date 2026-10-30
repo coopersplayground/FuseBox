@@ -3,9 +3,9 @@
 
 # Fuse_Box
 
-**An always-on AI home hub powered by a Raspberry Pi 5. It connects traditional and modern devices, protects the home, monitors cameras, helps users with computers, and controls smart devices through safe, monitored workflows.
+An always-on AI home hub powered by a Raspberry Pi 5. It connects traditional and modern devices, protects the home, monitors cameras, helps users with computers, and controls smart devices through safe, monitored workflows.
 
-It connects apps and devices through simple pairings called Switches. Built-in Guardian technology enables monitoring and safety features. It can also pair with Meta's Muse AI and connect traditional home phones through a Grandstream HT802 gateway, bringing analog phones into the modern smart home.**
+It connects apps and devices through simple pairings called Switches. Built-in Guardian technology enables monitoring and safety features. It can also pair with Meta's Muse AI and connect traditional home phones through a Grandstream HT802 gateway, bringing analog phones into the modern smart home.
 
 ![Fuse Box Guardian — distributed AI execution architecture](architecture.svg)
 
