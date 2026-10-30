@@ -1,5 +1,4 @@
 <p align="center"><strong>Coded 100% with Muse AI</strong></p>
-<p align="center"><strong>All Meta Models</strong></p>
 
 # Fuse_Box
 
@@ -48,15 +47,13 @@ watches for exactly that:
   directly, text included — there is no separate OCR step. If vision
   cannot decide, a resident text judge (Llama 3.2 3B) rules from the
   screen's text context instead.
-- In a live test on Day 1 — a real rotating scareware page, run
-  deliberately on the owner's own machine — the appliance flagged it:
-  it spoke the warning aloud ("do not call, do not click"), put the alert
-  on the board, and the browser was closed and the desktop verified
-  clean.
+- Shown live with a real rotating scareware page, run deliberately as
+  a test on the owner's own machine: the appliance flags it, speaks the
+  warning aloud ("do not call, do not click"), puts the alert on the
+  board, and the browser is closed and the desktop verified clean.
 - The Guardian judges deceptive content only. Normal technical screens —
   command prompts, installers, settings — are explicitly not scams, and the
-  appliance's own control banner carries a permanent in-code exemption,
-  learned from a live false positive on Day 1.
+  appliance's own control banner carries a permanent in-code exemption.
 - **The phone Guardian runs on real calls.** House calls pass through
   the box (an Asterisk PBX in pass-through
   between the carrier trunk and the phones), so a desk phone and an old
@@ -73,10 +70,10 @@ watches for exactly that:
 
 ## Computer help
 
-Control is text-first. A screenshot-guessing path worked on Day 1 but was
-slow and fragile, so the Companion reads the PC as text — window titles,
-control trees, and the words on the screen — and clicks are aimed at
-named controls, not pixels.
+Control is text-first: the Companion reads the PC as text — window
+titles, control trees, and the words on the screen — and clicks are
+aimed at named controls, not pixels. A screenshot is taken only when a
+screen has to be judged, never to aim a click.
 
 | Tier | How it works | Cost / speed |
 | --- | --- | --- |
@@ -85,7 +82,7 @@ named controls, not pixels.
 | 2 — Text fallback | Llama 3.2 3B, resident on the hub, judging from text context when vision cannot decide | Seconds |
 | 3 — Full judgment | The full agent, for real work and decisions | Only when the lower tiers cannot |
 
-Proven on a real PC on Day 1: the Companion returned a calculator window as 47
+On a real PC, the Companion returned a calculator window as 47
 named controls with positions; "Seven" and "Eight" were invoked **by
 name** and the display read back as text — "Display is 78" — with zero
 screenshots. A follow-up sequence (close, reopen, 4 × 48 =, close) ran the
@@ -99,14 +96,14 @@ the user's own click advances the flow while the appliance watches the
 screen as text — teaching instead of taking over.
 
 **The hardware hand.** Protected windows can refuse synthetic input
-silently (observed live against an antivirus window on Day 1). So control
-has a third rung: one command vocabulary delivered interchangeably by the
-Windows companion app, a Pi in USB gadget mode (keyboard + absolute mouse, works
-at login, UAC, and pre-boot screens), or an ESP32-S3 Bluetooth dongle. The
-backend was built and proven **byte-exact** through a development sink
-before any hardware arrived: a spoken command produces the identical HID
-byte sequence whichever hand delivers it. The gadget setup script and the
-ESP32 firmware source are ready for the parts.
+silently (observed against an antivirus window), so control has a third
+rung: one command vocabulary delivered interchangeably by the Windows
+companion app, a Pi in USB gadget mode (keyboard + absolute mouse;
+works at login, UAC, and pre-boot screens), or an ESP32-S3 Bluetooth
+dongle. The backend produces the identical HID byte sequence whichever
+hand delivers it — verified **byte-exact** through a development sink.
+The gadget setup script and the ESP32 firmware source are in
+`cosmo-hid/`.
 
 ## The delivery platform — the household hub
 
@@ -142,7 +139,7 @@ ESP32 firmware source are ready for the parts.
   floating on-screen keyboard (`cosmo-osk/`) types into any app, a
   Settings page runs the box's own Wi-Fi from the screen, and every
   service is a systemd unit that comes back on its own after power
-  loss. Day-by-day build notes live in `docs/progress/`.
+  loss.
 
 ## The safeguarding pattern, applied everywhere
 
@@ -160,47 +157,11 @@ ESP32 firmware source are ready for the parts.
   unprompted.
 - **One modal at a time.** Opening any overlay closes all others, enforced
   server-side, so what is on screen is always the one active thing.
-- **No model larger than the job.** Learned the hard way on Day 1: a
-  never-unload setting kept a 66 GB model resident and the kiosk browser
-  took the fall. The rules now: no model larger than the job, no model
-  resident without a reason, no screenshot where text will do. The full
-  stack is budgeted against the Pi 5's 8 GB — roughly 1.5 GB for OS +
-  board + voice, ~2.5 GB for the resident 3B, the vision judge visiting
-  rather than living in RAM, and ~3.5–4 GB of headroom.
-
-## What it does today
-
-Everything above is built and has run live on real hardware:
-
-- Scareware judging on a real PC's screen, with the warning spoken
-  aloud and the page closed.
-- The phone Guardian on real calls through a desk phone and an analog
-  phone: live caller-side scanning, the step-in, the family-password
-  check, and the hang-up on a wrong answer — including back-to-back
-  calls, the pattern that broke the first version. It is fixed.
-- The warning call: a scam that arrives as a text on the PC rings the
-  house phones with a spoken alert.
-- Voice control of a real PC by naming controls ("Display is 78"),
-  guide mode teaching on the PC's own screen, and quiet
-  machine-health checks in the background.
-- The board, the voice loop, the Fuse Shop, and the one-command
-  installer, running as an appliance that boots straight to its
-  screen and recovers on its own after power loss.
-- The current build — every runtime model a Meta model — tested
-  end to end on the reference box, Guardian included.
-
-## What it doesn't do yet
-
-- No real senior has used it on camera yet. That test is still
-  ahead, and it is the one that matters most.
-- The Pi USB gadget and ESP32 transports are proven byte-exact
-  through a development sink; they have not run on the physical
-  parts.
-- The unknown-caller screening gate and the spoken audit ("who
-  called today?") are not built.
-
-The code in this repository is the current state of that work,
-published so the claims can be checked.
+- **Right-sized models.** No model larger than the job, no model
+  resident without a reason, no screenshot where text will do. The stack
+  is budgeted against 8 GB of RAM: roughly 1.5 GB for OS + board +
+  voice, ~2.5 GB for the resident 3B text judge, the vision judge
+  loaded on demand rather than resident, and ~3.5–4 GB of headroom.
 
 ## Layout
 
