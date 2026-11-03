@@ -28,7 +28,7 @@ API key lives in this service's environment on the host, nowhere else.
 
 ```sh
 META_API_KEY=... node gateway.js        # or the systemd unit
-node provision.js add "Margaret — box 1"
+node provision.js add "Martha — box 1"
 node provision.js list
 node provision.js disable box-1a2b3c4d
 ```

@@ -3,7 +3,7 @@
 <defs><pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M64 0H0V64" fill="none" stroke="#0b1220" stroke-width="1"/></pattern></defs>
 <rect width="2560" height="1700" fill="url(#grid)"/>
 <text x="90" y="83" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="46" font-weight="700" fill="#f2f6fc" text-anchor="start" letter-spacing="6">FUSE_BOX GUARDIAN</text>
-<text x="90" y="173" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="86" font-weight="700" fill="#f2f6fc" text-anchor="start">Inside Margaret's house</text>
+<text x="90" y="173" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="86" font-weight="700" fill="#f2f6fc" text-anchor="start">Inside Martha's house</text>
 <text x="90" y="242" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="37" font-weight="400" fill="#93a4bb" text-anchor="start">One box, three promises, and a person who stays in charge of all of it.</text>
 <line x1="110" y1="560" x2="825" y2="330" stroke="#345474" stroke-width="7"/>
 <line x1="825" y1="330" x2="1540" y2="560" stroke="#345474" stroke-width="7"/>

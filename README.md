@@ -9,7 +9,7 @@ It connects apps and devices through simple pairings called Switches. Built-in G
 
 ![Fuse Box Guardian — distributed AI execution architecture](architecture.svg)
 
-![Fuse Box Guardian — inside Margaret's house](architecture-2.svg)
+![Fuse Box Guardian — inside Martha's house](architecture-2.svg)
 
 ![Fuse Box Guardian — set up in minutes](architecture-3.svg)
 
