@@ -202,7 +202,7 @@ The gadget setup script and the ESP32 firmware source are in
 
 | Path | What it is |
 | --- | --- |
-| `install.sh` | The one-command installer: dependencies, appliance user, services, smoke test, reboot |
+| `install.sh` | The installer (one-line or from a checkout): dependencies, appliance user, services, smoke test, reboot |
 | `cosmo-ui/` | The board: `server.js`, `public/` (kiosk page), `feeders/`, `config.json` |
 | `cosmo-listener/` | The voice loop: listener, speech, UI driver (`ui.py`), HA helper, status tool |
 | `guardian/` | The phone Guardian: Asterisk PBX generator, per-leg call transcription (the Ear), line resampler |
@@ -296,23 +296,44 @@ avatar instead; those stay on the owner's machine and are **not** part of
 this repo. To use clips, drop them into `cosmo-ui/public/avatar/` (see the
 `.gitkeep` there) and set `AVATAR_MODE` to `real`.
 
-## Quick start — one command
+## Quick start — two ways in
 
-On a clean **Ubuntu 24.04 (x86_64)** machine with at least ~6 GB of RAM
-and ~20 GB free:
+Both paths run the same installer on a clean **Ubuntu 24.04 (x86_64)**
+machine with at least ~6 GB of RAM and ~20 GB free. Pick by who you are.
+
+**For users — one line:**
 
 ```sh
-git clone https://github.com/coopersplayground/FuseBox.git && cd FuseBox && sudo bash install.sh
+curl -fsSL https://raw.githubusercontent.com/coopersplayground/FuseBox/main/install.sh | sudo bash
 ```
 
-That is the whole install. The installer checks the machine, installs
-every dependency (Node for the board, the Python voice loop, Chrome and
-Brave for the screens, Asterisk for the phone Guardian, Ollama with the
-small Llama 3.2 judge, espeak-ng for the Guardian's phone prompts, Waydroid
-for the Android side), creates the appliance's `cosmo` user, lays the
-tree into place, enables every service, smoke-tests the board, and
-reboots into the Fuse Box — board full screen, voice live, demo data on
-the board. It is idempotent (run it again to update) and logs to
+The script fetches the repo itself and installs from it. To run the
+cloud tiers on your own Meta Model API key, pass it on the same line —
+it is stored on the box only, with owner-only permissions:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/coopersplayground/FuseBox/main/install.sh | sudo META_API_KEY=your-key bash
+```
+
+**For developers and judges — the checkout:**
+
+```sh
+git clone https://github.com/coopersplayground/FuseBox.git && cd FuseBox && cp .env.example .env && sudo bash install.sh
+```
+
+The same installer, but you can read every file first. Your own Meta
+Model API key goes in the `.env` file (see `.env.example`) and is
+stored on the box the same way. The installer is plain bash;
+`--dry-run` prints every action it would take before anything changes.
+
+Either way, the installer checks the machine, installs every dependency
+(Node for the board, the Python voice loop, Chrome and Brave for the
+screens, Asterisk for the phone Guardian, Ollama with the small Llama
+3.2 judge, espeak-ng for the Guardian's phone prompts, Waydroid for the
+Android side), creates the appliance's `cosmo` user, lays the tree into
+place, enables every service, smoke-tests the board, and reboots into
+the Fuse Box — board full screen, voice live, demo data on the board.
+It is idempotent (run it again to update) and logs to
 `/var/log/fusebox-install.log`.
 
 Flags: `--no-android` skips Waydroid and the app shop, `--no-reboot`
@@ -327,6 +348,13 @@ is generated on the box from the line details entered there — a watcher
 service runs the generator the moment they land), set the weather
 location in `cosmo-ui/config.json`, and drop in API keys as files only
 if you want the cloud tiers (see Configuration & secrets above).
+
+One more screen worth knowing about: the board also serves a **watcher
+console** on its own LAN port — `http://<the box's address>:3181/` — a
+read-only runtime page that names every Meta model call as it happens:
+which model, what it was doing, how long it took. It is made for a
+second screen, and it is the view to picture-in-picture when filming
+the box at work.
 
 ## License
 

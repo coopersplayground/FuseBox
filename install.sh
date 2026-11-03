@@ -1,8 +1,11 @@
 #!/bin/bash
 # Fuse_Box installer - turns a clean Ubuntu 24.04 (x86_64) machine into a Fuse Box.
 #
-#   git clone https://github.com/coopersplayground/FuseBox.git
-#   cd FuseBox && sudo bash install.sh
+#   Users (one line - the script fetches the repo itself):
+#     curl -fsSL https://raw.githubusercontent.com/coopersplayground/FuseBox/main/install.sh | sudo bash
+#   Developers / judges (inspectable checkout):
+#     git clone https://github.com/coopersplayground/FuseBox.git
+#     cd FuseBox && sudo bash install.sh
 #
 # Flags:
 #   --no-android    skip Waydroid + the Fuse Shop catalog (Android apps)
@@ -84,6 +87,28 @@ fi
 
 say "Fuse_Box install - source: $SRC_DIR"
 [ "$DRY" = 1 ] && say "DRY RUN - nothing will be changed"
+
+# ---------------------------------------------------------------- bootstrap
+# One-liner form: if this script arrived on its own (curl | sudo bash)
+# with no repo tree beside it, fetch the tree and re-run the installer
+# from the checkout - the same install as a git clone.
+if [ ! -d "$SRC_DIR/cosmo-ui" ]; then
+  BOOT_DIR="${FUSEBOX_SRC:-/tmp/fusebox-src}"
+  if [ -e "$BOOT_DIR" ] && [ ! -d "$BOOT_DIR/cosmo-ui" ]; then
+    echo "  $BOOT_DIR exists and is not a Fuse Box checkout - point FUSEBOX_SRC elsewhere. Stopping."; exit 2
+  fi
+  if [ ! -d "$BOOT_DIR/cosmo-ui" ]; then
+    say "Fetching the Fuse Box tree into $BOOT_DIR"
+    if ! command -v git >/dev/null 2>&1; then
+      run apt-get update
+      run apt-get install -y git
+    fi
+    run git clone --depth 1 "${FUSEBOX_REPO:-https://github.com/coopersplayground/FuseBox.git}" "$BOOT_DIR"
+  fi
+  if [ "$DRY" = 1 ]; then echo "  + would re-run: bash $BOOT_DIR/install.sh $*"; exit 0; fi
+  say "Re-running the installer from the checkout"
+  exec bash "$BOOT_DIR/install.sh" "$@"
+fi
 
 # ---------------------------------------------------------------- preflight
 say "Preflight"
