@@ -1,0 +1,434 @@
+#!/usr/bin/env python3
+"""Fuse Box network announcer.
+
+Makes the box appear in Windows Explorer's Network view like a printer or
+any other network device: WS-Discovery (UDP 3702) + device metadata over
+HTTP with a real PresentationUrl (so opening the device in Explorer can
+open the box's /getpc page), plus LLMNR (UDP 5355) so the box's name
+resolves on the LAN.
+
+Stdlib only. Replaces the wsdd2 daemon, whose metadata writer cannot emit
+a presentation URL (its -b option rejects any value containing a colon).
+The discovery and metadata shapes mirror what wsdd2 and a retail printer
+publish on a home LAN, so Windows treats the records the same way.
+"""
+import json
+import os
+import re
+import signal
+import socket
+import struct
+import subprocess
+import sys
+import threading
+import time
+import uuid
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+WSD_GROUP = "239.255.255.250"
+LLMNR_GROUP = "224.0.0.252"
+WSD_PORT = 3702
+LLMNR_PORT = 5355
+BOARD_PORT = int(os.environ.get("FUSEBOX_BOARD_PORT", "3180"))
+STATE_DIR = "/var/lib/fusebox-announcer"
+
+NS = ('xmlns:soap="http://www.w3.org/2003/05/soap-envelope" '
+      'xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing" '
+      'xmlns:wsd="http://schemas.xmlsoap.org/ws/2005/04/discovery" '
+      'xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex" '
+      'xmlns:wsdp="http://schemas.xmlsoap.org/ws/2006/02/devprof" '
+      'xmlns:un0="http://schemas.microsoft.com/windows/pnpx/2005/10" '
+      'xmlns:pub="http://schemas.microsoft.com/windows/pub/2005/07"')
+
+INSTANCE_ID = str(int(time.time()))
+SEQUENCE_ID = "urn:uuid:%s" % uuid.uuid4()
+_msg_lock = threading.Lock()
+_msg_no = [0]
+
+
+def next_msg_no():
+    with _msg_lock:
+        _msg_no[0] += 1
+        return _msg_no[0]
+
+
+def app_sequence():
+    return ('<wsd:AppSequence InstanceId="%s" SequenceId="%s" MessageNumber="%d" />'
+            % (INSTANCE_ID, SEQUENCE_ID, next_msg_no()))
+
+
+def device_uuid():
+    path = os.path.join(STATE_DIR, "device-id")
+    try:
+        with open(path) as f:
+            val = f.read().strip()
+        if re.fullmatch(r"[0-9a-fA-F-]{36}", val):
+            return val.lower()
+    except OSError:
+        pass
+    seed = socket.gethostname()
+    try:
+        with open("/etc/machine-id") as f:
+            seed = f.read().strip()
+    except OSError:
+        pass
+    val = str(uuid.uuid5(uuid.NAMESPACE_DNS, "fusebox-" + seed))
+    try:
+        os.makedirs(STATE_DIR, exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w") as f:
+            f.write(val + "\n")
+        os.replace(tmp, path)
+    except OSError:
+        pass
+    return val
+
+
+DEVICE_UUID = device_uuid()
+EPR = "urn:uuid:%s" % DEVICE_UUID
+HOSTNAME = socket.gethostname()
+HOSTNAME_UP = HOSTNAME.upper()
+
+
+def serial_number():
+    try:
+        with open("/etc/machine-id") as f:
+            return f.read().strip()[:12].upper()
+    except OSError:
+        return "1"
+
+
+def interfaces():
+    """{iface: ipv4} for non-loopback interfaces, from `ip -j addr`."""
+    out = {}
+    try:
+        raw = subprocess.run(["ip", "-j", "-4", "addr", "show"],
+                             capture_output=True, text=True, timeout=5).stdout
+        for entry in json.loads(raw):
+            name = entry.get("ifname", "")
+            if name == "lo":
+                continue
+            for a in entry.get("addr_info", []):
+                if a.get("family") == "inet" and a.get("local"):
+                    out[name] = a["local"]
+    except Exception:
+        pass
+    return out
+
+
+IFACES = {}
+_iface_lock = threading.Lock()
+
+
+def refresh_ifaces():
+    global IFACES
+    with _iface_lock:
+        IFACES = interfaces()
+    return IFACES
+
+
+# ---------------------------------------------------------------- WSD core
+
+def envelope(action, body, relates_to=None, to=None):
+    hdr = ""
+    if to:
+        hdr += "<wsa:To>%s</wsa:To>" % to
+    else:
+        hdr += "<wsa:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</wsa:To>"
+    hdr += "<wsa:Action>%s</wsa:Action>" % action
+    hdr += "<wsa:MessageID>urn:uuid:%s</wsa:MessageID>" % uuid.uuid4()
+    hdr += app_sequence()
+    if relates_to:
+        hdr += "<wsa:RelatesTo>%s</wsa:RelatesTo>" % relates_to
+    return ('<?xml version="1.0" encoding="utf-8"?>'
+            "<soap:Envelope %s><soap:Header>%s</soap:Header>"
+            "<soap:Body>%s</soap:Body></soap:Envelope>" % (NS, hdr, body))
+
+
+def match_body(kind, addr):
+    return ("<wsd:%s><wsd:%s>"
+            "<wsa:EndpointReference><wsa:Address>%s</wsa:Address></wsa:EndpointReference>"
+            "<wsd:Types>wsdp:Device pub:Computer</wsd:Types>"
+            "<wsd:XAddrs>http://%s:%d/%s</wsd:XAddrs>"
+            "<wsd:MetadataVersion>2</wsd:MetadataVersion>"
+            "</wsd:%s></wsd:%s>"
+            % (kind + "es", kind, EPR, addr, WSD_PORT, DEVICE_UUID, kind, kind + "es"))
+
+
+def hello_body():
+    return ("<wsd:Hello>"
+            "<wsa:EndpointReference><wsa:Address>%s</wsa:Address></wsa:EndpointReference>"
+            "<wsd:Types>wsdp:Device pub:Computer</wsd:Types>"
+            "<wsd:MetadataVersion>2</wsd:MetadataVersion>"
+            "</wsd:Hello>" % EPR)
+
+
+def bye_body():
+    return ("<wsd:Bye>"
+            "<wsa:EndpointReference><wsa:Address>%s</wsa:Address></wsa:EndpointReference>"
+            "</wsd:Bye>" % EPR)
+
+
+def metadata_document(addr):
+    base = "http://%s:%d" % (addr, BOARD_PORT)
+    body = ("<wsx:Metadata>"
+            '<wsx:MetadataSection Dialect="http://schemas.xmlsoap.org/ws/2006/02/devprof/ThisDevice">'
+            "<wsdp:ThisDevice>"
+            "<wsdp:FriendlyName>Fuse Box Guardian</wsdp:FriendlyName>"
+            "<wsdp:FirmwareVersion>1.0</wsdp:FirmwareVersion>"
+            "<wsdp:SerialNumber>%s</wsdp:SerialNumber>"
+            "</wsdp:ThisDevice></wsx:MetadataSection>"
+            '<wsx:MetadataSection Dialect="http://schemas.xmlsoap.org/ws/2006/02/devprof/ThisModel">'
+            "<wsdp:ThisModel>"
+            "<wsdp:Manufacturer>Fuse Box</wsdp:Manufacturer>"
+            "<wsdp:ManufacturerUrl>%s/</wsdp:ManufacturerUrl>"
+            "<wsdp:ModelName>Fuse Box Guardian</wsdp:ModelName>"
+            "<wsdp:ModelNumber>1</wsdp:ModelNumber>"
+            "<wsdp:ModelUrl>%s/</wsdp:ModelUrl>"
+            "<wsdp:PresentationUrl>%s/getpc</wsdp:PresentationUrl>"
+            "<un0:DeviceCategory>Computers</un0:DeviceCategory>"
+            "</wsdp:ThisModel></wsx:MetadataSection>"
+            '<wsx:MetadataSection Dialect="http://schemas.xmlsoap.org/ws/2006/02/devprof/Relationship">'
+            '<wsdp:Relationship Type="http://schemas.xmlsoap.org/ws/2006/02/devprof/host">'
+            "<wsdp:Host>"
+            "<wsa:EndpointReference><wsa:Address>%s</wsa:Address></wsa:EndpointReference>"
+            "<wsdp:Types>pub:Computer</wsdp:Types>"
+            "<wsdp:ServiceId>%s</wsdp:ServiceId>"
+            "<pub:Computer>%s/Workgroup:WORKGROUP</pub:Computer>"
+            "</wsdp:Host></wsdp:Relationship></wsx:MetadataSection>"
+            "</wsx:Metadata>"
+            % (serial_number(), base, base, base, EPR, EPR, HOSTNAME_UP))
+    return body
+
+
+# ------------------------------------------------------------ HTTP metadata
+
+class MetadataHandler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
+    def log_message(self, *a):
+        pass
+
+    def _local_addr(self):
+        try:
+            return self.connection.getsockname()[0]
+        except OSError:
+            return "127.0.0.1"
+
+    def do_GET(self):
+        body = b""
+        self.send_response(200)
+        self.send_header("Content-Type", "application/soap+xml")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_POST(self):
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        raw = self.rfile.read(min(length, 1 << 16)) if length else b""
+        text = raw.decode("utf-8", "ignore")
+        m = re.search(r"<wsa:MessageID>([^<]+)</wsa:MessageID>", text)
+        relates = m.group(1) if m else None
+        addr = self._local_addr()
+        doc = envelope("http://schemas.xmlsoap.org/ws/2004/09/transfer/GetResponse",
+                       metadata_document(addr), relates_to=relates)
+        data = doc.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/soap+xml")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+
+# ---------------------------------------------------------------- discovery
+
+class Announcer:
+    def __init__(self):
+        self.stop = threading.Event()
+        self.send_lock = threading.Lock()
+        self.joined = set()
+        self.disc = self._mcast_socket(WSD_PORT)
+        self.llmnr = self._mcast_socket(LLMNR_PORT)
+
+    def _mcast_socket(self, port):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind(("", port))
+        s.setsockopt(socket.IPPROTO_IP, socket.IP_PKTINFO, 1)
+        s.settimeout(1.0)
+        return s
+
+    def _join(self):
+        ifaces = refresh_ifaces()
+        for name, addr in ifaces.items():
+            for sock, group in ((self.disc, WSD_GROUP), (self.llmnr, LLMNR_GROUP)):
+                key = (group, addr)
+                if key in self.joined:
+                    continue
+                try:
+                    mreq = struct.pack("4s4s", socket.inet_aton(group), socket.inet_aton(addr))
+                    sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+                    self.joined.add(key)
+                except OSError:
+                    pass
+        return ifaces
+
+    def _pkt_iface_addr(self, ancdata, fallback):
+        for level, typ, data in ancdata:
+            if level == socket.IPPROTO_IP and typ == socket.IP_PKTINFO:
+                # in_pktinfo: ifindex(4) spec_dst(4) addr(4)
+                spec_dst = socket.inet_ntoa(data[4:8])
+                if spec_dst and not spec_dst.startswith("224.") and spec_dst != "239.255.255.250":
+                    return spec_dst
+        return fallback
+
+    def _send_mcast(self, payload):
+        with self.send_lock:
+            for name, addr in list(IFACES.items()):
+                try:
+                    self.disc.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF,
+                                         socket.inet_aton(addr))
+                    self.disc.sendto(payload, (WSD_GROUP, WSD_PORT))
+                except OSError:
+                    pass
+
+    def hello(self):
+        doc = envelope("http://schemas.xmlsoap.org/ws/2005/04/discovery/Hello",
+                       hello_body(), to="urn:schemas-xmlsoap-org:ws:2005:04:discovery")
+        self._send_mcast(doc.encode())
+
+    def bye(self):
+        doc = envelope("http://schemas.xmlsoap.org/ws/2005/04/discovery/Bye",
+                       bye_body(), to="urn:schemas-xmlsoap-org:ws:2005:04:discovery")
+        self._send_mcast(doc.encode())
+
+    def serve_discovery(self):
+        while not self.stop.is_set():
+            try:
+                data, ancdata, flags, sender = self.disc.recvmsg(65535, 1024)
+            except socket.timeout:
+                continue
+            except OSError:
+                break
+            text = data.decode("utf-8", "ignore")
+            ma = re.search(r"<wsa:Action>([^<]+)</wsa:Action>", text)
+            if not ma:
+                continue
+            action = ma.group(1)
+            mm = re.search(r"<wsa:MessageID>([^<]+)</wsa:MessageID>", text)
+            relates = mm.group(1) if mm else None
+            with _iface_lock:
+                fallback = next(iter(IFACES.values()), "127.0.0.1")
+            addr = self._pkt_iface_addr(ancdata, fallback)
+            if action.endswith("/Probe"):
+                doc = envelope("http://schemas.xmlsoap.org/ws/2005/04/discovery/ProbeMatches",
+                               match_body("ProbeMatch", addr), relates_to=relates)
+                self._reply(doc.encode(), sender)
+            elif action.endswith("/Resolve"):
+                if DEVICE_UUID in text:
+                    doc = envelope("http://schemas.xmlsoap.org/ws/2005/04/discovery/ResolveMatches",
+                                   match_body("ResolveMatch", addr), relates_to=relates)
+                    self._reply(doc.encode(), sender)
+
+    def _reply(self, payload, sender):
+        with self.send_lock:
+            try:
+                self.disc.sendto(payload, sender)
+            except OSError:
+                pass
+
+    # ------------------------------------------------------------ LLMNR
+    def serve_llmnr(self):
+        while not self.stop.is_set():
+            try:
+                data, ancdata, flags, sender = self.llmnr.recvmsg(4096, 1024)
+            except socket.timeout:
+                continue
+            except OSError:
+                break
+            try:
+                resp = self._llmnr_answer(data, ancdata)
+            except Exception:
+                resp = None
+            if resp:
+                try:
+                    self.llmnr.sendto(resp, sender)
+                except OSError:
+                    pass
+
+    def _llmnr_answer(self, data, ancdata):
+        if len(data) < 12:
+            return None
+        qid, qflags, qd, an, ns, ar = struct.unpack(">HHHHHH", data[:12])
+        if qd != 1 or (qflags & 0x8000):
+            return None
+        # parse question
+        off = 12
+        labels = []
+        while off < len(data):
+            ln = data[off]
+            if ln == 0:
+                off += 1
+                break
+            if ln & 0xC0:
+                return None
+            labels.append(data[off + 1:off + 1 + ln].decode("ascii", "ignore"))
+            off += 1 + ln
+        if off + 4 > len(data) or len(labels) != 1:
+            return None
+        qtype, qclass = struct.unpack(">HH", data[off:off + 4])
+        question = data[12:off + 4]
+        if labels[0].lower() != HOSTNAME.lower():
+            return None
+        with _iface_lock:
+            fallback = next(iter(IFACES.values()), "127.0.0.1")
+        addr = self._pkt_iface_addr(ancdata, fallback)
+        answers = b""
+        ancount = 0
+        if qtype in (1, 255):  # A or ANY
+            answers = (b"\xc0\x0c" + struct.pack(">HHIH", 1, 1, 30, 4)
+                       + socket.inet_aton(addr))
+            ancount = 1
+        elif qtype == 28:  # AAAA: NOERROR, no data
+            ancount = 0
+        else:
+            return None
+        hdr = struct.pack(">HHHHHH", qid, 0x8000, 1, ancount, 0, 0)
+        return hdr + question + answers
+
+    # ------------------------------------------------------------ lifecycle
+    def run(self):
+        self._join()
+        http = ThreadingHTTPServer(("", WSD_PORT), MetadataHandler)
+        http.daemon_threads = True
+        threads = [
+            threading.Thread(target=http.serve_forever, daemon=True),
+            threading.Thread(target=self.serve_discovery, daemon=True),
+            threading.Thread(target=self.serve_llmnr, daemon=True),
+        ]
+        for t in threads:
+            t.start()
+
+        def _term(signum, frame):
+            self.stop.set()
+
+        signal.signal(signal.SIGTERM, _term)
+        signal.signal(signal.SIGINT, _term)
+        self.hello()
+        print("fusebox-announcer up: uuid=%s ifaces=%s" % (DEVICE_UUID, IFACES), flush=True)
+        last_join = time.time()
+        while not self.stop.is_set():
+            time.sleep(1.0)
+            if time.time() - last_join > 60:
+                last_join = time.time()
+                self._join()
+        self.bye()
+        http.shutdown()
+        print("fusebox-announcer down", flush=True)
+
+
+if __name__ == "__main__":
+    Announcer().run()

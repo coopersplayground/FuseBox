@@ -137,7 +137,7 @@ run apt-get install -y \
   curl git ca-certificates gnupg software-properties-common rsync unzip acl \
   python3 python3-venv python3-pip python3-gi gir1.2-gtk-3.0 \
   alsa-utils ffmpeg espeak-ng xdotool x11-utils xinit xserver-xorg \
-  asterisk cron samba wsdd
+  asterisk cron samba
 note "System packages: OK"
 
 # Node 22 (the board's runtime) from NodeSource
@@ -237,6 +237,8 @@ run rsync -a "$SRC_DIR/.config/systemd/user/" "$FB_HOME/.config/systemd/user/"
 run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/updater/fusebox-update.service" "$FB_HOME/.config/systemd/user/fusebox-update.service"
 run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/updater/fusebox-update.timer" "$FB_HOME/.config/systemd/user/fusebox-update.timer"
 run install -m 0644 "$SRC_DIR/etc/systemd/system/cosmo-kiosk.service" /etc/systemd/system/cosmo-kiosk.service
+run install -m 0644 "$SRC_DIR/etc/systemd/system/fusebox-announcer.service" /etc/systemd/system/fusebox-announcer.service
+run install -m 0755 "$SRC_DIR/usr/local/bin/fusebox-announcer" /usr/local/bin/fusebox-announcer
 run install -m 0755 "$SRC_DIR/usr/local/bin/cosmo-kiosk-session.sh" /usr/local/bin/cosmo-kiosk-session.sh
 run install -m 0755 "$SRC_DIR/usr/local/bin/cosmo" /usr/local/bin/cosmo
 run chown -R "$FB_USER:$FB_USER" "$FB_HOME"
@@ -350,6 +352,8 @@ run hostnamectl set-hostname fusebox
 run systemctl mask getty@tty1.service
 run systemctl daemon-reload
 run systemctl enable cosmo-kiosk.service
+run systemctl enable --now fusebox-announcer.service
+run systemctl disable --now wsdd2.service 2>/dev/null || true
 # User services
 run_sh "for i in \$(seq 1 30); do [ -S /run/user/$FB_UID/bus ] && break; sleep 1; done; true"
 USERCTL="sudo -u $FB_USER env XDG_RUNTIME_DIR=/run/user/$FB_UID DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$FB_UID/bus systemctl --user"

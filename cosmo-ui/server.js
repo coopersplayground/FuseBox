@@ -48,7 +48,6 @@ const CONFIG = Object.assign({
 const PC_SHARE_DIR = '/srv/guardian-install';
 const PC_SHARE_FILE = 'Install PC Guardian.bat';
 let pcShareOn = false;
-let pcShareTimer = null;
 
 // --- PC installer delivery. The primary path is a web page
 // (/getpc): the owner opens it in the computer's browser and taps
@@ -169,18 +168,17 @@ function pcShareSet(on) {
       } catch (e) { resolve({ ok: false, error: String((e && e.message) || e) }); return; }
     }
     const go = () => {
-      require('child_process').execFile('sudo', ['-n', 'systemctl', on ? 'start' : 'stop', 'smbd', 'wsdd2'], { timeout: 20000 }, (err) => {
+      require('child_process').execFile('sudo', ['-n', 'systemctl', on ? 'start' : 'stop', 'smbd'], { timeout: 20000 }, (err) => {
         if (err) { resolve({ ok: false, error: 'the sharing service did not respond' }); return; }
         pcShareOn = on;
-        if (pcShareTimer) { clearTimeout(pcShareTimer); pcShareTimer = null; }
-        if (on) pcShareTimer = setTimeout(() => { pcShareSet(false).catch(() => {}); }, 15 * 60 * 1000);
         broadcast('snapshot', snapshot());
         resolve({ ok: true, on: pcShareOn });
       });
     };
-    // Turning sharing on first makes sure the login share is real:
-    // the box's own password is set in Samba and the config is in
-    // login shape before the services start.
+    // Turning sharing on first makes sure the open guest share is
+    // real: the config is normalized to the open shape before the
+    // service starts. (The network announcer runs on its own unit,
+    // always on, the way a printer announces itself.)
     if (on) { shareConfigEnsure().then(go, go); } else go();
   });
 }

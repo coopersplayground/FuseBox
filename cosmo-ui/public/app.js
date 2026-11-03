@@ -924,7 +924,7 @@ function grdPcView(snap) {
       '<div class="grd-check"><span class="grd-ball">2</span><span>Type this address: <b style="font-size:22px">' + esc(snap.boxGetPc || '') + '</b></span></div>' +
       '<div class="grd-check"><span class="grd-ball">3</span><span>Tap the big green <b>Get my PC Guardian</b> button.</span></div>' +
       '<div class="grd-check"><span class="grd-ball">4</span><span>Double-click the downloaded file <b>Install PC Guardian</b>. If Windows asks, say Yes.</span></div></div>' +
-      '<p class="grd-note">It installs itself in about a minute, and the computer appears in the list above. When you are done adding computers, tap DONE and the box stops showing itself.</p>' +
+      '<p class="grd-note">It installs itself in about a minute, and the computer appears in the list above. When you are done adding computers, tap DONE.</p>' +
       '<div class="network-actions"><button class="app-go grd-huge" id="grdPcShareDone">DONE</button></div>' +
       '<p class="grd-note">This box also shows itself under <b>Network</b> as <b>FUSEBOX</b>, with the same file in it and no sign-in. Some Windows computers block that door - the browser way above always works.</p></div>';
   }
