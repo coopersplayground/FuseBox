@@ -38,7 +38,7 @@ const CONFIG = Object.assign({
   haDbPath: '',
   homeLayout: null,
   sttMicDevice: 'plughw:CARD=PCH,DEV=0',
-  personEntity: 'person.owner',
+  personEntity: 'person.harold_cooper',
   personOverridePath: '',
   perimeterCameras: ['driveway_cam'],
   timezone: 'America/New_York',
@@ -235,12 +235,12 @@ function seed() {
     focusId: null,
     seq: 100,
     cards: [
-      { id: 1, kind: 'suggestion', title: 'Follow up with the pharmacy (demo)', body: 'Your refill is ready for pickup. Draft reply: ask about Saturday hours and confirm the pickup name.', meta: 'Demo inbox - email', time: Date.now() - 42 * 60000, status: 'open' },
-      { id: 2, kind: 'suggestion', title: 'Possible scam - screen check (demo)', body: 'The PC companion flagged a fake virus pop-up on the laptop. The snapshot is ready to review before anyone calls the number on screen.', meta: 'PC guardian - demo', time: Date.now() - 95 * 60000, status: 'open' },
-      { id: 3, kind: 'suggestion', title: 'Call back the bakery (demo)', body: 'Missed call about Saturday\'s cake order. Callback script and order details are drafted.', meta: 'Call log - demo', time: Date.now() - 150 * 60000, status: 'open' },
-      { id: 4, kind: 'calendar', title: 'Community library book sale (demo)', body: 'The annual book sale opens Saturday at 9 AM.', meta: 'Sat · 9:00 AM', time: Date.now() - 20 * 60000, status: 'info' },
-      { id: 5, kind: 'email', title: 'Library - your hold is ready (demo)', body: 'The book you requested is waiting at the front desk until Friday.', meta: 'Demo mail', time: Date.now() - 300 * 60000, status: 'info' },
-      { id: 6, kind: 'text', title: 'Package delivered (demo)', body: 'A package was left at the front door at 2:04 PM.', meta: 'Delivery notice', time: Date.now() - 400 * 60000, status: 'info' }
+      { id: 1, kind: 'suggestion', title: 'Reply to Anthony Baldo (Hinerfeld)', body: 'Draft ready: thank him for the terms on 295B S Main St, propose a Tuesday walkthrough, hold on price until you see the space.', meta: 'HyndSyte inbox · email', time: Date.now() - 42 * 60000, status: 'open' },
+      { id: 2, kind: 'suggestion', title: 'Progressive — wage-loss docs', body: 'Deanna Downer asked for updated wage-loss documentation. Draft summary is ready to send with the Oct periods attached.', meta: 'Email · claim 25-295871826', time: Date.now() - 95 * 60000, status: 'open' },
+      { id: 3, kind: 'suggestion', title: 'Call back the Wilkes-Barre lead', body: 'Missed call from a 570 number about hosting. Callback script + pricing one-pager drafted.', meta: 'Call log · HyndSyte', time: Date.now() - 150 * 60000, status: 'open' },
+      { id: 4, kind: 'calendar', title: 'Hackathon kickoff livestream', body: 'Meta Global AI Developer Hackathon opens. Official Rules acceptance is the first task.', meta: 'Mon Oct 26 · 12:00 PM ET', time: Date.now() - 20 * 60000, status: 'info' },
+      { id: 5, kind: 'email', title: 'Cerebral Valley — you are approved', body: 'Status APPROVED for the Meta Global AI Developer Hackathon.', meta: 'haroldlcooper@gmail.com', time: Date.now() - 300 * 60000, status: 'info' },
+      { id: 6, kind: 'text', title: 'Bus 43 running late', body: 'Crestwood transportation: Bus 43 is running about 10 minutes behind this morning.', meta: 'School notice', time: Date.now() - 400 * 60000, status: 'info' }
     ]
   };
 }
@@ -309,10 +309,10 @@ const APP_CATALOG = [
   { id: 'messenger', name: 'Messenger', icon: '\u{1F4AC}', bg: '#a033ff', desc: "Your Messenger chats in a phone.", target: 'messenger', facts: ["Refreshes on its own every 2 minutes", "Replies are drafted first, sent on your word"] },
   { id: 'instagram', name: 'Instagram', icon: '\u{1F4F7}', bg: '#d62976', desc: "Your Instagram feed in a phone.", target: 'instagram', facts: ["Shows your following feed and its comments", "Refreshes on its own every 10 minutes"] },
   { id: 'texts', name: 'Texts', icon: '\u{1F4F1}', bg: '#2fbf4f', desc: "Your phone text messages in a phone.", target: 'texts', facts: ["Drafts are read back before anything sends", "Texts refresh while Cosmo is awake"] },
-  { id: 'telnyx', name: 'Phone', icon: '\u{1F4DE}', bg: '#0aa06e', desc: "Phone calls through your phone line.", target: null, facts: ["Your board number is +1 555-555-0100", "In the final product, calls ring right here on the box"] },
+  { id: 'telnyx', name: 'Phone', icon: '\u{1F4DE}', bg: '#0aa06e', desc: "Phone calls through your HyndSyte line.", target: null, facts: ["Your board number is +1 570-405-6511", "In the final product, calls ring right here on the box"] },
   { id: 'home', name: 'Home', icon: '\u{1F3E0}', bg: '#03a9f4', desc: "Lights, plugs, the lock and the thermostat.", target: 'home', facts: ["Scenes at the top run the whole routine", "Tap a tile to turn it on or off"] },
   { id: 'frigate', name: 'Cameras', icon: '\u{1F3A5}', bg: '#455a64', desc: "Your security cameras, live.", target: 'cameras', facts: ["Shop, driveway and microscope cameras", "Say a camera name and it comes right up"] },
-  { id: 'weather', name: 'Weather', icon: '\u2600\u{FE0F}', bg: '#b97f10', desc: "Local weather for New York.", target: 'weather', facts: ["Updates itself every 30 minutes", "Open it for the hour-by-hour and week ahead"] },
+  { id: 'weather', name: 'Weather', icon: '\u2600\u{FE0F}', bg: '#b97f10', desc: "Local weather for Mountain Top.", target: 'weather', facts: ["Updates itself every 30 minutes", "Open it for the hour-by-hour and week ahead"] },
   { id: 'github', name: 'GitHub', icon: '\u{1F419}', bg: '#24292e', desc: "Your GitHub repositories, issues and pull requests.", target: null, facts: ["Connected and ready - ask Cosmo to use it"] },
   { id: 'drive', name: 'Google Drive', icon: '\u{1F4C1}', bg: '#34a853', desc: "Your Google Drive files.", target: null, facts: ["Connected and ready - ask Cosmo to use it"] },
   { id: 'docs', name: 'Google Docs', icon: '\u{1F4C4}', bg: '#4285f4', desc: "Your Google Docs and notes.", target: null, facts: ["Connected and ready - ask Cosmo to use it"] },
@@ -348,7 +348,7 @@ if (!state.apps.some((a) => a.id === 'guardian')) state.apps.push({ id: 'guardia
 
 
 // Avatar mode: 'real' shows the user's actual Muse avatar (image + activity
-// videos in public/avatar/), 'svg' shows the built-in drawn bot. the owner's
+// videos in public/avatar/), 'svg' shows the built-in drawn bot. Harold's
 // call: real for the dev build, REMOVE (svg) for the hackathon submission -
 // the default avatar art is excluded from the Gadget SDK license.
 let avatarMode = 'svg';
@@ -478,7 +478,7 @@ function addCard(b) {
 // (or HA unreadable) = all cameras. Recognized face -> info card with the
 // snapshot; unknown person -> queue item with the snapshot. Per-camera
 // cooldown, same 10 minutes as the mailer.
-function ownerHome() {
+function haroldHome() {
   if (!CONFIG.haDbPath) return false;
   try {
     const { DatabaseSync } = require('node:sqlite');
@@ -494,7 +494,7 @@ function personGateAllows(camera) {
   if (ov === 'on') return true;
   if (ov === 'off') return false;
   if (CONFIG.perimeterCameras.includes(camera)) return true;
-  return !ownerHome();
+  return !haroldHome();
 }
 function cameraDisplayName(camId) {
   const reg = state.cameras.find((c) => c.id === 'frigate:' + camId);
@@ -772,7 +772,7 @@ function showOnly(which) {
     if (which === '') { if (state.calendar) state.calendar.visible = true; return; }
     if (which !== 'calendar') return;
   }
-  // One modal at a time (the owner's rule, 2026-10-26): opening any overlay closes the others.
+  // One modal at a time (Harold's rule, 2026-10-26): opening any overlay closes the others.
   if (which !== 'camera') state.cameraView = { visible: false, cameraId: null, identify: null };
   if (which !== 'mail') state.mailView = { visible: false, focusN: null };
   if (which !== 'home') state.homeView = { visible: false };
@@ -846,7 +846,7 @@ async function ataValues(ip, sess, endpoint, obj) {
 }
 async function guardianDiscover() {
   const r = await new Promise((resolve) => {
-    require('child_process').execFile('bash', ['-c', 'for i in $(seq 1 254); do ping -c1 -W1 192.168.1.$i >/dev/null 2>&1 & done; wait; ip neigh show'], { timeout: 40000, maxBuffer: 1048576 }, (err, out) => resolve(String(out || '')));
+    require('child_process').execFile('bash', ['-c', 'for i in $(seq 1 254); do ping -c1 -W1 192.168.50.$i >/dev/null 2>&1 & done; wait; ip neigh show'], { timeout: 40000, maxBuffer: 1048576 }, (err, out) => resolve(String(out || '')));
   });
   const found = [];
   for (const line of r.split('\n')) {
@@ -950,7 +950,7 @@ const GRD_INSTANT_WORDS = ['social security number'];
 // --- AMI client (Guardian per-side mute) ---------------------------------
 // One persistent connection to Asterisk's manager interface on localhost.
 // Actions are serialized; each waits for its ActionID response. The mute
-// step (the owner's design) is exercised ONLY through MuteAudio on the phone
+// step (Harold's design) is exercised ONLY through MuteAudio on the phone
 // leg of the live call - nothing else about the call is touched.
 const ami = { sock: null, buf: '', seq: 0, waiters: new Map(), loggedIn: false, connecting: null };
 function amiSend(obj) {
@@ -1028,7 +1028,7 @@ function amiListChannels() {
 }
 async function grdPhoneLeg() {
   const chans = await amiListChannels();
-  const phone = chans.find((c) => c.indexOf('PJSIP/' + (guardianSecrets().sipUser || 'guardian1') + '-') === 0);
+  const phone = chans.find((c) => c.indexOf('PJSIP/' + (guardianSecrets().sipUser || 'fbguardian') + '-') === 0);
   return phone || null;
 }
 async function grdMute(side, on) {
@@ -1092,7 +1092,7 @@ async function grdLegs() {
   const live = state.guardian.live;
   if (live && live.phoneChan && live.trunkChan) return { phone: live.phoneChan, trunk: live.trunkChan };
   const chans = await amiListChannels();
-  const user = (guardianSecrets().sipUser || 'guardian1');
+  const user = (guardianSecrets().sipUser || 'fbguardian2');
   const phone = chans.find((c) => c.indexOf('PJSIP/' + user + '-') === 0) || null;
   const trunk = chans.find((c) => c.indexOf('PJSIP/telnyx-') === 0) || null;
   return { phone: phone, trunk: trunk };
@@ -1402,7 +1402,7 @@ function readBody(req) {
 
 const MIME = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.webp': 'image/webp' , '.pdf': 'application/pdf', '.ps1': 'text/plain', '.txt': 'text/plain' };
 
-// ---- Brave browser (2026-10-27 pm, the owner): a full-screen browser that
+// ---- Brave browser (2026-10-27 pm, Harold): a full-screen browser that
 // feels like part of the board. Brave runs on this box's own display next
 // to the board window; opening it raises Brave, going back raises the
 // board. Its home/start page is served here and carries the way back.
@@ -1684,7 +1684,7 @@ const server = http.createServer(async (req, res) => {
       if (b.answered) {
         addCard({ kind: 'call', title: 'Call ended - ' + from, body: 'The call with ' + from + ' has ended.', meta: 'Call log', source: 'telnyx' });
       } else {
-        addCard({ kind: 'suggestion', title: 'Missed call - ' + from, body: 'You missed a call from ' + from + '. Callback script: introduce yourself, apologize for missing them, ask how you can help.', meta: 'Call log - missed', source: 'telnyx', draft: 'Hi, I am returning your call. Sorry I missed you - how can I help?' });
+        addCard({ kind: 'suggestion', title: 'Missed call - ' + from, body: 'You missed a call from ' + from + '. Callback script: introduce yourself, apologize for missing them, ask how you can help.', meta: 'Call log - missed', source: 'telnyx', draft: 'Hi, this is Harold Cooper returning your call. Sorry I missed you - how can I help?' });
       }
       save(); broadcast('snapshot', snapshot());
     }
@@ -1715,13 +1715,13 @@ const server = http.createServer(async (req, res) => {
     return v;
   }
   // ## VISION TIER - Muse Glimmer (Meta, open weights, Apache 2.0), served from the
-  // ## hub workstation Ollama at 192.168.1.50: this 16 GB unit cannot hold its ~18 GB.
+  // ## hub workstation Ollama at 192.168.50.50: this 16 GB unit cannot hold its ~18 GB.
   // ## The contest build is 100% Meta: Glimmer holds this chair.
   async function pcJudgeVision(fp) {
     const t0 = Date.now();
     const b64 = fs.readFileSync(fp).toString('base64');
     const prompt = 'You check a computer screen image for scams aimed at seniors. A scam screen DECEIVES: false infection or lock claims, demands to call a support number, gift card or wire or crypto payment demands, impersonation of Microsoft, Apple, a bank, or police with urgent threats. NORMAL, NOT scams: command prompts, PowerShell, code, settings, updates, ordinary apps and websites. ALSO NORMAL, NEVER A SCAM: a red or blue banner at the very top saying Cosmo is controlling or guiding this PC - that is the Fuse_Box banner from a session the PC owner started himself. Reply with ONLY this JSON: {"scam": true or false, "conf": 0.0 to 1.0, "kind": "message" if the scam arrives as a text, chat or email message, "page" if it is a fake web page, popup or alert, otherwise "other", "why": "one short plain sentence"}';
-    const r = await fetch('http://192.168.1.50:11434/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'muse-glimmer:30b', stream: false, messages: [{ role: 'user', content: prompt, images: [b64] }] }) });
+    const r = await fetch('http://192.168.50.50:11434/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'muse-glimmer:30b', stream: false, messages: [{ role: 'user', content: prompt, images: [b64] }] }) });
     const d = await r.json();
     const txt = (d.message && d.message.content) || '';
     const m = txt.match(/\{[\s\S]*\}/);
@@ -1741,8 +1741,8 @@ const server = http.createServer(async (req, res) => {
     try {
       await pcAlertLineReady();
       const sec = guardianSecrets();
-      const user = sec.sipUser || 'guardian1';
-      const num = sec.number || '+15555550100';
+      const user = sec.sipUser || 'fbguardian2';
+      const num = sec.number || '+15703829215';
       const r = await amiAction({ Action: 'Originate', Channel: 'PJSIP/' + user, Context: 'grd-alert', Exten: 's', Priority: '1', CallerID: '"Guardian Alert" <' + num + '>', Timeout: '45000', Async: 'true' });
       state.pc.fraudCall = { at: Date.now(), why: why, ok: !!(r && r.Response === 'Success') };
       save(); broadcast('snapshot', snapshot());
@@ -2091,7 +2091,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (p === '/api/action' && req.method === 'POST') {
-    // Touch intents from the screen: the client posts what The owner tapped;
+    // Touch intents from the screen: the client posts what Harold tapped;
     // a watcher (feeders/touch-actions.py) forwards each entry to the voice
     // session as a message, then acks it away. The UI itself executes nothing.
     const b = await readBody(req);
@@ -2605,7 +2605,7 @@ const server = http.createServer(async (req, res) => {
         // nmcli saves the profile even when the password is wrong, which
         // would trap the network in a saved-but-broken state and force a
         // manual forget before retrying. A failed password attempt saves
-        // nothing (the owner's rule, 2026-10-27).
+        // nothing (Harold's rule, 2026-10-27).
         await nmcliRun(['connection', 'delete', ssid], 15000).catch(() => {});
       }
     } else state.settings.wifi.lastError = null;
@@ -2733,7 +2733,7 @@ const server = http.createServer(async (req, res) => {
   // opens the conversation and replies right here - no agent session.
   // Messenger sends are queued for the messages feeder, which owns the
   // Messenger connection; SMS sends are queued for the agent, because
-  // texts can only leave from the owner's phone.) ---
+  // texts can only leave from Harold's phone.) ---
   if (p === '/api/msg/open' && req.method === 'POST') {
     const b = await readBody(req);
     let source = String(b.source || '');
@@ -3000,3 +3000,36 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => { console.log('cosmo-ui listening on ' + PORT); discoverCameras().then((c) => console.log('cameras discovered: ' + c.length)); pollPersons().catch(() => {}); setInterval(() => { pollPersons().catch(() => {}); }, CONFIG.personPollSec * 1000); setInterval(() => { try { calendarTick(); } catch (e) {} }, 60000); shopFetch(false).catch(() => {}); pcAlertLineReady().catch(() => {}); });
+
+// Watcher console on its own LAN port: the runtime page (every Meta
+// model call, live) served alone, for a second screen or a video
+// picture-in-picture source. Read-only - the page, its state seed and
+// the event stream; nothing else is exposed on this port.
+const WATCH_PORT = Number(process.env.WATCH_PORT || 3181);
+const watchServer = http.createServer((req, res) => {
+  const wurl = new URL(req.url, 'http://x');
+  const wp = wurl.pathname;
+  if (wp === '/' || wp === '/dev.html') {
+    fs.readFile(path.join(PUB, 'dev.html'), (e, buf) => {
+      if (e) { res.writeHead(404); res.end('not found'); return; }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache, must-revalidate' });
+      res.end(buf);
+    });
+    return;
+  }
+  if (wp === '/api/state' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(snapshot()));
+    return;
+  }
+  if (wp === '/events') {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+    res.write('event: snapshot\ndata: ' + JSON.stringify(snapshot()) + '\n\n');
+    clients.add(res);
+    const ping = setInterval(() => { try { res.write(': ping\n\n'); } catch (e) {} }, 25000);
+    req.on('close', () => { clearInterval(ping); clients.delete(res); });
+    return;
+  }
+  res.writeHead(404); res.end('not found');
+});
+watchServer.listen(WATCH_PORT, '0.0.0.0', () => { console.log('watcher console on ' + WATCH_PORT); });
