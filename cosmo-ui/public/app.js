@@ -1058,7 +1058,7 @@ function renderGuardian(snap) {
     body.innerHTML = h;
     return;
   }
-  if (grdSection === 'pc') { body.innerHTML = grdPcView(snap); return; }
+  if (grdSection === 'pc') { body.innerHTML = grdPcView(snap); grdSharePwWire(); return; }
   if (grdSection === 'main') { body.innerHTML = grdMainView(snap); return; }
   const steps = ['welcome', 'plug', 'number', 'password', 'testing'];
   let step = wiz.step || 'welcome';
