@@ -27,6 +27,16 @@ def post(state, message=""):
         pass
 
 
+def activity(model, what, ms=None, detail=""):
+    """Note a Meta model call on the board's model ticker (and the
+    /dev runtime page). Best-effort like everything here."""
+    try:
+        _req("POST", "/api/model-activity",
+             {"model": model, "what": what, "ms": ms, "detail": detail})
+    except Exception:
+        pass
+
+
 def baseline():
     """The board's resting state: waiting if suggestions are open."""
     try:

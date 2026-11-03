@@ -15,7 +15,7 @@ meta_api_key_path in config.json (default
 ~/.config/cosmo-voice/meta_api_key, 0600). No endpoint or any error ->
 None (fall through). Answers are never cached.
 """
-import json, re, subprocess, sys, urllib.request
+import json, re, subprocess, sys, time, urllib.request
 from datetime import datetime
 from pathlib import Path
 
@@ -112,6 +112,7 @@ def try_answer(command):
         req = urllib.request.Request(api_url, data=json.dumps(body).encode(),
                                      headers={'Content-Type': 'application/json',
                                               'Authorization': api_auth})
+        t0 = time.monotonic()
         with urllib.request.urlopen(req, timeout=20) as r:
             d = json.loads(r.read())
         text = (d['choices'][0]['message']['content'] or '').strip()
@@ -119,6 +120,12 @@ def try_answer(command):
         return None
     if not text or 'FALLTHROUGH' in text.upper() or len(text) > 300:
         return None
+    try:
+        import uipost
+        uipost.activity('Muse Spark', 'answering',
+                        int((time.monotonic() - t0) * 1000), text)
+    except Exception:
+        pass
     return text
 
 if __name__ == '__main__':

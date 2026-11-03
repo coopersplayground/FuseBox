@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fuse Box — Runtime</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #070b14; color: #dbe4f0; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+  header { display: flex; align-items: center; gap: 14px; padding: 14px 20px 10px; border-bottom: 1px solid #1c2942; }
+  .live { width: 11px; height: 11px; border-radius: 50%; background: #334155; flex: none; }
+  .live.on { background: #2dd4bf; box-shadow: 0 0 10px rgba(45, 212, 191, .8); }
+  h1 { font-size: 21px; margin: 0; letter-spacing: .12em; color: #f1f5f9; }
+  h1 span { color: #2dd4bf; }
+  .sub { color: #7d8aa0; font-size: 14px; }
+  .legend { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 20px 4px; }
+  .chip { font-size: 13.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+  .m-spark { color: #fbbf24; border-color: rgba(251, 191, 36, .5); }
+  .m-asr { color: #2dd4bf; border-color: rgba(45, 212, 191, .5); }
+  .m-glimmer { color: #c4b5fd; border-color: rgba(196, 181, 253, .5); }
+  .m-llama { color: #94a3b8; border-color: rgba(148, 163, 184, .5); }
+  .m-other { color: #dbe4f0; border-color: rgba(219, 228, 240, .4); }
+  #feed { padding: 10px 20px 20px; }
+  .row { padding: 10px 0 9px; border-bottom: 1px dashed #1c2942; }
+  .row.new { animation: newrow 1.2s ease-out 1; }
+  @keyframes newrow { 0% { background: rgba(45, 212, 191, .13); } 100% { background: transparent; } }
+  .r1 { display: flex; align-items: baseline; gap: 12px; font-size: 17.5px; }
+  .time { color: #7d8aa0; font-variant-numeric: tabular-nums; flex: none; }
+  .what { color: #f1f5f9; }
+  .secs { margin-left: auto; color: #fbbf24; font-variant-numeric: tabular-nums; flex: none; }
+  .detail { margin-top: 3px; font-size: 15px; color: #9fb0c9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .empty { color: #54677f; font-size: 16px; padding: 18px 0; }
+  footer { padding: 10px 20px 16px; color: #54677f; font-size: 13.5px; border-top: 1px solid #1c2942; }
+</style>
+</head>
+<body>
+<header>
+  <div class="live" id="liveDot"></div>
+  <h1>FUSE BOX <span>·</span> RUNTIME</h1>
+  <div class="sub">every Meta model call this box makes, as it happens</div>
+</header>
+<div class="legend">
+  <span class="chip m-spark">Muse Spark — judgment</span>
+  <span class="chip m-asr">Muse Voice Transcribe — speech-to-text</span>
+  <span class="chip m-glimmer">Muse Glimmer — vision (open weights, on the owner's hardware)</span>
+  <span class="chip m-llama">Llama 3.2 3B — text fallback (open weights, on the box)</span>
+</div>
+<div id="feed"><div class="empty">Waiting for the first model call…</div></div>
+<footer>Spoken output: browser speechSynthesis · Guardian phone prompts: espeak-ng — plain system tools, not AI models. No non-Meta model runs in this product.</footer>
+<script>
+  function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+  function mcls(model) {
+    if (/Spark/.test(model)) return 'm-spark';
+    if (/Transcribe/.test(model)) return 'm-asr';
+    if (/Glimmer/.test(model)) return 'm-glimmer';
+    if (/Llama/.test(model)) return 'm-llama';
+    return 'm-other';
+  }
+  let lastKey = '';
+  function render(acts) {
+    const feed = document.getElementById('feed');
+    if (!acts || !acts.length) return;
+    const key = acts[0].t + '|' + acts[0].model + '|' + acts[0].what;
+    if (key === lastKey) return;
+    const fresh = lastKey !== '';
+    lastKey = key;
+    feed.innerHTML = acts.map(function (a, i) {
+      const d = new Date(a.t);
+      const ts = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0');
+      return '<div class="row' + (fresh && i === 0 ? ' new' : '') + '"><div class="r1"><span class="time">' + ts + '</span><span class="chip ' + mcls(a.model) + '">' + esc(a.model) + '</span><span class="what">' + esc(a.what) + '</span>' + (a.secs != null ? '<span class="secs">' + a.secs.toFixed(1) + 's</span>' : '') + '</div>' + (a.detail ? '<div class="detail">→ ' + esc(a.detail) + '</div>' : '') + '</div>';
+    }).join('');
+    const dot = document.getElementById('liveDot');
+    dot.classList.add('on'); setTimeout(function () { dot.classList.remove('on'); }, 1500);
+  }
+  fetch('/api/state').then(function (r) { return r.json(); }).then(function (s) { render(s.modelActivity); }).catch(function () {});
+  const es = new EventSource('/events');
+  es.addEventListener('snapshot', function (e) { try { render(JSON.parse(e.data).modelActivity); } catch (err) {} });
+</script>
+</body>
+</html>

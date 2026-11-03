@@ -557,9 +557,20 @@ function asrEndpoint() {
   } catch (e) {}
   return null;
 }
-async function metaTranscribeWav(wav) {
+// --- Model ticker: every Meta model call the box makes is noted
+// here the moment it finishes, and the board shows the latest ones
+// in a strip under the header - the models doing the work, named,
+// live. In-memory only: a fresh box starts with a quiet strip.
+const modelActivity = [];
+function modelAct(model, what, ms, detail) {
+  modelActivity.unshift({ t: Date.now(), model: String(model || ''), what: String(what || ''), secs: typeof ms === 'number' ? Math.round(ms / 100) / 10 : null, detail: String(detail || '').slice(0, 140) });
+  if (modelActivity.length > 12) modelActivity.length = 12;
+  try { broadcast('snapshot', snapshot()); } catch (e) {}
+}
+async function metaTranscribeWav(wav, what) {
   const ep = asrEndpoint();
   if (!ep) throw new Error('no speech endpoint configured');
+  const t0 = Date.now();
   const boundary = '----msgstt' + Date.now().toString(36);
   const reqJson = JSON.stringify({ model: 'muse-voice-transcribe-1.0', mode: 'PUSH_TO_TALK', audioEncoding: 'WAV' });
   const head = Buffer.from('--' + boundary + '\r\nContent-Disposition: form-data; name="request"\r\nContent-Type: application/json\r\n\r\n' + reqJson + '\r\n--' + boundary + '\r\nContent-Disposition: form-data; name="audio"; filename="audio.wav"\r\nContent-Type: audio/wav\r\n\r\n');
@@ -567,7 +578,9 @@ async function metaTranscribeWav(wav) {
   const r = await fetch(ep.url, { method: 'POST', headers: { 'Content-Type': 'multipart/form-data; boundary=' + boundary, Authorization: ep.auth }, body: Buffer.concat([head, wav, tail]), signal: AbortSignal.timeout(60000) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error('speech service ' + r.status);
-  return String(d.transcript || '').trim();
+  const out = String(d.transcript || '').trim();
+  modelAct('Muse Voice Transcribe', what || 'transcribing speech', Date.now() - t0, out);
+  return out;
 }
 let sttCap = null; // { proc, file } while a dictation capture is running
 
@@ -750,7 +763,7 @@ function sweepQueue() {
 let sayQueue = [];
 let sayStopAt = 0;
 let saySeq = 0;
-function snapshot() { sweepQueue(); return { avatar: state.avatar, cards: state.cards, focusId: state.focusId, avatarMode: avatarMode, calendar: state.calendar, calLock: state.calLock || { locked: false }, cameras: state.cameras, cameraView: state.cameraView, inbox: state.inbox, mailView: state.mailView, helpView: state.helpView, music: state.music, musicView: state.musicView, actionOutbox: state.actionOutbox, weather: state.weather, weatherView: state.weatherView, homeView: state.homeView, homeHidden: state.homeHidden, imageView: state.imageView, navStyle: state.navStyle, texts: state.texts, textView: state.textView, facebook: state.facebook, facebookView: state.facebookView, facebookPost: state.facebookPost, facebookGroup: state.facebookGroup, messenger: state.messenger, messengerView: state.messengerView, messengerThread: state.messengerThread, sms: state.sms, smsView: state.smsView, smsThread: state.smsThread, insta: state.insta, instaView: state.instaView, instaPost: state.instaPost, apps: state.apps, appsView: state.appsView, appView: state.appView, paper: state.paper, paperView: state.paperView, network: state.network, networkView: state.networkView, settings: Object.assign({}, state.settings, { pinSet: pinIsSet(), unlocked: Date.now() < pinUnlockUntil }), settingsView: state.settingsView, guardian: state.guardian, guardianView: state.guardianView, shop: state.shop, shopView: state.shopView, queueView: state.queueView, todos: state.todos || [], shopping: state.shopping || [], listMode: state.listMode || 'todo', androidApps: androidAppsList(), pc: state.pc, pcControl: state.pcControl, pcShare: pcShareOn, hid: state.hid || null, appsCatalog: APP_CATALOG.filter((c) => !state.apps.some((a) => a.id === c.id)), sayQueue: sayQueue, sayStopAt: sayStopAt }; }
+function snapshot() { sweepQueue(); return { avatar: state.avatar, cards: state.cards, focusId: state.focusId, avatarMode: avatarMode, calendar: state.calendar, calLock: state.calLock || { locked: false }, cameras: state.cameras, cameraView: state.cameraView, inbox: state.inbox, mailView: state.mailView, helpView: state.helpView, music: state.music, musicView: state.musicView, actionOutbox: state.actionOutbox, weather: state.weather, weatherView: state.weatherView, homeView: state.homeView, homeHidden: state.homeHidden, imageView: state.imageView, navStyle: state.navStyle, texts: state.texts, textView: state.textView, facebook: state.facebook, facebookView: state.facebookView, facebookPost: state.facebookPost, facebookGroup: state.facebookGroup, messenger: state.messenger, messengerView: state.messengerView, messengerThread: state.messengerThread, sms: state.sms, smsView: state.smsView, smsThread: state.smsThread, insta: state.insta, instaView: state.instaView, instaPost: state.instaPost, apps: state.apps, appsView: state.appsView, appView: state.appView, paper: state.paper, paperView: state.paperView, network: state.network, networkView: state.networkView, settings: Object.assign({}, state.settings, { pinSet: pinIsSet(), unlocked: Date.now() < pinUnlockUntil }), settingsView: state.settingsView, guardian: state.guardian, guardianView: state.guardianView, shop: state.shop, shopView: state.shopView, queueView: state.queueView, todos: state.todos || [], shopping: state.shopping || [], listMode: state.listMode || 'todo', androidApps: androidAppsList(), pc: state.pc, pcControl: state.pcControl, pcShare: pcShareOn, hid: state.hid || null, appsCatalog: APP_CATALOG.filter((c) => !state.apps.some((a) => a.id === c.id)), sayQueue: sayQueue, sayStopAt: sayStopAt, modelActivity: modelActivity }; }
 function showOnly(which) {
   // Calendar lock: while the calendar is locked full-screen, no other
   // view replaces it and a global hide keeps it up. Unlocking happens
@@ -926,9 +939,9 @@ function pcm16ToWav(pcm, rate) {
   head.write('data', 36); head.writeUInt32LE(samples.length, 40);
   return Buffer.concat([head, samples]);
 }
-async function metaTranscribePcm(pcm, rate) {
+async function metaTranscribePcm(pcm, rate, side) {
   if (!pcm || pcm.length < 3200) return '';
-  try { return await metaTranscribeWav(pcm16ToWav(pcm, rate)); } catch (e) { return ''; }
+  try { return await metaTranscribeWav(pcm16ToWav(pcm, rate), side === 'remote' ? 'transcribing the caller' : 'transcribing the house side'); } catch (e) { return ''; }
 }
 const grdAudioBufs = new Map();
 const GRD_RISK_WORDS = ['gift card', 'wire transfer', 'wire the money', 'verification code', 'code from the text', 'social security', 'bank account', 'routing number', 'do not tell', "don't tell", 'gift cards', 'crypto', 'bitcoin', 'cash app', 'zelle', 'grandson', 'bail money', 'arrested', 'refund department', 'microsoft support', 'irs', 'medicare card', 'code on the back', 'credit card number', 'social security number', 'birth date', 'date of birth', 'address'];
@@ -1312,7 +1325,7 @@ async function grdFlush(key, force) {
     let peak = 0;
     for (let i = 0; i + 1 < pcm.length; i += 8) { const v = Math.abs(pcm.readInt16LE(i)); if (v > peak) peak = v; }
     if (peak >= 500) {
-      const text = await metaTranscribePcm(pcm, ent.rate);
+      const text = await metaTranscribePcm(pcm, ent.rate, ent.side);
       if (text) grdPushLine(ent.side, text);
     }
   } catch (e) { }
@@ -1470,6 +1483,13 @@ const server = http.createServer(async (req, res) => {
   if (p === '/api/state' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(snapshot()));
+    return;
+  }
+  if (p === '/api/model-activity' && req.method === 'POST') {
+    const b = await readBody(req);
+    if (b.model) modelAct(String(b.model).slice(0, 60), String(b.what || '').slice(0, 80), typeof b.ms === 'number' ? b.ms : undefined, String(b.detail || ''));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true }));
     return;
   }
   if (p === '/api/state' && req.method === 'POST') {
@@ -1683,18 +1703,22 @@ const server = http.createServer(async (req, res) => {
   let pcJudging = false;
   async function pcJudgeText(ocrText) {
     const rules = 'You check a computer screen text for scams aimed at seniors. A scam DECEIVES: it falsely claims the computer is infected or locked, demands the person call a support number, asks for gift cards, wire transfers or crypto payment, or impersonates Microsoft, Apple, a bank, or the police with urgent threats. NORMAL things that are NOT scams: command prompts, PowerShell, code, settings, update screens, ordinary apps and websites, even when technical. ALSO NORMAL, NEVER A SCAM: any text about a banner saying Cosmo is controlling this PC - that is the Fuse_Box banner from a session the PC owner started himself. You are given context about the screen; a vision pass may have failed, so judge from the context alone. Reply with ONLY this JSON: {"scam": true or false, "conf": 0.0 to 1.0, "kind": "message" if the scam arrives as a text, chat or email message, "page" if it is a fake web page, popup or alert, otherwise "other", "why": "one short plain sentence"}';
+    const t0 = Date.now();
     const ctx = 'Foreground window: ' + String(state.pc.foreground || '') + '. Remote tools running: ' + (state.pc.remoteTools && state.pc.remoteTools.length ? state.pc.remoteTools.join(', ') : 'none') + '. Screen text: ' + ocrText.slice(0, 2500);
     const r = await fetch('http://127.0.0.1:11434/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'llama3.2:3b', stream: false, options: { num_ctx: 4096 }, messages: [{ role: 'user', content: rules + '\n' + ctx }] }) });
     const d = await r.json();
     const txt = (d.message && d.message.content) || '';
     const m = txt.match(/\{[\s\S]*\}/);
     if (!m) return null;
-    return JSON.parse(m[0]);
+    const v = JSON.parse(m[0]);
+    modelAct('Llama 3.2 3B', 'judging the screen text', Date.now() - t0, (v.scam ? 'scam' : 'clear') + ' · conf ' + v.conf + ' · ' + String(v.why || ''));
+    return v;
   }
   // ## VISION TIER - Muse Glimmer (Meta, open weights, Apache 2.0), served from the
   // ## hub workstation Ollama at 192.168.1.50: this 16 GB unit cannot hold its ~18 GB.
   // ## The contest build is 100% Meta: Glimmer holds this chair.
   async function pcJudgeVision(fp) {
+    const t0 = Date.now();
     const b64 = fs.readFileSync(fp).toString('base64');
     const prompt = 'You check a computer screen image for scams aimed at seniors. A scam screen DECEIVES: false infection or lock claims, demands to call a support number, gift card or wire or crypto payment demands, impersonation of Microsoft, Apple, a bank, or police with urgent threats. NORMAL, NOT scams: command prompts, PowerShell, code, settings, updates, ordinary apps and websites. ALSO NORMAL, NEVER A SCAM: a red or blue banner at the very top saying Cosmo is controlling or guiding this PC - that is the Fuse_Box banner from a session the PC owner started himself. Reply with ONLY this JSON: {"scam": true or false, "conf": 0.0 to 1.0, "kind": "message" if the scam arrives as a text, chat or email message, "page" if it is a fake web page, popup or alert, otherwise "other", "why": "one short plain sentence"}';
     const r = await fetch('http://192.168.1.50:11434/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'muse-glimmer:30b', stream: false, messages: [{ role: 'user', content: prompt, images: [b64] }] }) });
@@ -1702,7 +1726,9 @@ const server = http.createServer(async (req, res) => {
     const txt = (d.message && d.message.content) || '';
     const m = txt.match(/\{[\s\S]*\}/);
     if (!m) return null;
-    return JSON.parse(m[0]);
+    const v = JSON.parse(m[0]);
+    modelAct('Muse Glimmer', 'reading the PC screen', Date.now() - t0, (v.scam ? 'scam' : 'clear') + ' · conf ' + v.conf + ' · ' + String(v.why || ''));
+    return v;
   }
   function pcKindOf(v) {
     const k = String((v && v.kind) || '').toLowerCase();
@@ -2776,7 +2802,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const wav = Buffer.from(String(b.audio || ''), 'base64');
       if (wav.length < 2000 || wav.length > 4000000) throw new Error('bad audio size');
-      const text = await metaTranscribeWav(wav);
+      const text = await metaTranscribeWav(wav, 'transcribing dictation');
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true, text }));
     } catch (e) {
@@ -2810,7 +2836,7 @@ const server = http.createServer(async (req, res) => {
       await new Promise((r) => { let done = false; cap.proc.on('exit', () => { if (!done) { done = true; r(); } }); setTimeout(() => { if (!done) { done = true; r(); } }, 2500); });
       try {
         const wav = fs.readFileSync(cap.file);
-        const text = await metaTranscribeWav(wav);
+        const text = await metaTranscribeWav(wav, 'transcribing dictation');
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true, text }));
       } catch (e) {

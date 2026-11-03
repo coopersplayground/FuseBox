@@ -132,6 +132,19 @@ addSwipe($('stream'), '.scard', (el) => post('/api/card-delete', { id: Number(el
 addSwipe($('textsList'), '.trow', (el) => post('/api/texts-delete', { tid: el.dataset.tid }));
 let lastTodosSig = '';
 let lastListMode = 'todo';
+let lastTickerKey = '';
+function renderTicker(snap) {
+  const el = $('modelTicker'); if (!el) return;
+  const acts = (snap && snap.modelActivity) || [];
+  if (!acts.length) { el.classList.add('hidden'); lastTickerKey = ''; return; }
+  const a = acts[0];
+  el.classList.remove('hidden');
+  const d = new Date(a.t);
+  const ts = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0');
+  el.innerHTML = '<span class="mt-dot"></span><span class="mt-model">' + esc(a.model) + '</span><span class="mt-what">' + esc(a.what) + '</span>' + (a.secs != null ? '<span class="mt-secs">' + a.secs.toFixed(1) + 's</span>' : '') + '<span class="mt-time">' + ts + '</span>';
+  const key = a.t + '|' + a.model + '|' + a.what;
+  if (key !== lastTickerKey) { lastTickerKey = key; el.classList.remove('mt-pulse'); void el.offsetWidth; el.classList.add('mt-pulse'); }
+}
 function renderTodos(snap) {
   const list = $('todoList');
   if (!list) return;
@@ -1885,6 +1898,7 @@ function render(snap) {
   renderCards(lastCards);
   renderQueueView(snap);
   renderSpeech(snap);
+  renderTicker(snap);
   renderTodos(snap);
   renderFocus();
   renderCalendar();

@@ -938,3 +938,15 @@ html, body { touch-action: pan-x pan-y; }
 #queue .qcard.swiping, #stream .scard.swiping, #textsList .trow.swiping { transition: none; }
 #stream .scard img { -webkit-user-drag: none; }
 #stream .scard { cursor: pointer; }
+
+/* Model ticker: a slim strip under the header naming the Meta model
+   that just worked (fed by snapshot.modelActivity). */
+.model-ticker { display: flex; align-items: center; gap: 10px; background: #0d1526; border-bottom: 1px solid rgba(45, 212, 191, .35); color: #e2e8f0; padding: 6px 14px; font-size: 15px; }
+.model-ticker.hidden { display: none; }
+.model-ticker .mt-dot { width: 9px; height: 9px; border-radius: 50%; background: #2dd4bf; flex: none; }
+.model-ticker.mt-pulse .mt-dot { animation: mtpulse 1s ease-out 2; }
+@keyframes mtpulse { 0% { box-shadow: 0 0 0 0 rgba(45, 212, 191, .55); } 100% { box-shadow: 0 0 0 9px rgba(45, 212, 191, 0); } }
+.model-ticker .mt-model { font-weight: 700; color: #2dd4bf; white-space: nowrap; }
+.model-ticker .mt-what { color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.model-ticker .mt-secs { color: #fbbf24; font-variant-numeric: tabular-nums; }
+.model-ticker .mt-time { margin-left: auto; color: #7d8aa0; font-variant-numeric: tabular-nums; }

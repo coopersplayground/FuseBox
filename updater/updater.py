@@ -220,6 +220,12 @@ def main() -> int:
         staging.mkdir(parents=True)
         with tarfile.open(fileobj=io.BytesIO(bundle), mode="r:gz") as tf:
             tf.extractall(staging, filter="data")
+        # A service executes listener.py directly (its shebang picks
+        # the venv python); never let a bundle land it non-executable.
+        for rel in ("cosmo-listener/listener.py",):
+            f = staging / rel
+            if f.exists():
+                f.chmod(0o755)
         if dest.exists():
             subprocess.run(["rm", "-rf", str(dest)], check=True)
         os.replace(staging, dest)

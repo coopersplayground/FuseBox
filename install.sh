@@ -171,6 +171,9 @@ run rsync -a --exclude 'data/' --exclude 'shop-index.json' --exclude 'public/fou
   --exclude 'public/pc/latest.jpg' "$SRC_DIR/cosmo-ui/" "$REL/cosmo-ui/"
 run rsync -a --exclude 'venv/' --exclude 'logs/' --exclude 'state/' --exclude 'session-id' \
   --exclude '__pycache__/' "$SRC_DIR/cosmo-listener/" "$REL/cosmo-listener/"
+# cosmo-listener.service executes listener.py directly (its shebang
+# picks the venv python); a git clone does not guarantee the exec bit.
+run chmod 755 "$REL/cosmo-listener/listener.py"
 run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/guardian/guardian-ear.py" "$REL/guardian/guardian-ear.py"
 run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/guardian/setup-asterisk.py" "$REL/guardian/setup-asterisk.py"
 run install -m 0644 -o "$FB_USER" -g "$FB_USER" "$SRC_DIR/guardian/grd-resample.py" "$REL/guardian/grd-resample.py"

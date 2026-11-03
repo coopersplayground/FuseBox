@@ -54,7 +54,13 @@ def build_bundle(src: Path, version: str) -> bytes:
                     continue
                 if f.name.endswith(SKIP_SUFFIXES) or ".bak-" in f.name:
                     continue
-                tf.add(f, arcname=str(rel))
+                ti = tf.gettarinfo(str(f), arcname=str(rel))
+                # Scripts must land executable whatever mode the
+                # checkout had: services execute listener.py directly.
+                if ti.name.endswith((".py", ".sh")):
+                    ti.mode = 0o755
+                with open(f, "rb") as fh:
+                    tf.addfile(ti, fh)
         info = tarfile.TarInfo("VERSION")
         data = (version + "\n").encode()
         info.size = len(data)

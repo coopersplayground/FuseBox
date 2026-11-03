@@ -206,12 +206,21 @@ def _meta_transcribe(pcm: bytes, c) -> str:
         stt_url, data=body, method="POST",
         headers={"Content-Type": f"multipart/form-data; boundary={b}",
                  "Authorization": stt_auth})
+    t0 = time.monotonic()
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
-            return str(json.loads(r.read()).get("transcript", "")).strip()
+            out = str(json.loads(r.read()).get("transcript", "")).strip()
     except Exception as e:
         log(f"meta transcribe fail: {e}")
         return ""
+    if out:
+        try:
+            import uipost
+            uipost.activity("Muse Voice Transcribe", "hearing the room",
+                            int((time.monotonic() - t0) * 1000), out)
+        except Exception:
+            pass
+    return out
 
 
 async def _transcribe(pcm: bytes, c) -> str:
