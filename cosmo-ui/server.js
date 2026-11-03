@@ -50,31 +50,15 @@ const PC_SHARE_FILE = 'Install PC Guardian.bat';
 let pcShareOn = false;
 let pcShareTimer = null;
 
-// --- PC installer share login. Modern Windows refuses guest SMB
-// logons, so the installer share is a login share. The BOX sets the
-// password itself: generated once, kept in a small file in the data
-// dir beside state.json (survives releases; never in the snapshot),
-// synced into Samba whenever sharing turns on, and shown on the PC
-// Guardian page so the owner can read it off the screen and type it
-// into the Windows sign-in prompt.
-const SHARE_USER = 'guardian';
-const SHARE_PW_FILE = path.join(__dirname, 'data', 'smb-share.json');
-function sharePwGenerate() {
-  const alpha = 'abcdefghjkmnpqrstuvwxyz23456789';
-  const crypto = require('crypto');
-  let pw = '';
-  for (let i = 0; i < 12; i++) pw += alpha[crypto.randomInt(alpha.length)];
-  return pw;
-}
-function sharePwEnsure() {
-  try {
-    const r = JSON.parse(fs.readFileSync(SHARE_PW_FILE, 'utf8'));
-    if (r && typeof r.password === 'string' && r.password.length >= 8) return r.password;
-  } catch (e) {}
-  const pw = sharePwGenerate();
-  try { fs.writeFileSync(SHARE_PW_FILE, JSON.stringify({ password: pw }), { mode: 0o600 }); } catch (e) {}
-  return pw;
-}
+// --- PC installer delivery. The primary path is a web page
+// (/getpc): the owner opens it in the computer's browser and taps
+// one button - no sign-in, nothing to find, works on any Windows.
+// The network share stays as a secondary path and is OPEN, like a
+// printer's service page: no login. (Stock Windows blocks guest
+// SMB in assorted ways; the web page is the door that always
+// works.) The box keeps /etc/samba/smb.conf in the open shape
+// itself: [Guardian] is a read-only guest share and no signing
+// override is forced.
 function sudoRun(args, input) {
   return new Promise((resolve) => {
     let p;
@@ -89,9 +73,14 @@ function execOk(file, args) {
     catch (e) { resolve(false); }
   });
 }
-// Rewrite /etc/samba/smb.conf into the login-share shape (idempotent):
-// [global] keeps its lines but gains mandatory signing; [Guardian] is
-// rebuilt as a login-only share; every other section passes through.
+function installerBatText() {
+  const url = 'http://' + pcBoxAddress() + ':' + (CONFIG.port || 3180) + '/pc/install.ps1';
+  return ['@echo off', 'title PC Guardian Installer', 'echo Installing your PC Guardian - this takes about a minute...', 'powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr ' + url + ' -UseBasicParsing | iex"', 'echo.', 'echo Done. This computer shows up on the Guardian screen in about a minute.', 'pause', ''].join('\r\n');
+}
+// Rewrite /etc/samba/smb.conf into the open-share shape
+// (idempotent): [global] keeps its lines with any signing override
+// removed; [Guardian] is rebuilt as an open guest share; every
+// other section passes through.
 function smbConfFixedText() {
   let cur = '';
   try { cur = fs.readFileSync('/etc/samba/smb.conf', 'utf8'); } catch (e) {}
@@ -106,7 +95,6 @@ function smbConfFixedText() {
   const gLines = (glob ? glob.lines : []).filter((l) => !/^\s*server\s+signing\s*=/i.test(l));
   const out = ['[global]'].concat(gLines);
   if (!gLines.some((l) => l.trim())) out.push('\tworkgroup = WORKGROUP');
-  out.push('\tserver signing = mandatory');
   for (const s of sections) {
     if (s.name.toLowerCase() === 'global' || s.name.toLowerCase() === 'guardian') continue;
     out.push('[' + s.name + ']');
@@ -115,16 +103,15 @@ function smbConfFixedText() {
   out.push('[Guardian]');
   out.push('\tcomment = PC Guardian installer - one file, double-click it');
   out.push('\tpath = ' + PC_SHARE_DIR);
-  out.push('\tvalid users = ' + SHARE_USER);
+  out.push('\tguest ok = yes');
+  out.push('\tguest only = yes');
+  out.push('\tforce user = nobody');
   out.push('\tread only = yes');
   out.push('\tbrowseable = yes');
   out.push('');
   return { text: out.join('\n'), changed: out.join('\n') !== cur };
 }
-async function shareSync() {
-  const pw = sharePwEnsure();
-  const hasUser = await execOk('id', [SHARE_USER]);
-  if (!hasUser) await sudoRun(['useradd', '-M', '-s', '/usr/sbin/nologin', SHARE_USER]);
+async function shareConfigEnsure() {
   try {
     const fx = smbConfFixedText();
     if (fx.changed) {
@@ -135,9 +122,6 @@ async function shareSync() {
       }
     }
   } catch (e) {}
-  await sudoRun(['smbpasswd', '-a', '-s', SHARE_USER], pw + '\n' + pw + '\n');
-  await sudoRun(['smbpasswd', '-e', SHARE_USER]);
-  return { user: SHARE_USER, password: pw };
 }
 function pcBoxAddress() {
   const ifs = os.networkInterfaces();
@@ -156,9 +140,7 @@ function pcShareSet(on) {
     if (on) {
       try {
         fs.mkdirSync(PC_SHARE_DIR, { recursive: true });
-        const url = 'http://' + pcBoxAddress() + ':' + (CONFIG.port || 3180) + '/pc/install.ps1';
-        const bat = ['@echo off', 'title PC Guardian Installer', 'echo Installing your PC Guardian - this takes about a minute...', 'powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr ' + url + ' -UseBasicParsing | iex"', 'echo.', 'echo Done. This computer shows up on the Guardian screen in about a minute.', 'pause', ''].join('\r\n');
-        fs.writeFileSync(path.join(PC_SHARE_DIR, PC_SHARE_FILE), bat);
+        fs.writeFileSync(path.join(PC_SHARE_DIR, PC_SHARE_FILE), installerBatText());
       } catch (e) { resolve({ ok: false, error: String((e && e.message) || e) }); return; }
     }
     const go = () => {
@@ -174,7 +156,7 @@ function pcShareSet(on) {
     // Turning sharing on first makes sure the login share is real:
     // the box's own password is set in Samba and the config is in
     // login shape before the services start.
-    if (on) { shareSync().then(go, go); } else go();
+    if (on) { shareConfigEnsure().then(go, go); } else go();
   });
 }
 
@@ -859,7 +841,7 @@ function sweepQueue() {
 let sayQueue = [];
 let sayStopAt = 0;
 let saySeq = 0;
-function snapshot() { sweepQueue(); return { avatar: state.avatar, cards: state.cards, focusId: state.focusId, avatarMode: avatarMode, calendar: state.calendar, calLock: state.calLock || { locked: false }, cameras: state.cameras, cameraView: state.cameraView, inbox: state.inbox, mailView: state.mailView, helpView: state.helpView, music: state.music, musicView: state.musicView, actionOutbox: state.actionOutbox, weather: state.weather, weatherView: state.weatherView, homeView: state.homeView, homeHidden: state.homeHidden, imageView: state.imageView, navStyle: state.navStyle, texts: state.texts, textView: state.textView, facebook: state.facebook, facebookView: state.facebookView, facebookPost: state.facebookPost, facebookGroup: state.facebookGroup, messenger: state.messenger, messengerView: state.messengerView, messengerThread: state.messengerThread, sms: state.sms, smsView: state.smsView, smsThread: state.smsThread, insta: state.insta, instaView: state.instaView, instaPost: state.instaPost, apps: state.apps, appsView: state.appsView, appView: state.appView, paper: state.paper, paperView: state.paperView, network: state.network, networkView: state.networkView, settings: Object.assign({}, state.settings, { pinSet: pinIsSet(), unlocked: Date.now() < pinUnlockUntil }), settingsView: state.settingsView, guardian: state.guardian, guardianView: state.guardianView, shop: state.shop, shopView: state.shopView, queueView: state.queueView, todos: state.todos || [], shopping: state.shopping || [], listMode: state.listMode || 'todo', androidApps: androidAppsList(), pc: state.pc, pcControl: state.pcControl, pcShare: pcShareOn, hid: state.hid || null, appsCatalog: APP_CATALOG.filter((c) => !state.apps.some((a) => a.id === c.id)), sayQueue: sayQueue, sayStopAt: sayStopAt, modelActivity: modelActivity }; }
+function snapshot() { sweepQueue(); return { avatar: state.avatar, cards: state.cards, focusId: state.focusId, avatarMode: avatarMode, calendar: state.calendar, calLock: state.calLock || { locked: false }, cameras: state.cameras, cameraView: state.cameraView, inbox: state.inbox, mailView: state.mailView, helpView: state.helpView, music: state.music, musicView: state.musicView, actionOutbox: state.actionOutbox, weather: state.weather, weatherView: state.weatherView, homeView: state.homeView, homeHidden: state.homeHidden, imageView: state.imageView, navStyle: state.navStyle, texts: state.texts, textView: state.textView, facebook: state.facebook, facebookView: state.facebookView, facebookPost: state.facebookPost, facebookGroup: state.facebookGroup, messenger: state.messenger, messengerView: state.messengerView, messengerThread: state.messengerThread, sms: state.sms, smsView: state.smsView, smsThread: state.smsThread, insta: state.insta, instaView: state.instaView, instaPost: state.instaPost, apps: state.apps, appsView: state.appsView, appView: state.appView, paper: state.paper, paperView: state.paperView, network: state.network, networkView: state.networkView, settings: Object.assign({}, state.settings, { pinSet: pinIsSet(), unlocked: Date.now() < pinUnlockUntil }), settingsView: state.settingsView, guardian: state.guardian, guardianView: state.guardianView, shop: state.shop, shopView: state.shopView, queueView: state.queueView, todos: state.todos || [], shopping: state.shopping || [], listMode: state.listMode || 'todo', androidApps: androidAppsList(), pc: state.pc, pcControl: state.pcControl, pcShare: pcShareOn, boxGetPc: 'http://' + pcBoxAddress() + ':' + (CONFIG.port || 3180) + '/getpc', hid: state.hid || null, appsCatalog: APP_CATALOG.filter((c) => !state.apps.some((a) => a.id === c.id)), sayQueue: sayQueue, sayStopAt: sayStopAt, modelActivity: modelActivity }; }
 function showOnly(which) {
   // Calendar lock: while the calendar is locked full-screen, no other
   // view replaces it and a global hide keeps it up. Unlocking happens
@@ -2433,22 +2415,19 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify(r));
     return;
   }
-  if (p === '/api/guardian/sharepw' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ user: SHARE_USER, password: sharePwEnsure() }));
+  if (p === '/getpc' && req.method === 'GET') {
+    // The installer page: one screen, one button, no sign-in. This
+    // is the primary way a PC gets its Guardian - it works in the
+    // browser on any Windows, where the network share often does
+    // not (guest SMB is blocked in assorted ways by modern Windows).
+    const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>PC Guardian</title><style>body{font-family:Georgia,serif;background:#f7f3ea;color:#22303c;margin:0;padding:44px 20px;text-align:center}h1{font-size:36px;margin:0 0 12px}p{font-size:19px;line-height:1.55;max-width:560px;margin:12px auto}a.btn{display:inline-block;margin-top:28px;background:#2e7d4f;color:#fff;font-size:25px;padding:19px 36px;border-radius:14px;text-decoration:none}.small{font-size:15px;color:#5a6a75}</style></head><body><h1>PC Guardian</h1><p>This puts your Guardian on this computer. It keeps an eye out for scam pages and computer problems, and it takes about a minute.</p><a class="btn" href="/getpc/install">Get my PC Guardian</a><p class="small">After it downloads, double-click <b>Install PC Guardian</b> and say Yes if Windows asks.</p></body></html>';
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
     return;
   }
-  if (p === '/api/guardian/sharepw' && req.method === 'POST') {
-    const b = await readBody(req);
-    let r;
-    if (b && b.reset) {
-      try { fs.writeFileSync(SHARE_PW_FILE, JSON.stringify({ password: sharePwGenerate() }), { mode: 0o600 }); } catch (e) {}
-      const s = await shareSync();
-      broadcast('snapshot', snapshot());
-      r = { ok: true, user: s.user, password: s.password };
-    } else { r = { ok: true, user: SHARE_USER, password: sharePwEnsure() }; }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(r));
+  if (p === '/getpc/install' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Disposition': 'attachment; filename="Install PC Guardian.bat"' });
+    res.end(installerBatText());
     return;
   }
   if (p === '/api/guardian/interrupt' && req.method === 'POST') {
@@ -3113,7 +3092,7 @@ const server = http.createServer(async (req, res) => {
   fs.createReadStream(fp).pipe(res);
 });
 
-server.listen(PORT, '0.0.0.0', () => { console.log('cosmo-ui listening on ' + PORT); discoverCameras().then((c) => console.log('cameras discovered: ' + c.length)); pollPersons().catch(() => {}); setInterval(() => { pollPersons().catch(() => {}); }, CONFIG.personPollSec * 1000); setInterval(() => { try { calendarTick(); } catch (e) {} }, 60000); shopFetch(false).catch(() => {}); pcAlertLineReady().catch(() => {}); sharePwEnsure(); execOk('systemctl', ['is-active', 'smbd']).then((on) => { if (on) { pcShareOn = true; return shareSync(); } }).catch(() => {}); });
+server.listen(PORT, '0.0.0.0', () => { console.log('cosmo-ui listening on ' + PORT); discoverCameras().then((c) => console.log('cameras discovered: ' + c.length)); pollPersons().catch(() => {}); setInterval(() => { pollPersons().catch(() => {}); }, CONFIG.personPollSec * 1000); setInterval(() => { try { calendarTick(); } catch (e) {} }, 60000); shopFetch(false).catch(() => {}); pcAlertLineReady().catch(() => {}); execOk('systemctl', ['is-active', 'smbd']).then((on) => { if (on) { pcShareOn = true; return shareConfigEnsure(); } }).catch(() => {}); });
 
 // Watcher console on its own LAN port: the runtime page (every Meta
 // model call, live) served alone, for a second screen or a video
