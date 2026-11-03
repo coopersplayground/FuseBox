@@ -21,7 +21,7 @@ It connects apps and devices through simple pairings called Switches. Built-in G
 WATCH THE VIDEO:
 <p/>
   
-[![Watch the video on YouTube](https://img.youtube.com/vi/0h2kHyiO8zw/hqdefault.jpg)](https://www.youtube.com/watch?v=0h2kHyiO8zw)
+[![Watch the video on YouTube](https://img.youtube.com/vi/bHg9GeXhqhw/hqdefault.jpg)](https://www.youtube.com/watch?v=bHg9GeXhqhw)
 
 # Fuse_Box
 Fuse_Box is not a new AI model, and it is not an agent harness looking for
