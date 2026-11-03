@@ -49,6 +49,96 @@ const PC_SHARE_DIR = '/srv/guardian-install';
 const PC_SHARE_FILE = 'Install PC Guardian.bat';
 let pcShareOn = false;
 let pcShareTimer = null;
+
+// --- PC installer share login. Modern Windows refuses guest SMB
+// logons, so the installer share is a login share. The BOX sets the
+// password itself: generated once, kept in a small file in the data
+// dir beside state.json (survives releases; never in the snapshot),
+// synced into Samba whenever sharing turns on, and shown on the PC
+// Guardian page so the owner can read it off the screen and type it
+// into the Windows sign-in prompt.
+const SHARE_USER = 'guardian';
+const SHARE_PW_FILE = path.join(__dirname, 'data', 'smb-share.json');
+function sharePwGenerate() {
+  const alpha = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const crypto = require('crypto');
+  let pw = '';
+  for (let i = 0; i < 12; i++) pw += alpha[crypto.randomInt(alpha.length)];
+  return pw;
+}
+function sharePwEnsure() {
+  try {
+    const r = JSON.parse(fs.readFileSync(SHARE_PW_FILE, 'utf8'));
+    if (r && typeof r.password === 'string' && r.password.length >= 8) return r.password;
+  } catch (e) {}
+  const pw = sharePwGenerate();
+  try { fs.writeFileSync(SHARE_PW_FILE, JSON.stringify({ password: pw }), { mode: 0o600 }); } catch (e) {}
+  return pw;
+}
+function sudoRun(args, input) {
+  return new Promise((resolve) => {
+    let p;
+    try { p = require('child_process').execFile('sudo', ['-n'].concat(args), { timeout: 25000 }, (err) => resolve(!err)); }
+    catch (e) { resolve(false); return; }
+    if (input) { try { p.stdin.write(input); p.stdin.end(); } catch (e) {} }
+  });
+}
+function execOk(file, args) {
+  return new Promise((resolve) => {
+    try { require('child_process').execFile(file, args, { timeout: 15000 }, (err) => resolve(!err)); }
+    catch (e) { resolve(false); }
+  });
+}
+// Rewrite /etc/samba/smb.conf into the login-share shape (idempotent):
+// [global] keeps its lines but gains mandatory signing; [Guardian] is
+// rebuilt as a login-only share; every other section passes through.
+function smbConfFixedText() {
+  let cur = '';
+  try { cur = fs.readFileSync('/etc/samba/smb.conf', 'utf8'); } catch (e) {}
+  const sections = [];
+  let curSec = null;
+  for (const line of cur.split('\n')) {
+    const m = /^\s*\[([^\]]+)\]/.exec(line);
+    if (m) { curSec = { name: m[1].trim(), lines: [] }; sections.push(curSec); continue; }
+    if (curSec) curSec.lines.push(line);
+  }
+  const glob = sections.find((s) => s.name.toLowerCase() === 'global');
+  const gLines = (glob ? glob.lines : []).filter((l) => !/^\s*server\s+signing\s*=/i.test(l));
+  const out = ['[global]'].concat(gLines);
+  if (!gLines.some((l) => l.trim())) out.push('\tworkgroup = WORKGROUP');
+  out.push('\tserver signing = mandatory');
+  for (const s of sections) {
+    if (s.name.toLowerCase() === 'global' || s.name.toLowerCase() === 'guardian') continue;
+    out.push('[' + s.name + ']');
+    out.push.apply(out, s.lines);
+  }
+  out.push('[Guardian]');
+  out.push('\tcomment = PC Guardian installer - one file, double-click it');
+  out.push('\tpath = ' + PC_SHARE_DIR);
+  out.push('\tvalid users = ' + SHARE_USER);
+  out.push('\tread only = yes');
+  out.push('\tbrowseable = yes');
+  out.push('');
+  return { text: out.join('\n'), changed: out.join('\n') !== cur };
+}
+async function shareSync() {
+  const pw = sharePwEnsure();
+  const hasUser = await execOk('id', [SHARE_USER]);
+  if (!hasUser) await sudoRun(['useradd', '-M', '-s', '/usr/sbin/nologin', SHARE_USER]);
+  try {
+    const fx = smbConfFixedText();
+    if (fx.changed) {
+      const tmp = path.join(os.tmpdir(), 'cosmo-smb.conf');
+      fs.writeFileSync(tmp, fx.text);
+      if (await sudoRun(['cp', tmp, '/etc/samba/smb.conf'])) {
+        if (await execOk('systemctl', ['is-active', 'smbd'])) await sudoRun(['systemctl', 'restart', 'smbd']);
+      }
+    }
+  } catch (e) {}
+  await sudoRun(['smbpasswd', '-a', '-s', SHARE_USER], pw + '\n' + pw + '\n');
+  await sudoRun(['smbpasswd', '-e', SHARE_USER]);
+  return { user: SHARE_USER, password: pw };
+}
 function pcBoxAddress() {
   const ifs = os.networkInterfaces();
   let lan = '';
@@ -71,14 +161,20 @@ function pcShareSet(on) {
         fs.writeFileSync(path.join(PC_SHARE_DIR, PC_SHARE_FILE), bat);
       } catch (e) { resolve({ ok: false, error: String((e && e.message) || e) }); return; }
     }
-    require('child_process').execFile('sudo', ['-n', 'systemctl', on ? 'start' : 'stop', 'smbd', 'wsdd2'], { timeout: 20000 }, (err) => {
-      if (err) { resolve({ ok: false, error: 'the sharing service did not respond' }); return; }
-      pcShareOn = on;
-      if (pcShareTimer) { clearTimeout(pcShareTimer); pcShareTimer = null; }
-      if (on) pcShareTimer = setTimeout(() => { pcShareSet(false).catch(() => {}); }, 15 * 60 * 1000);
-      broadcast('snapshot', snapshot());
-      resolve({ ok: true, on: pcShareOn });
-    });
+    const go = () => {
+      require('child_process').execFile('sudo', ['-n', 'systemctl', on ? 'start' : 'stop', 'smbd', 'wsdd2'], { timeout: 20000 }, (err) => {
+        if (err) { resolve({ ok: false, error: 'the sharing service did not respond' }); return; }
+        pcShareOn = on;
+        if (pcShareTimer) { clearTimeout(pcShareTimer); pcShareTimer = null; }
+        if (on) pcShareTimer = setTimeout(() => { pcShareSet(false).catch(() => {}); }, 15 * 60 * 1000);
+        broadcast('snapshot', snapshot());
+        resolve({ ok: true, on: pcShareOn });
+      });
+    };
+    // Turning sharing on first makes sure the login share is real:
+    // the box's own password is set in Samba and the config is in
+    // login shape before the services start.
+    if (on) { shareSync().then(go, go); } else go();
   });
 }
 
@@ -2337,6 +2433,24 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify(r));
     return;
   }
+  if (p === '/api/guardian/sharepw' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ user: SHARE_USER, password: sharePwEnsure() }));
+    return;
+  }
+  if (p === '/api/guardian/sharepw' && req.method === 'POST') {
+    const b = await readBody(req);
+    let r;
+    if (b && b.reset) {
+      try { fs.writeFileSync(SHARE_PW_FILE, JSON.stringify({ password: sharePwGenerate() }), { mode: 0o600 }); } catch (e) {}
+      const s = await shareSync();
+      broadcast('snapshot', snapshot());
+      r = { ok: true, user: s.user, password: s.password };
+    } else { r = { ok: true, user: SHARE_USER, password: sharePwEnsure() }; }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(r));
+    return;
+  }
   if (p === '/api/guardian/interrupt' && req.method === 'POST') {
     const b = await readBody(req);
     if (state.guardian.live) { state.guardian.live.interrupted = !!b.on; save(); broadcast('snapshot', snapshot()); }
@@ -2999,7 +3113,7 @@ const server = http.createServer(async (req, res) => {
   fs.createReadStream(fp).pipe(res);
 });
 
-server.listen(PORT, '0.0.0.0', () => { console.log('cosmo-ui listening on ' + PORT); discoverCameras().then((c) => console.log('cameras discovered: ' + c.length)); pollPersons().catch(() => {}); setInterval(() => { pollPersons().catch(() => {}); }, CONFIG.personPollSec * 1000); setInterval(() => { try { calendarTick(); } catch (e) {} }, 60000); shopFetch(false).catch(() => {}); pcAlertLineReady().catch(() => {}); });
+server.listen(PORT, '0.0.0.0', () => { console.log('cosmo-ui listening on ' + PORT); discoverCameras().then((c) => console.log('cameras discovered: ' + c.length)); pollPersons().catch(() => {}); setInterval(() => { pollPersons().catch(() => {}); }, CONFIG.personPollSec * 1000); setInterval(() => { try { calendarTick(); } catch (e) {} }, 60000); shopFetch(false).catch(() => {}); pcAlertLineReady().catch(() => {}); sharePwEnsure(); execOk('systemctl', ['is-active', 'smbd']).then((on) => { if (on) { pcShareOn = true; return shareSync(); } }).catch(() => {}); });
 
 // Watcher console on its own LAN port: the runtime page (every Meta
 // model call, live) served alone, for a second screen or a video

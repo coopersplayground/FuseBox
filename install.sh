@@ -137,7 +137,7 @@ run apt-get install -y \
   curl git ca-certificates gnupg software-properties-common rsync unzip acl \
   python3 python3-venv python3-pip python3-gi gir1.2-gtk-3.0 \
   alsa-utils ffmpeg espeak-ng xdotool x11-utils xinit xserver-xorg \
-  asterisk cron
+  asterisk cron samba wsdd
 note "System packages: OK"
 
 # Node 22 (the board's runtime) from NodeSource

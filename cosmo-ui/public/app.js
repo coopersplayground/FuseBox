@@ -922,13 +922,24 @@ function grdPcView(snap) {
       '<div class="grd-checks">' +
       '<div class="grd-check"><span class="grd-ball">1</span><span>On the Windows computer, open <b>File Explorer</b> and click <b>Network</b> on the left.</span></div>' +
       '<div class="grd-check"><span class="grd-ball">2</span><span>Double-click <b>FUSEBOX</b>.</span></div>' +
-      '<div class="grd-check"><span class="grd-ball">3</span><span>Double-click the file <b>Install PC Guardian</b>. If Windows asks, say Yes.</span></div></div>' +
+      '<div class="grd-check"><span class="grd-ball">3</span><span>Windows will ask you to sign in. The user name is <b>guardian</b> and the password is <b id="grdSharePw" style="font-size:21px;letter-spacing:.05em">…</b></span></div>' +
+      '<div class="grd-check"><span class="grd-ball">4</span><span>Double-click the file <b>Install PC Guardian</b>. If Windows asks, say Yes.</span></div></div>' +
+      '<p class="grd-note">The box made that password itself, and it stays the same until you ask for a new one.</p>' +
+      '<div class="network-actions"><button class="app-pin2" id="grdSharePwReset">NEW PASSWORD</button></div>' +
       '<p class="grd-note">It installs itself in about a minute, and the computer appears in the list above. When you are done adding computers, tap DONE and the box stops showing itself.</p>' +
       '<div class="network-actions"><button class="app-go grd-huge" id="grdPcShareDone">DONE</button></div>' +
       '<p class="grd-note">No FUSEBOX under Network? On that computer, open Windows PowerShell and paste this line instead:</p>' +
       '<div class="grd-code">powershell -ep bypass -c "iwr http://192.168.1.10:3180/pc/install.ps1 -UseBasicParsing | iex"</div></div>';
   }
   return h;
+}
+function grdSharePwWire() {
+  const el = document.getElementById('grdSharePw');
+  if (!el) return;
+  fetch('/api/guardian/sharepw').then(r => r.json()).then(c => {
+    const e2 = document.getElementById('grdSharePw');
+    if (e2 && c && c.password) e2.textContent = c.password;
+  }).catch(() => {});
 }
 function renderGuardian(snap) {
   const ov = $('guardianOverlay');
@@ -1014,7 +1025,7 @@ function renderGuardian(snap) {
       body.innerHTML = h;
       return;
     }
-    if (grdSection === 'pc') { body.innerHTML = grdPcView(snap); return; }
+    if (grdSection === 'pc') { body.innerHTML = grdPcView(snap); grdSharePwWire(); return; }
     if (grdSection === 'main') { body.innerHTML = grdMainView(snap); return; }
     if (grdCallSel !== null && (g.calls || [])[grdCallSel]) {
       const c = g.calls[grdCallSel];
@@ -2251,6 +2262,7 @@ document.addEventListener('click', (ev) => {
   if (ev.target.closest('#grdSecPc')) { grdSection = 'pc'; grdPhoneRefresh(); return; }
   if (ev.target.closest('#grdSecMain')) { grdSection = 'main'; grdPhoneRefresh(); return; }
   if (ev.target.closest('#grdPcAdd')) { grdPcAddOpen = !grdPcAddOpen; post('/api/pc/share', { on: grdPcAddOpen }); grdPhoneRefresh(); return; }
+  if (ev.target.closest('#grdSharePwReset')) { fetch('/api/guardian/sharepw', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reset: true }) }).then(() => { lastGuardianSig = ''; grdSharePwWire(); }).catch(() => {}); return; }
   if (ev.target.closest('#grdPcShareDone')) { grdPcAddOpen = false; post('/api/pc/share', { on: false }); grdPhoneRefresh(); return; }
   const shopInst = ev.target.closest('[data-install]');
   if (shopInst) { shopAskTab(shopInst.getAttribute('data-install')); return; }
