@@ -18,7 +18,7 @@ It connects apps and devices through simple pairings called Switches. Built-in G
 WATCH THE VIDEO:
 <p/>
   
-[![Watch the video on YouTube](https://img.youtube.com/vi/KEzhON5Ny28/hqdefault.jpg)](https://www.youtube.com/watch?v=KEzhON5Ny28)
+[![Watch the video on YouTube](https://img.youtube.com/vi/0h2kHyiO8zw/hqdefault.jpg)](https://www.youtube.com/watch?v=0h2kHyiO8zw)
 
 # Fuse_Box
 Fuse_Box is not a new AI model, and it is not an agent harness looking for
@@ -321,3 +321,10 @@ is generated on the box from the line details entered there — a watcher
 service runs the generator the moment they land), set the weather
 location in `cosmo-ui/config.json`, and drop in API keys as files only
 if you want the cloud tiers (see Configuration & secrets above).
+
+## License
+
+Fuse_Box is open source under the Apache License, Version 2.0 — see
+[LICENSE](LICENSE) for the full text.
+
+(C) 2026 Harold Cooper /coopersplayground
