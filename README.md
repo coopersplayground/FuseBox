@@ -1,7 +1,8 @@
 <p align="center"><strong>Coded 100% with Muse AI</strong></p>
 <p align="center"><strong>All Meta Models</strong></p>
+<p align="center"><strong>Built for and durruing the Meta Hackathon Oct 26th - Nov 4th 2026</strong></p>
 
-# Fuse_Box
+# Fuse_Box - Powered by Muse Spark
 
 An always-on AI home hub powered by a Raspberry Pi 5. It connects traditional and modern devices, protects the home, monitors cameras, helps users with computers, and controls smart devices through safe, monitored workflows.
 
