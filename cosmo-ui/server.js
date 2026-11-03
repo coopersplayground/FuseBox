@@ -123,17 +123,42 @@ async function shareConfigEnsure() {
     }
   } catch (e) {}
 }
+let _defIfCache = { name: '', at: 0 };
+function defaultIface() {
+  const now = Date.now();
+  if (now - _defIfCache.at < 60000) return _defIfCache.name;
+  let name = '';
+  try {
+    const out = require('child_process').execFileSync('ip', ['route', 'show', 'default'], { timeout: 3000 }).toString();
+    const m = /dev\s+(\S+)/.exec(out);
+    if (m) name = m[1];
+  } catch (e) {}
+  _defIfCache = { name, at: now };
+  return name;
+}
+// The address a computer on the home network should use to reach
+// this box: the interface carrying the default route first (that
+// is the home LAN), then private LAN ranges. A tunnel address
+// (100.64.0.0/10) is only a last resort - a PC in the house is not
+// on the box's tunnel, it is on the same network as the box.
 function pcBoxAddress() {
   const ifs = os.networkInterfaces();
-  let lan = '';
+  const defIf = defaultIface();
+  let best = '', bestScore = -1;
   for (const name of Object.keys(ifs)) {
     for (const a of ifs[name] || []) {
       if (a.family !== 'IPv4' || a.internal) continue;
-      if (a.address.indexOf('100.') === 0) return a.address;
-      if (!lan) lan = a.address;
+      const ip = a.address;
+      let score = 0;
+      if (name === defIf) score += 10;
+      if (ip.indexOf('192.168.') === 0) score += 4;
+      else if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) score += 3;
+      else if (ip.indexOf('10.') === 0) score += 2;
+      else if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(ip)) score += 1;
+      if (score > bestScore) { bestScore = score; best = ip; }
     }
   }
-  return lan || '127.0.0.1';
+  return best || '127.0.0.1';
 }
 function pcShareSet(on) {
   return new Promise((resolve) => {
