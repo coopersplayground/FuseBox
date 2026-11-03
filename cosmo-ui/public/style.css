@@ -147,6 +147,7 @@ body[data-state='offline'] .status-chip { border-color: #64748b; color: #94a3b8;
 }
 .bot-video.hidden { display: none; }
 body[data-avatar-mode='real'] #bot { display: none; }
+body[data-avatar-mode='svg'] .bot-video { display: none; }
 body[data-state='offline'] .bot-video { filter: grayscale(0.9) brightness(0.6); }
 .video-badge-q {
   position: absolute; top: 26px; right: 22px; z-index: 3;
@@ -798,11 +799,12 @@ body.dock-nav #boardNav button.tapped::after { opacity: 1; }
 .drawer-overlay.hidden { display: none; }
 .drawer-card { width: min(1100px, 96vw); max-height: 94vh; overflow-y: auto; background: linear-gradient(180deg, #131f3a, #0b1428); border: 2px solid #38bdf855; border-radius: 22px; padding: 20px 26px; box-shadow: 0 24px 80px rgba(0,0,0,0.6); }
 .drawer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-top: 14px; }
-.drawer-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 8px 12px; background: #16224a; border: 1px solid #2c4a8a; border-radius: 16px; cursor: pointer; color: #eaf0ff; }
+.drawer-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 8px 12px; background: #16224a; border: 1px solid #2c4a8a; border-radius: 16px; cursor: pointer; color: #eaf0ff; overflow: hidden; }
 .drawer-tile:active { background: #2c4a8a; }
 .drawer-ico { font-size: 33px; line-height: 1; height: 38px; display: flex; align-items: center; justify-content: center; }
 .drawer-ico svg { width: 32px; height: 32px; display: block; }
-.drawer-name { font-size: 14px; font-weight: 700; text-align: center; }
+.drawer-name { font-size: 14px; font-weight: 700; text-align: center; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.drawer-ico img { width: 34px; height: 34px; object-fit: contain; border-radius: 8px; display: block; }
 .drawer-star { color: #f6a21a; font-size: 13px; }
 .drawer-tile[data-drawer="facebook"] .drawer-ico { color: #1877f2; font-family: Arial, Helvetica, sans-serif; font-weight: 900; }
 #drawerBtn .nav-icon svg { width: 38px; height: 38px; display: block; }

@@ -132,6 +132,14 @@ def main():
     with io.open(tmp, "w", encoding="utf-8") as f:
         json.dump(doc, f, ensure_ascii=False)
     os.replace(tmp, OUT)
+    # Second copy in the shared data dir: app updates swap the tree the
+    # classic path points into, and the shared copy survives them.
+    shared = "/home/cosmo/fusebox-app/shared/shop-index.json"
+    if os.path.isdir(os.path.dirname(shared)):
+        stmp = shared + ".tmp"
+        with io.open(stmp, "w", encoding="utf-8") as f:
+            json.dump(doc, f, ensure_ascii=False)
+        os.replace(stmp, shared)
     print(f"wrote {len(out_apps)} apps ({skipped_abi} arm-only skipped, curated out {sum(skipped_cur.values())}: {skipped_cur}), {len(cats)} categories -> {OUT}")
     return 0
 

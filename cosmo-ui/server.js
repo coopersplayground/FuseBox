@@ -231,14 +231,33 @@ function androidAppsList() { return (state.shop.installed || []).map((pkg) => { 
 function westonIds(cb) { require('child_process').execFile('xdotool', ['search', '--class', 'Weston'], { env: Object.assign({}, process.env, { DISPLAY: ':0' }) }, (e, out) => cb(String(out || '').split(/\s+/).filter(Boolean))); }
 function raiseAndroid() { westonIds((ids) => { for (const id of ids) { require('child_process').execFile('xdotool', ['windowmove', id, '0', '0'], { env: Object.assign({}, process.env, { DISPLAY: ':0' }) }, () => {}); require('child_process').execFile('xdotool', ['windowraise', id], { env: Object.assign({}, process.env, { DISPLAY: ':0' }) }, () => {}); } }); }
 function lowerAndroid() { westonIds((ids) => { for (const id of ids) require('child_process').execFile('xdotool', ['windowmove', id, '1920', '0'], { env: Object.assign({}, process.env, { DISPLAY: ':0' }) }, () => {}); }); }
+function shopIndexPaths() {
+  // The shop index is generated on the box (weekly sync). The copy in the
+  // shared data dir survives app updates; the one beside this file is the
+  // classic location and the fallback.
+  return [path.join(__dirname, '..', '..', 'shared', 'shop-index.json'), path.join(__dirname, 'shop-index.json')];
+}
+function readShopIndexFile() {
+  for (const p of shopIndexPaths()) { try { return fs.readFileSync(p); } catch (e) {} }
+  return null;
+}
 async function shopFetch(manual) {
   state.shop.installed = await wdInstalled();
   const url = String(CONFIG.fuseShopUrl || '').trim();
   if (!url) { SHOP_ALL = []; shopSlice(); state.shop.error = 'No shop address is set on this box yet.'; state.shop.fetchedAt = Date.now(); save(); broadcast('snapshot', snapshot()); return; }
   try {
-    const r = await fetch(url, { headers: { 'User-Agent': 'FuseShop/1.0' } });
-    if (!r.ok) throw new Error('http ' + r.status);
-    const j = await r.json();
+    let j = null;
+    try {
+      const r = await fetch(url, { headers: { 'User-Agent': 'FuseShop/1.0' } });
+      if (!r.ok) throw new Error('http ' + r.status);
+      j = await r.json();
+    } catch (fetchErr) {
+      // The index lives on this box; if the fetch missed (the file moved
+      // with an app update, say), read the on-disk copy directly.
+      const local = readShopIndexFile();
+      if (!local) throw fetchErr;
+      j = JSON.parse(local.toString('utf8'));
+    }
     state.shop.name = String(j.name || 'Fuse Shop');
     if (Array.isArray(j.cats)) state.shop.cats = j.cats.filter((c) => typeof c === 'string').slice(0, 24);
     SHOP_ALL = (Array.isArray(j.apps) ? j.apps : []).map((a) => ({
@@ -2042,7 +2061,8 @@ const server = http.createServer(async (req, res) => {
   }
   if (p === '/shop-index.json' && req.method === 'GET') {
     try {
-      const data = fs.readFileSync(path.join(__dirname, 'shop-index.json'));
+      const data = readShopIndexFile();
+      if (!data) throw new Error('no shop index on this box');
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(data);
     } catch (e) {

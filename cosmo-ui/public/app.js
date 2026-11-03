@@ -1887,7 +1887,7 @@ function renderHelp() {
 function render(snap) {
   lastCards = snap.cards || [];
   lastFocusId = snap.focusId !== undefined ? snap.focusId : null;
-  if (snap.avatarMode && snap.avatarMode !== avatarMode) {
+  if (snap.avatarMode && snap.avatarMode !== document.body.dataset.avatarMode) {
     avatarMode = snap.avatarMode;
     document.body.dataset.avatarMode = avatarMode;
     $('botVideo').classList.toggle('hidden', avatarMode !== 'real');
