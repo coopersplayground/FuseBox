@@ -884,7 +884,7 @@ async function grdMute(side, on) {
 }
 // --- Guardian talk: the Interruptor on Asterisk levers --------------------
 // With both directions muted, Cosmo speaks to either party (or both) by
-// whispering into that party's channel with ChanSpy: the other party
+// speaking privately into that party's channel with ChanSpy: the other party
 // hears nothing of it. Lines are rendered once (espeak-ng, a rule-based formant synthesizer - plain non-ML code), resampled to
 // 8 kHz phone format, and cached by text hash in the Asterisk spool.
 const GRD_LINE_IN = 'This is Cosmo, the Guardian, stepping into this call. From now on, this call goes through me. You can each talk to me, but you cannot hear each other. Caller, stay on the line and speak with me.';
@@ -1156,7 +1156,7 @@ async function grdFlush(key, force) {
   ent.chunks = []; ent.bytes = 0;
   try {
     // Silence gate: transcription invents words ("You", "Thank you") on
-    // near-silent windows. If the loudest sample is a whisper of noise,
+    // near-silent windows. If the loudest sample is a trace of noise,
     // there was no speech - skip the window entirely.
     let peak = 0;
     for (let i = 0; i + 1 < pcm.length; i += 8) { const v = Math.abs(pcm.readInt16LE(i)); if (v > peak) peak = v; }
@@ -1517,9 +1517,7 @@ const server = http.createServer(async (req, res) => {
   }
   // ## VISION TIER - Muse Glimmer (Meta, open weights, Apache 2.0), served from the
   // ## hub workstation Ollama at 192.168.1.50: this 16 GB unit cannot hold its ~18 GB.
-  // ## In development this tier ran Qwen3-VL-4B: at 3.3 GB it is stronger per gigabyte
-  // ## (native coordinate grounding, top-tier OCR, Pi-sized) and remains the fallback
-  // ## for small hardware. The contest build is 100% Meta, so Glimmer holds this chair.
+  // ## The contest build is 100% Meta: Glimmer holds this chair.
   async function pcJudgeVision(fp) {
     const b64 = fs.readFileSync(fp).toString('base64');
     const prompt = 'You check a computer screen image for scams aimed at seniors. A scam screen DECEIVES: false infection or lock claims, demands to call a support number, gift card or wire or crypto payment demands, impersonation of Microsoft, Apple, a bank, or police with urgent threats. NORMAL, NOT scams: command prompts, PowerShell, code, settings, updates, ordinary apps and websites. ALSO NORMAL, NEVER A SCAM: a red or blue banner at the very top saying Cosmo is controlling or guiding this PC - that is the Fuse_Box banner from a session the PC owner started himself. Reply with ONLY this JSON: {"scam": true or false, "conf": 0.0 to 1.0, "kind": "message" if the scam arrives as a text, chat or email message, "page" if it is a fake web page, popup or alert, otherwise "other", "why": "one short plain sentence"}';
