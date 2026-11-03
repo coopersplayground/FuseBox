@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1600" viewBox="0 0 2560 1600">
+<rect width="2560" height="1600" fill="#05070d"/>
+<defs><pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M64 0H0V64" fill="none" stroke="#0b1220" stroke-width="1"/></pattern></defs>
+<rect width="2560" height="1600" fill="url(#grid)"/>
+<text x="90" y="77" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="46" font-weight="700" fill="#f2f6fc" text-anchor="start" letter-spacing="6">FUSE_BOX GUARDIAN</text>
+<text x="90" y="162" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="80" font-weight="700" fill="#f2f6fc" text-anchor="start">The code map</text>
+<text x="90" y="227" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="34" font-weight="400" fill="#93a4bb" text-anchor="start">Every box is a file in the repo — the appliance, the gateway it trusts, and the cloud it thinks with.</text>
+<rect x="90" y="290" width="710" height="400" rx="22" fill="#0a101c" stroke="#4a86ff" stroke-width="2"/>
+<text x="120" y="332" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#4a86ff" text-anchor="start" letter-spacing="4">HOME PLATFORM</text>
+<rect x="120" y="366" width="310" height="92" rx="12" fill="#0f1727" stroke="#4a86ff" stroke-width="3"/>
+<text x="142" y="401" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Signed Updater</text>
+<text x="142" y="435" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">updater.py</text>
+<rect x="460" y="366" width="310" height="92" rx="12" fill="#0f1727" stroke="#4a86ff" stroke-width="3"/>
+<text x="482" y="401" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Release Gateway</text>
+<text x="482" y="435" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">gateway.js — holds the key</text>
+<rect x="120" y="486" width="310" height="92" rx="12" fill="#0f1727" stroke="#4a86ff" stroke-width="3"/>
+<text x="142" y="521" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Ed25519 Verification</text>
+<text x="142" y="555" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">ed25519.py</text>
+<rect x="460" y="486" width="310" height="92" rx="12" fill="#0f1727" stroke="#4a86ff" stroke-width="3"/>
+<text x="482" y="521" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Device Provisioning</text>
+<text x="482" y="555" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">provision.js — issues tokens</text>
+<text x="120" y="624" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">Signed releases only: a bad signature is refused,</text>
+<text x="120" y="654" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">and a failed update rolls itself back.</text>
+<rect x="880" y="290" width="800" height="400" rx="22" fill="#0a101c" stroke="#b07fe8" stroke-width="2"/>
+<text x="910" y="332" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#b07fe8" text-anchor="start" letter-spacing="4">CLOUD — META MODEL API</text>
+<rect x="910" y="366" width="740" height="92" rx="12" fill="#0f1727" stroke="#b07fe8" stroke-width="3"/>
+<text x="932" y="401" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Muse Spark 1.3</text>
+<text x="932" y="435" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">judgment + answers — hosted</text>
+<rect x="910" y="486" width="740" height="92" rx="12" fill="#0f1727" stroke="#b07fe8" stroke-width="3"/>
+<text x="932" y="521" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Muse Voice Transcribe 1.0</text>
+<text x="932" y="555" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">speech to text — hosted</text>
+<text x="910" y="624" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">A box never holds the key. It carries a capped, revocable</text>
+<text x="910" y="654" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">device token; the gateway meters every call.</text>
+<line x1="770" y1="412" x2="906" y2="412" stroke="#b07fe8" stroke-width="3"/>
+<polygon points="906,412 892,405 892,419" fill="#b07fe8"/>
+<text x="840" y="477" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="19" font-weight="400" fill="#b07fe8" text-anchor="middle">relays all cloud calls</text>
+<rect x="1760" y="290" width="710" height="400" rx="22" fill="#0a101c" stroke="#34d399" stroke-width="2"/>
+<text x="1790" y="332" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#34d399" text-anchor="start" letter-spacing="4">GUARDIAN SAFETY</text>
+<rect x="1790" y="366" width="310" height="92" rx="12" fill="#0f1727" stroke="#34d399" stroke-width="3"/>
+<text x="1812" y="401" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Phone Provisioning</text>
+<text x="1812" y="435" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">setup-asterisk.py</text>
+<rect x="2130" y="366" width="310" height="92" rx="12" fill="#0f1727" stroke="#34d399" stroke-width="3"/>
+<text x="2152" y="401" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Asterisk PBX</text>
+<text x="2152" y="435" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">plain code — no model</text>
+<rect x="1790" y="486" width="310" height="92" rx="12" fill="#0f1727" stroke="#34d399" stroke-width="3"/>
+<text x="1812" y="521" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Phone Guardian</text>
+<text x="1812" y="555" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">guardian-ear.py — the Ear</text>
+<rect x="2130" y="486" width="310" height="92" rx="12" fill="#0f1727" stroke="#34d399" stroke-width="3"/>
+<text x="2152" y="521" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">PC Companion</text>
+<text x="2152" y="553" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="19" font-weight="400" fill="#93a4bb" text-anchor="start">agent.ps1 — one file on the PC</text>
+<text x="1790" y="624" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">Line details are entered on the box's own screen;</text>
+<text x="1790" y="654" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">the PBX is generated on the box. Fails open, always.</text>
+<rect x="90" y="720" width="710" height="440" rx="22" fill="#0a101c" stroke="#35b6f2" stroke-width="2"/>
+<text x="120" y="762" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#35b6f2" text-anchor="start" letter-spacing="4">VOICE INTERACTION</text>
+<rect x="120" y="782" width="650" height="92" rx="12" fill="#0f1727" stroke="#35b6f2" stroke-width="3"/>
+<text x="142" y="817" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Voice Listener</text>
+<text x="142" y="851" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">listener.py — the resident speaks; audio goes to the cloud</text>
+<rect x="120" y="890" width="310" height="92" rx="12" fill="#0f1727" stroke="#35b6f2" stroke-width="3"/>
+<text x="142" y="922" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#f2f6fc" text-anchor="start">Local Command Router</text>
+<text x="142" y="959" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">router.py — phrase spotting</text>
+<rect x="460" y="890" width="310" height="92" rx="12" fill="#0f1727" stroke="#35b6f2" stroke-width="3"/>
+<text x="482" y="925" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Board-State Answers</text>
+<text x="482" y="956" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="18" font-weight="400" fill="#93a4bb" text-anchor="start">spark.py — Muse Spark answers</text>
+<rect x="120" y="998" width="310" height="92" rx="12" fill="#0f1727" stroke="#35b6f2" stroke-width="3"/>
+<text x="142" y="1033" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Speech Output</text>
+<text x="142" y="1067" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">speak.py — posts speech</text>
+<rect x="460" y="998" width="310" height="92" rx="12" fill="#0f1727" stroke="#35b6f2" stroke-width="3"/>
+<text x="482" y="1033" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Voice-Board Bridge</text>
+<text x="482" y="1067" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">uipost.py — status + avatar</text>
+<rect x="120" y="1106" width="650" height="44" rx="12" fill="#0f1727" stroke="#35b6f2" stroke-width="3"/>
+<text x="142" y="1130" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="20" font-weight="700" fill="#f2f6fc" text-anchor="start">Voice-Board Driver  [ui.py] — opens the views the router picks</text>
+<rect x="880" y="720" width="800" height="440" rx="22" fill="#0a101c" stroke="#2fe6c8" stroke-width="2"/>
+<text x="910" y="762" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#2fe6c8" text-anchor="start" letter-spacing="4">ON THE BOX — LOCAL MODELS</text>
+<rect x="910" y="792" width="740" height="92" rx="12" fill="#0f1727" stroke="#2fe6c8" stroke-width="3"/>
+<text x="932" y="827" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Muse Glimmer</text>
+<text x="932" y="861" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">vision judge — open weights, served by Ollama</text>
+<rect x="910" y="904" width="740" height="92" rx="12" fill="#0f1727" stroke="#2fe6c8" stroke-width="3"/>
+<text x="932" y="939" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Llama 3.2 3B</text>
+<text x="932" y="973" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">text judge fallback — open weights, on the box</text>
+<text x="910" y="1048" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">Open weights running in the app itself.</text>
+<text x="910" y="1078" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">The first look at a screen and the reflexes</text>
+<text x="910" y="1108" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">never leave the room.</text>
+<line x1="1650" y1="838" x2="1786" y2="838" stroke="#2fe6c8" stroke-width="3"/>
+<polygon points="1786,838 1772,831 1772,845" fill="#2fe6c8"/>
+<line x1="1650" y1="950" x2="1786" y2="950" stroke="#2fe6c8" stroke-width="3"/>
+<polygon points="1786,950 1772,943 1772,957" fill="#2fe6c8"/>
+<rect x="1760" y="720" width="710" height="440" rx="22" fill="#0a101c" stroke="#f5b93f" stroke-width="2"/>
+<text x="1790" y="762" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#f5b93f" text-anchor="start" letter-spacing="4">COMPUTER CONTROL</text>
+<rect x="1790" y="782" width="650" height="92" rx="12" fill="#0f1727" stroke="#f5b93f" stroke-width="3"/>
+<text x="1812" y="817" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">PC Control Backend</text>
+<text x="1812" y="851" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">server.js — sessions, banners, guide mode</text>
+<rect x="1790" y="890" width="310" height="92" rx="12" fill="#0f1727" stroke="#f5b93f" stroke-width="3"/>
+<text x="1812" y="925" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">HID Emitter</text>
+<text x="1812" y="959" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">emitter.py</text>
+<rect x="2130" y="890" width="310" height="92" rx="12" fill="#0f1727" stroke="#f5b93f" stroke-width="3"/>
+<text x="2152" y="925" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">HID Report Core</text>
+<text x="2152" y="959" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">hid.py</text>
+<rect x="1790" y="998" width="650" height="44" rx="12" fill="#0f1727" stroke="#f5b93f" stroke-width="3"/>
+<text x="1812" y="1024" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="23" font-weight="700" fill="#f2f6fc" text-anchor="start">ESP32 HID Transport  —  cosmo-hid firmware</text>
+<text x="1790" y="1090" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">Clicks are aimed at named controls, never pixels.</text>
+<text x="1790" y="1120" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="22" font-weight="400" fill="#93a4bb" text-anchor="start">A screenshot is taken only to judge, never to aim.</text>
+<line x1="2440" y1="532" x2="2505" y2="532" stroke="#34d399" stroke-width="3"/>
+<line x1="2505" y1="532" x2="2505" y2="840" stroke="#34d399" stroke-width="3"/>
+<line x1="2505" y1="840" x2="2444" y2="840" stroke="#34d399" stroke-width="3"/>
+<polygon points="2444,840 2458,833 2458,847" fill="#34d399"/>
+<text x="2528" y="686" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="19" font-weight="400" fill="#34d399" text-anchor="middle" transform="rotate(-90 2528 686)">reports PC text</text>
+<line x1="1945" y1="578" x2="1945" y2="672" stroke="#34d399" stroke-width="3"/>
+<line x1="1945" y1="672" x2="1725" y2="672" stroke="#34d399" stroke-width="3"/>
+<line x1="1725" y1="672" x2="1725" y2="1180" stroke="#34d399" stroke-width="3"/>
+<line x1="1725" y1="1180" x2="1725" y2="1186" stroke="#34d399" stroke-width="3"/>
+<polygon points="1725,1186 1718,1172 1732,1172" fill="#34d399"/>
+<text x="1702" y="855" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="19" font-weight="400" fill="#34d399" text-anchor="middle" transform="rotate(-90 1702 855)">reports call alerts</text>
+<line x1="1790" y1="936" x2="1705" y2="936" stroke="#f5b93f" stroke-width="3"/>
+<line x1="1705" y1="936" x2="1705" y2="1180" stroke="#f5b93f" stroke-width="3"/>
+<line x1="1705" y1="1180" x2="1705" y2="1186" stroke="#f5b93f" stroke-width="3"/>
+<polygon points="1705,1186 1698,1172 1712,1172" fill="#f5b93f"/>
+<text x="1682" y="1095" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="19" font-weight="400" fill="#f5b93f" text-anchor="middle" transform="rotate(-90 1682 1095)">polls commands</text>
+<line x1="445" y1="1150" x2="445" y2="1186" stroke="#35b6f2" stroke-width="3"/>
+<polygon points="445,1186 438,1172 452,1172" fill="#35b6f2"/>
+<text x="428" y="1173" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="19" font-weight="400" fill="#35b6f2" text-anchor="end">opens board views</text>
+<rect x="90" y="1190" width="2380" height="280" rx="22" fill="#0a101c" stroke="#6b7d94" stroke-width="2"/>
+<text x="120" y="1232" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="27" font-weight="700" fill="#6b7d94" text-anchor="start" letter-spacing="4">HOUSEHOLD BOARD</text>
+<rect x="120" y="1252" width="545" height="92" rx="12" fill="#0f1727" stroke="#f5b93f" stroke-width="3"/>
+<text x="142" y="1287" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Weather Feeder</text>
+<text x="142" y="1321" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">weather-feeder.py</text>
+<line x1="392" y1="1344" x2="392" y2="1374" stroke="#6b7d94" stroke-width="3"/>
+<polygon points="392,1374 385,1360 399,1360" fill="#6b7d94"/>
+<text x="376" y="1366" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="18" font-weight="400" fill="#93a4bb" text-anchor="end">feeds weather data</text>
+<rect x="695" y="1252" width="545" height="92" rx="12" fill="#0f1727" stroke="#f5b93f" stroke-width="3"/>
+<text x="717" y="1287" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Kiosk Interface</text>
+<text x="717" y="1321" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">app.js</text>
+<line x1="967" y1="1344" x2="967" y2="1374" stroke="#6b7d94" stroke-width="3"/>
+<polygon points="967,1374 960,1360 974,1360" fill="#6b7d94"/>
+<text x="951" y="1366" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="18" font-weight="400" fill="#93a4bb" text-anchor="end">requests board actions</text>
+<rect x="1270" y="1252" width="545" height="92" rx="12" fill="#0f1727" stroke="#f5b93f" stroke-width="3"/>
+<text x="1292" y="1287" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Touch Actions</text>
+<text x="1292" y="1321" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">touch-actions.py</text>
+<line x1="1542" y1="1344" x2="1542" y2="1374" stroke="#6b7d94" stroke-width="3"/>
+<polygon points="1542,1374 1535,1360 1549,1360" fill="#6b7d94"/>
+<text x="1526" y="1366" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="18" font-weight="400" fill="#93a4bb" text-anchor="end">feeds board actions</text>
+<rect x="1845" y="1252" width="545" height="92" rx="12" fill="#0f1727" stroke="#f5b93f" stroke-width="3"/>
+<text x="1867" y="1287" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="start">Network Feeder</text>
+<text x="1867" y="1321" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="start">network-feeder.py</text>
+<line x1="2117" y1="1344" x2="2117" y2="1374" stroke="#6b7d94" stroke-width="3"/>
+<polygon points="2117,1374 2110,1360 2124,1360" fill="#6b7d94"/>
+<text x="2101" y="1366" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="18" font-weight="400" fill="#93a4bb" text-anchor="end">feeds network data</text>
+<rect x="780" y="1378" width="1000" height="80" rx="12" fill="#0f1727" stroke="#f5b93f" stroke-width="3"/>
+<text x="1280" y="1415" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#f2f6fc" text-anchor="middle">Board Server</text>
+<text x="1280" y="1445" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="21" font-weight="400" fill="#93a4bb" text-anchor="middle">server.js — the hub every surface feeds</text>
+<text x="934.1796875" y="1533" font-family="'Liberation Sans','Segoe UI',Arial,sans-serif" font-size="26" font-weight="700" fill="#6b7d94" text-anchor="start" letter-spacing="6">FUSE BOX, POWERED BY MUSE SPARK</text>
+</svg>

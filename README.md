@@ -15,6 +15,8 @@ It connects apps and devices through simple pairings called Switches. Built-in G
 
 ![Fuse Box Guardian — the phone Guardian](architecture-4.svg)
 
+![Fuse Box Guardian — the code map](architecture-5.svg)
+
 WATCH THE VIDEO:
 <p/>
   
