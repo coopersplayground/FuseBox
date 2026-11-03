@@ -116,6 +116,8 @@ def main():
             "package": pkg,
             "version": vname,
             "description": (loc(meta.get("summary")) or "").strip()[:180],
+            "fulldesc": (loc(meta.get("description")) or "").strip()[:1500],
+            "license": (meta.get("license") or "").strip() if isinstance(meta.get("license"), str) else "",
             "icon": icon,
             "apk": REPO + apk_name.lstrip("/"),
             "cats": cats,

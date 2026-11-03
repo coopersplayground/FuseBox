@@ -48,14 +48,14 @@ function renderCards(cards) {
   $('queueCount').textContent = queue.length;
   $('queue').innerHTML = queue.length
     ? queue.map((c, i) =>
-        '<div class="qcard' + (c.id === lastFocusId ? ' focused' : '') + '"><div class="qnum">' + (i + 1) + '</div><div class="qbody"><h3>' +
+        '<div class="qcard' + (c.id === lastFocusId ? ' focused' : '') + '" data-cid="' + c.id + '"><div class="qnum">' + (i + 1) + '</div><div class="qbody"><h3>' +
         esc(c.title) + '</h3><p>' + esc(c.body) + '</p><div class="meta">' + esc(c.meta) +
         ' · ' + ago(c.time) + '</div></div></div>').join('')
     : '<div class="qempty">All clear — nothing waiting on you.</div>';
   $('stream').innerHTML = rest.slice(0, 14).map((c) => {
-    const resolved = c.status === 'sent' || c.status === 'skipped' || c.status === 'held';
+    const resolved = c.status === 'sent' || c.status === 'skipped' || c.status === 'held' || c.status === 'expired';
     const tag = resolved ? '<span class="rtag ' + c.status + '">' + c.status.toUpperCase() + '</span>' : '';
-    return '<div class="scard' + (resolved ? ' resolved' : '') + '"><div class="sicon">' +
+    return '<div class="scard' + (resolved ? ' resolved' : '') + '" data-cid="' + c.id + '"><div class="sicon">' +
       (ICONS[c.kind] || '•') + '</div><div><h3>' + esc(c.title) + tag + '</h3><p>' + esc(c.body) +
       (c.image ? '<img class="scard-img" src="' + esc(c.image) + '">' : '') +
       '</p><div class="meta">' + esc(c.meta) + ' · ' + ago(c.time) + '</div></div></div>';
@@ -63,6 +63,120 @@ function renderCards(cards) {
 }
 
 
+
+function renderQueueView(snap) {
+  const ov = $('queueOverlay');
+  if (!ov) return;
+  const view = snap.queueView || { visible: false };
+  ov.classList.toggle('hidden', !view.visible);
+}
+
+const spokenIds = new Set();
+let saySpeaking = false;
+let lastSayStopAt = 0;
+function renderSpeech(snap) {
+  if (!('speechSynthesis' in window)) return;
+  if (snap.sayStopAt && snap.sayStopAt !== lastSayStopAt) {
+    lastSayStopAt = snap.sayStopAt;
+    try { speechSynthesis.cancel(); } catch (e) {}
+    spokenIds.clear();
+    saySpeaking = false;
+  }
+  if (saySpeaking) return;
+  const q = (snap.sayQueue || []).filter((it) => !spokenIds.has(it.id));
+  if (!q.length) return;
+  const item = q[0];
+  spokenIds.add(item.id);
+  saySpeaking = true;
+  const u = new SpeechSynthesisUtterance(item.text);
+  u.rate = 1.02;
+  u.onend = u.onerror = () => { saySpeaking = false; post('/api/tts-done', { id: item.id }); };
+  try { speechSynthesis.speak(u); } catch (e) { saySpeaking = false; post('/api/tts-done', { id: item.id }); }
+}
+let queueSwipeAt = 0;
+function addSwipe(container, selector, onDelete) {
+  if (!container) return;
+  let sw = null;
+  container.addEventListener('pointerdown', (e) => {
+    const el = e.target.closest(selector);
+    if (!el) return;
+    sw = { el, x: e.clientX, y: e.clientY, dx: 0, active: false, pid: e.pointerId };
+  });
+  container.addEventListener('pointermove', (e) => {
+    if (!sw || e.pointerId !== sw.pid) return;
+    sw.dx = e.clientX - sw.x;
+    const dy = e.clientY - sw.y;
+    if (!sw.active && sw.dx > 14 && Math.abs(sw.dx) > Math.abs(dy)) { sw.active = true; sw.el.classList.add('swiping'); }
+    if (sw.active) {
+      e.preventDefault();
+      sw.el.style.transform = 'translateX(' + Math.max(0, sw.dx) + 'px)';
+      sw.el.style.opacity = String(Math.max(0.2, 1 - sw.dx / 420));
+    }
+  });
+  const end = (e) => {
+    if (!sw || (e && e.pointerId !== sw.pid)) return;
+    const s = sw; sw = null;
+    s.el.classList.remove('swiping');
+    if (s.active && s.dx > 120) {
+      queueSwipeAt = Date.now();
+      s.el.style.transform = 'translateX(110%)';
+      s.el.style.opacity = '0';
+      onDelete(s.el);
+    } else { s.el.style.transform = ''; s.el.style.opacity = ''; }
+  };
+  container.addEventListener('pointerup', end);
+  container.addEventListener('pointercancel', end);
+}
+addSwipe($('queue'), '.qcard', (el) => post('/api/card-delete', { id: Number(el.dataset.cid) }));
+addSwipe($('stream'), '.scard', (el) => post('/api/card-delete', { id: Number(el.dataset.cid) }));
+addSwipe($('textsList'), '.trow', (el) => post('/api/texts-delete', { tid: el.dataset.tid }));
+let lastTodosSig = '';
+let lastListMode = 'todo';
+function renderTodos(snap) {
+  const list = $('todoList');
+  if (!list) return;
+  lastListMode = snap.listMode === 'shopping' ? 'shopping' : 'todo';
+  const title = $('listTitle');
+  if (title) title.textContent = lastListMode === 'shopping' ? 'SHOPPING LIST' : 'TO DO';
+  const inp = $('todoInput');
+  if (inp) inp.placeholder = lastListMode === 'shopping' ? 'Add an item...' : 'Add a to-do...';
+  const items = (lastListMode === 'shopping' ? snap.shopping : snap.todos) || [];
+  const sig = lastListMode + '|' + JSON.stringify(items);
+  if (sig === lastTodosSig) return;
+  lastTodosSig = sig;
+  list.innerHTML = items.length
+    ? items.map((t) => '<div class="todo-row' + (t.done ? ' done' : '') + '" data-todo="' + t.id + '"><span class="todo-box">' + (t.done ? '&#10003;' : '') + '</span><span class="todo-text">' + esc(t.text) + '</span><button class="todo-x" data-todo-remove="' + t.id + '" aria-label="Remove">&#10005;</button></div>').join('')
+    : '<div class="qempty">Nothing on your list.</div>';
+}
+// Tap-and-hold on the list panel opens its settings (which list it shows).
+let listLpTimer = null, listLpFired = 0, listModePop = null, listLpX = 0, listLpY = 0;
+function closeListModePop() { if (listModePop) { listModePop.remove(); listModePop = null; } }
+function showListModePop() {
+  closeListModePop();
+  const head = document.querySelector('.queue-col .queue-head');
+  if (!head) return;
+  const r = head.getBoundingClientRect();
+  listModePop = document.createElement('div');
+  listModePop.id = 'listModePop';
+  listModePop.innerHTML = '<div class="lmp-title">THIS LIST IS</div>' +
+    '<button class="lmp-btn' + (lastListMode === 'todo' ? ' on' : '') + '" data-listmode="todo">To Do</button>' +
+    '<button class="lmp-btn' + (lastListMode === 'shopping' ? ' on' : '') + '" data-listmode="shopping">Shopping List</button>' +
+    '<button class="lmp-btn" data-listprint="1">&#128424;&#65039; Print this list</button>';
+  listModePop.style.left = Math.round(r.left) + 'px';
+  listModePop.style.top = Math.round(r.bottom + 8) + 'px';
+  document.body.appendChild(listModePop);
+}
+document.addEventListener('pointerdown', (ev) => {
+  if (listModePop && !(ev.target.closest && ev.target.closest('#listModePop'))) closeListModePop();
+  const col = ev.target.closest && ev.target.closest('.queue-col');
+  if (!col || (ev.target.closest && (ev.target.closest('#todoInput') || ev.target.closest('#todoAddBtn')))) return;
+  listLpX = ev.clientX; listLpY = ev.clientY;
+  if (listLpTimer) clearTimeout(listLpTimer);
+  listLpTimer = setTimeout(() => { listLpTimer = null; listLpFired = Date.now(); showListModePop(); }, 600);
+}, true);
+document.addEventListener('pointermove', (ev) => { if (listLpTimer && (Math.abs(ev.clientX - listLpX) > 12 || Math.abs(ev.clientY - listLpY) > 12)) { clearTimeout(listLpTimer); listLpTimer = null; } }, true);
+document.addEventListener('pointerup', () => { if (listLpTimer) { clearTimeout(listLpTimer); listLpTimer = null; } }, true);
+document.addEventListener('pointercancel', () => { if (listLpTimer) { clearTimeout(listLpTimer); listLpTimer = null; } }, true);
 
 let lastFbSig = '';
 function renderFacebook(snap) {
@@ -130,6 +244,68 @@ function renderFacebook(snap) {
 }
 
 let lastMgSig = '';
+// ---- In-thread reply box (Messenger + Texts) ----
+// Replies are composed and sent right on the board: typing, or the mic
+// button (the box records and transcribes). Messenger sends go out via
+// the messages feeder; SMS sends are handed to Cosmo, since texts can
+// only leave from the owner's phone.
+const replyDrafts = { messenger: '', sms: '' };
+const recState = { messenger: false, sms: false };
+async function postJson(path, body) {
+  const r = await post(path, body);
+  if (!r) return null;
+  return r.json().catch(() => null);
+}
+function replyRowHtml(source) {
+  const pre = source === 'messenger' ? 'mg' : 'sms';
+  return '<div class="mg-reply"><input class="mg-reply-in" id="' + pre + 'ReplyIn" type="text" placeholder="Type a reply..." autocomplete="off" value="' + esc(replyDrafts[source] || '') + '">'
+    + '<button class="mg-mic" id="' + pre + 'MicBtn" title="Dictate a reply">\u{1F3A4}</button>'
+    + '<button class="mg-send" id="' + pre + 'SendBtn">SEND</button></div>';
+}
+function wireReply(source, threadId) {
+  const pre = source === 'messenger' ? 'mg' : 'sms';
+  const inp = $(pre + 'ReplyIn');
+  if (!inp) return;
+  inp.addEventListener('input', () => { replyDrafts[source] = inp.value; });
+  inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); sendReply(source, threadId); } });
+  const send = $(pre + 'SendBtn');
+  if (send) send.addEventListener('click', () => sendReply(source, threadId));
+  const mic = $(pre + 'MicBtn');
+  if (mic) mic.addEventListener('click', () => dictateToggle(source, mic, inp));
+  const main = inp.closest('.fb-main');
+  if (main) requestAnimationFrame(() => { main.scrollTop = main.scrollHeight; });
+}
+async function sendReply(source, threadId) {
+  const pre = source === 'messenger' ? 'mg' : 'sms';
+  const inp = $(pre + 'ReplyIn');
+  const text = ((inp ? inp.value : '') || replyDrafts[source] || '').trim();
+  if (!text) return;
+  replyDrafts[source] = '';
+  if (inp) inp.value = '';
+  await post('/api/msg/send', { source, id: threadId, text });
+}
+async function dictateToggle(source, btn, inp) {
+  if (!recState[source]) {
+    recState[source] = true;
+    btn.classList.add('rec');
+    btn.textContent = '\u{25CF}';
+    const d = await postJson('/api/stt/capture', { start: true });
+    if (!d || !d.ok) { recState[source] = false; btn.classList.remove('rec'); btn.textContent = '\u{1F3A4}'; }
+    return;
+  }
+  recState[source] = false;
+  btn.classList.remove('rec');
+  btn.textContent = '...';
+  const d = await postJson('/api/stt/capture', { stop: true });
+  btn.textContent = '\u{1F3A4}';
+  if (d && d.ok && d.text) {
+    const cur = inp.value.trim();
+    inp.value = cur ? cur + ' ' + d.text : d.text;
+    replyDrafts[source] = inp.value;
+    inp.focus();
+  }
+}
+
 function renderMessenger(snap) {
   const ov = $('messengerOverlay');
   if (!ov) return;
@@ -138,7 +314,7 @@ function renderMessenger(snap) {
   if (!view.visible) return;
   const mg = snap.messenger || { threads: [] };
   const th = snap.messengerThread || null;
-  const sig = JSON.stringify([mg.updatedAt, view.draft, th ? th.id : null, (mg.threads || []).length]);
+  const sig = JSON.stringify([mg.updatedAt, view.draft, th ? th.id : null, th ? (th.messages || []).length : 0, (mg.threads || []).length]);
   if (sig === lastMgSig) return;
   lastMgSig = sig;
   const dr = $('mgDraft');
@@ -153,14 +329,15 @@ function renderMessenger(snap) {
     det.classList.remove('hidden');
     det.innerHTML = '<button class="fb-back" id="mgBack">&larr; ALL CONVERSATIONS</button>' +
       '<div class="fb-gname">' + esc(th.name || '') + '</div>' +
-      ((th.messages || []).length ? th.messages.map((m) => '<div class="mg-msg' + (m.mine ? ' mine' : '') + '"><span class="fb-cauthor">' + esc(m.mine ? 'You' : (m.sender || th.name || '')) + '</span> <span class="fb-ctext">' + esc(m.text || '') + '</span><div class="fb-ctime">' + (m.time ? ago(m.time) : '') + '</div></div>').join('') : '<div class="qempty">No messages loaded.</div>');
+      ((th.messages || []).length ? th.messages.map((m) => '<div class="mg-msg' + (m.mine ? ' mine' : '') + '"><span class="fb-cauthor">' + esc(m.mine ? 'You' : (m.sender || th.name || '')) + '</span> <span class="fb-ctext">' + esc(m.text || '') + '</span><div class="fb-ctime">' + (m.time ? ago(m.time) : '') + '</div></div>').join('') : '<div class="qempty">No messages loaded.</div>') + replyRowHtml('messenger');
     const back = $('mgBack');
     if (back) back.addEventListener('click', () => post('/api/messenger/thread', { clear: true }));
+    wireReply('messenger', th.id);
   } else {
     det.classList.add('hidden'); det.innerHTML = '';
     wrap.classList.remove('hidden');
     $('mgList').innerHTML = (mg.threads || []).length ? mg.threads.map((t, i) =>
-      '<div class="fb-post' + (t.unread ? ' unread' : '') + '" data-mgn="' + (i + 1) + '"><div class="fb-phead"><span class="fb-num">' + (i + 1) + '</span><span class="fb-author">' + esc(t.name || '') + '</span>' + (t.unread ? '<span class="mg-unread">NEW</span>' : '') + '<span class="fb-time">' + (t.time ? ago(t.time) : '') + '</span></div><p>' + esc(t.snippet || '') + '</p></div>').join('')
+      '<div class="fb-post' + (t.unread ? ' unread' : '') + '" data-mgn="' + (i + 1) + '" data-mid="' + esc(t.id || '') + '"><div class="fb-phead"><span class="fb-num">' + (i + 1) + '</span><span class="fb-author">' + esc(t.name || '') + '</span>' + (t.unread ? '<span class="mg-unread">NEW</span>' : '') + '<span class="fb-time">' + (t.time ? ago(t.time) : '') + '</span></div><p>' + esc(t.snippet || '') + '</p></div>').join('')
       : '<div class="qempty">No conversations loaded yet.</div>';
   }
 }
@@ -174,7 +351,7 @@ function renderSms(snap) {
   if (!view.visible) return;
   const sm = snap.sms || { threads: [] };
   const th = snap.smsThread || null;
-  const sig = JSON.stringify([sm.updatedAt, view.draft, th ? th.id : null, (sm.threads || []).length]);
+  const sig = JSON.stringify([sm.updatedAt, view.draft, th ? th.id : null, th ? (th.messages || []).length : 0, (sm.threads || []).length]);
   if (sig === lastSmsSig) return;
   lastSmsSig = sig;
   const dr = $('smsDraft');
@@ -189,14 +366,15 @@ function renderSms(snap) {
     det.classList.remove('hidden');
     det.innerHTML = '<button class="fb-back" id="smsBack">&larr; ALL CONVERSATIONS</button>' +
       '<div class="fb-gname">' + esc(th.name || '') + '</div>' +
-      ((th.messages || []).length ? th.messages.map((m) => '<div class="mg-msg' + (m.mine ? ' mine' : '') + '"><span class="fb-cauthor">' + esc(m.mine ? 'You' : (m.sender || th.name || '')) + '</span> <span class="fb-ctext">' + esc(m.text || '') + '</span><div class="fb-ctime">' + (m.time ? ago(m.time) : '') + '</div></div>').join('') : '<div class="qempty">No messages loaded.</div>');
+      ((th.messages || []).length ? th.messages.map((m) => '<div class="mg-msg' + (m.mine ? ' mine' : '') + '"><span class="fb-cauthor">' + esc(m.mine ? 'You' : (m.sender || th.name || '')) + '</span> <span class="fb-ctext">' + esc(m.text || '') + '</span><div class="fb-ctime">' + (m.time ? ago(m.time) : '') + '</div></div>').join('') : '<div class="qempty">No messages loaded.</div>') + replyRowHtml('sms');
     const back = $('smsBack');
     if (back) back.addEventListener('click', () => post('/api/sms/thread', { clear: true }));
+    wireReply('sms', th.id);
   } else {
     det.classList.add('hidden'); det.innerHTML = '';
     wrap.classList.remove('hidden');
     $('smsList').innerHTML = (sm.threads || []).length ? sm.threads.map((t, i) =>
-      '<div class="fb-post' + (t.unread ? ' unread' : '') + '" data-smsn="' + (i + 1) + '"><div class="fb-phead"><span class="fb-num">' + (i + 1) + '</span><span class="fb-author">' + esc(t.name || '') + '</span>' + (t.unread ? '<span class="mg-unread">NEW</span>' : '') + '<span class="fb-time">' + (t.time ? ago(t.time) : '') + '</span></div><p>' + esc(t.snippet || '') + '</p></div>').join('')
+      '<div class="fb-post' + (t.unread ? ' unread' : '') + '" data-smsn="' + (i + 1) + '" data-sid="' + esc(t.id || '') + '"><div class="fb-phead"><span class="fb-num">' + (i + 1) + '</span><span class="fb-author">' + esc(t.name || '') + '</span>' + (t.unread ? '<span class="mg-unread">NEW</span>' : '') + '<span class="fb-time">' + (t.time ? ago(t.time) : '') + '</span></div><p>' + esc(t.snippet || '') + '</p></div>').join('')
       : '<div class="qempty">No conversations loaded yet.</div>';
   }
 }
@@ -218,9 +396,9 @@ function renderApps(snap) {
   const ov = $('appsOverlay');
   const aov = $('appOverlay');
   if (ov) ov.classList.toggle('hidden', !(snap.appsView && snap.appsView.visible));
-  const app = snap.appView ? (lastApps.find((x) => x.id === snap.appView.id) || lastCatalog.find((x) => x.id === snap.appView.id)) : null;
+  const app = snap.appView ? (lastApps.find((x) => x.id === snap.appView.id) || lastCatalog.find((x) => x.id === snap.appView.id) || (snap.appView.kind === 'android' && (snap.androidApps || []).some((d) => d.package === snap.appView.package) ? snap.appView : null)) : null;
   if (aov) aov.classList.toggle('hidden', !app);
-  const sig = JSON.stringify([snap.appsView && snap.appsView.visible, snap.appView, lastApps.map((a) => a.id + ':' + (a.inDrawer ? 1 : 0)), lastCatalog.map((a) => a.id)]);
+  const sig = JSON.stringify([snap.appsView && snap.appsView.visible, snap.appView, lastApps.map((a) => a.id + ':' + (a.inDrawer ? 1 : 0)), lastCatalog.map((a) => a.id), (snap.androidApps || []).map((d) => d.package + ':' + (d.pinned ? 1 : 0))]);
   if (sig === lastAppsSig) return;
   lastAppsSig = sig;
   if (ov && snap.appsView && snap.appsView.visible) {
@@ -228,18 +406,28 @@ function renderApps(snap) {
     $('appsCatalog').innerHTML = lastCatalog.length ? lastCatalog.map((a) => appCardHtml(a, 'catalog')).join('') : '<div class="qempty">Everything available is already added.</div>';
   }
   if (aov && app) {
-    $('appPageBody').innerHTML =
-      '<button class="fb-back apps-back" id="appBackApps">&larr; ALL APPS</button>' +
-      '<div class="app-page-head"><div class="app-ico" style="background:' + esc(app.bg || '#33507e') + '">' + esc(app.icon || '') + '</div><div><div class="app-page-name">' + esc(app.name || '') + '</div><div class="app-status">' + (app.status === 'connected' ? 'CONNECTED' : esc(String(app.status || '').toUpperCase())) + '</div></div></div>' +
-      '<p class="app-page-desc">' + esc(app.desc || '') + '</p>' +
-      ((app.facts || []).length ? '<ul class="app-facts">' + app.facts.map((f) => '<li>' + esc(f) + '</li>').join('') + '</ul>' : '') +
-      '<div>' + (app.target ? '<button class="app-go" data-appgo="' + app.id + '">OPEN ' + esc(String(app.name || '').toUpperCase()) + '</button>' : '') +
-      (lastApps.some((x) => x.id === app.id) ? '<button class="app-pin2' + (app.inDrawer ? ' on' : '') + '" data-apppin="' + app.id + '">' + (app.inDrawer ? 'PINNED TO DRAWER - TAP TO UNPIN' : 'PIN TO DRAWER') + '</button>' : '<button class="app-go" data-appadd="' + app.id + '">ADD THIS APP</button>') + '</div>';
+    if (app.kind === 'android') {
+      const d = (snap.androidApps || []).find((x) => x.package === app.package) || {};
+      $('appPageBody').innerHTML =
+        '<button class="fb-back apps-back" id="appBackApps">&larr; BACK</button>' +
+        '<div class="app-page-head"><div class="app-ico">' + (app.icon ? '<img src="' + esc(app.icon) + '" alt="">' : '&#129302;') + '</div><div><div class="app-page-name">' + esc(app.name || '') + '</div><div class="app-status">ANDROID APP' + (app.version ? ' &middot; V' + esc(String(app.version).toUpperCase()) : '') + '</div></div></div>' +
+        '<p class="app-page-desc">' + esc(app.fulldesc || app.desc || '') + '</p>' +
+        '<div class="app-terms"><div class="app-terms-title">TERMS</div><p>' + (app.license ? 'Free and open-source software, under the ' + esc(app.license) + ' license. It comes from the F-Droid catalog, and its source code is published by its makers.' : 'Free and open-source software from the F-Droid catalog.') + '</p></div>' +
+        '<div><button class="app-uninstall" data-android-uninstall="' + esc(app.package) + '">UNINSTALL</button>' +
+        '<button class="app-pin2' + (d.pinned ? ' on' : '') + '" data-androidpin="' + esc(app.package) + '">' + (d.pinned ? 'PINNED TO DRAWER - TAP TO UNPIN' : 'PIN TO DRAWER') + '</button></div>';
+    } else {
+      $('appPageBody').innerHTML =
+        '<button class="fb-back apps-back" id="appBackApps">&larr; BACK</button>' +
+        '<div class="app-page-head"><div class="app-ico" style="background:' + esc(app.bg || '#33507e') + '">' + esc(app.icon || '') + '</div><div><div class="app-page-name">' + esc(app.name || '') + '</div><div class="app-status">' + (app.status === 'connected' ? 'CONNECTED' : esc(String(app.status || '').toUpperCase())) + '</div></div></div>' +
+        '<p class="app-page-desc">' + esc(app.desc || '') + '</p>' +
+        ((app.facts || []).length ? '<ul class="app-facts">' + app.facts.map((f) => '<li>' + esc(f) + '</li>').join('') + '</ul>' : '') +
+        '<div>' + (app.target ? '<button class="app-go" data-appgo="' + app.id + '">OPEN ' + esc(String(app.name || '').toUpperCase()) + '</button>' : '') +
+        (lastApps.some((x) => x.id === app.id) ? '<button class="app-pin2' + (app.inDrawer ? ' on' : '') + '" data-apppin="' + app.id + '">' + (app.inDrawer ? 'PINNED TO DRAWER - TAP TO UNPIN' : 'PIN TO DRAWER') + '</button>' : '<button class="app-go" data-appadd="' + app.id + '">ADD THIS APP</button>') + '</div>';
+    }
   }
 }
 let lastDrawerSig = '';
 const DRAWER_TILES = [
-  { nav: 'apps', name: 'Apps' },
   { nav: 'browser', name: 'Browser' },
   { nav: 'facebook', name: 'Facebook' },
   { nav: 'messenger', name: 'Messenger' },
@@ -249,10 +437,7 @@ const DRAWER_TILES = [
   { nav: 'mail', name: 'Email' },
   { nav: 'music', name: 'Music' },
   { nav: 'cameras', name: 'Cameras' },
-  { nav: 'home', name: 'Home' },
-  { nav: 'help', name: 'What I can do' },
-  { nav: 'settings', name: 'Settings' },
-  { nav: 'navstyle', name: 'Use button bar' }
+  { nav: 'home', name: 'Home' }
 ];
 // App-catalog entries that duplicate a drawer destination stay on the
 // Apps page only; the rest (and anything built later) get drawer tiles.
@@ -269,19 +454,43 @@ function drawerIconHtml(t) {
   if (DRAWER_SVGS[t.nav]) return DRAWER_SVGS[t.nav];
   return esc(NAV_ICONS[t.nav] || '');
 }
+let drawerTab = 'all';
+const DRAWER_TABS_NAV = { facebook: 'social', messenger: 'social', texts: 'social', instagram: 'social', calendar: 'productivity', mail: 'productivity', browser: 'productivity' };
+const DRAWER_TABS_APP = { paper: 'productivity' };
+function androidDrawerTab(d) {
+  if (d.tab) return d.tab === 'all' ? '' : d.tab;
+  const cats = (d.cats || []).join(' ').toLowerCase();
+  if (cats.indexOf('game') >= 0) return 'games';
+  if (/(writing|reading|time|development|science|navigation|money)/.test(cats)) return 'productivity';
+  return '';
+}
+function syncDrawerTabs() { for (const b of document.querySelectorAll('#drawerTabs .dtab')) b.classList.toggle('on', b.dataset.dtab === drawerTab); }
 function renderDrawer(snap) {
   const g = $('drawerGrid');
   if (!g) return;
-  const apps = (snap.apps || []).filter((a) => !DRAWER_DUPES[a.id]);
-  const sig = apps.map((a) => a.id + ':' + (a.inDrawer ? 1 : 0)).join(',') + '|D' + (snap.androidApps || []).map((d) => d.package).join(',') + '|' + (document.body.classList.contains('dock-nav') ? 'dock' : 'bar');
+  syncDrawerTabs();
+  const allApps = snap.apps || [];
+  // The Connected apps tab is the home of the account apps that duplicate
+  // nav destinations (DRAWER_DUPES); every other tab uses the regular set.
+  // Guardian lives in Settings now, not in the drawer.
+  const apps = drawerTab === 'connected'
+    ? allApps.filter((a) => DRAWER_DUPES[a.id])
+    : allApps.filter((a) => !DRAWER_DUPES[a.id] && a.id !== 'guardian');
+  const sig = drawerTab + '|' + apps.map((a) => a.id + ':' + (a.inDrawer ? 1 : 0)).join(',') + '|D' + (snap.androidApps || []).map((d) => d.package + ':' + (d.pinned ? 1 : 0) + ':' + (d.tab || '')).join(',') + '|' + (document.body.classList.contains('dock-nav') ? 'dock' : 'bar');
   if (sig === lastDrawerSig) return;
   lastDrawerSig = sig;
+  const inTab = (bucket) => drawerTab === 'all' || bucket === drawerTab;
   let h = '';
-  for (const t of DRAWER_TILES) { const nm = t.nav === 'navstyle' ? (document.body.classList.contains('dock-nav') ? 'Use button bar' : 'Use icon dock') : t.name; h += '<button class="drawer-tile" data-drawer="' + t.nav + '"><span class="drawer-ico">' + drawerIconHtml(t) + '</span><span class="drawer-name">' + esc(nm) + '</span></button>'; }
+  if (drawerTab !== 'connected') {
+    for (const t of DRAWER_TILES) { if (!inTab(DRAWER_TABS_NAV[t.nav] || '')) continue; h += '<button class="drawer-tile" data-drawer="' + t.nav + '"><span class="drawer-ico">' + drawerIconHtml(t) + '</span><span class="drawer-name">' + esc(t.name) + '</span></button>'; }
+  }
   const ordered = [...apps.filter((a) => a.inDrawer), ...apps.filter((a) => !a.inDrawer)];
-  for (const a of ordered) h += '<button class="drawer-tile" data-appopen="' + a.id + '"><span class="drawer-ico">' + esc(a.icon || '') + '</span><span class="drawer-name">' + esc(a.name || '') + (a.inDrawer ? ' <span class="drawer-star">&#9733;</span>' : '') + '</span></button>';
-  for (const d of (snap.androidApps || [])) h += '<button class="drawer-tile" data-android="' + esc(d.package) + '"><span class="drawer-ico">' + (d.icon ? '<img src="' + esc(d.icon) + '" alt="">' : '&#129302;') + '</span><span class="drawer-name">' + esc(d.name) + '</span></button>';
-  g.innerHTML = h;
+  for (const a of ordered) { if (drawerTab !== 'all' && drawerTab !== 'connected' && (DRAWER_TABS_APP[a.target] || DRAWER_TABS_APP[a.id] || '') !== drawerTab) continue; h += '<button class="drawer-tile" data-appopen="' + a.id + '"><span class="drawer-ico">' + esc(a.icon || '') + '</span><span class="drawer-name">' + esc(a.name || '') + (a.inDrawer ? ' <span class="drawer-star">&#9733;</span>' : '') + '</span></button>'; }
+  if (drawerTab !== 'connected') {
+    const droid = [...(snap.androidApps || [])].sort((x, y) => (y.pinned ? 1 : 0) - (x.pinned ? 1 : 0));
+    for (const d of droid) { if (!inTab(androidDrawerTab(d))) continue; h += '<button class="drawer-tile" data-android="' + esc(d.package) + '"><span class="drawer-ico">' + (d.icon ? '<img src="' + esc(d.icon) + '" alt="">' : '&#129302;') + '</span><span class="drawer-name">' + esc(d.name) + (d.pinned ? ' <span class="drawer-star">&#9733;</span>' : '') + '</span></button>'; }
+  }
+  g.innerHTML = h || '<div class="qempty">Nothing here yet.</div>';
 }
 function openDrawerTarget(k) {
   if (k === 'navstyle') { post('/api/navstyle', { style: document.body.classList.contains('dock-nav') ? 'bar' : 'dock' }); return; }
@@ -301,6 +510,42 @@ function openDrawerTarget(k) {
   else if (k === 'settings') post('/api/settings', { show: true });
   else if (k === 'cameras' && lastCameras.length) post('/api/camera', { id: lastCameras[0].id });
 }
+
+// Long-press on a drawer tile pops up two small icons over the tile: a
+// gear for the app's options page, and a home to pin it to the dock
+// (front of the drawer). A plain tap keeps its meaning: open the app.
+let lpTimer = null, lpPop = null, lpFiredAt = 0, lpX = 0, lpY = 0;
+function lpClose() { if (lpPop) { lpPop.remove(); lpPop = null; } if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } }
+function lpShow(tile) {
+  lpClose();
+  const isDroid = tile.hasAttribute('data-android');
+  const pkg = isDroid ? tile.dataset.android : null;
+  const id = isDroid ? null : tile.dataset.appopen;
+  const d = isDroid && lastSnap ? (lastSnap.androidApps || []).find((x) => x.package === pkg) : null;
+  const a = !isDroid ? (lastApps || []).find((x) => x.id === id) : null;
+  const pinned = isDroid ? !!(d && d.pinned) : !!(a && a.inDrawer);
+  const r = tile.getBoundingClientRect();
+  lpPop = document.createElement('div');
+  lpPop.id = 'lpPop';
+  lpPop.innerHTML = '<button class="lp-btn" data-lp="gear" title="Options">&#9881;&#65038;</button><button class="lp-btn' + (pinned ? ' on' : '') + '" data-lp="home" title="Add to dock">&#127968;</button>';
+  document.body.appendChild(lpPop);
+  const pw = lpPop.offsetWidth, ph = lpPop.offsetHeight;
+  lpPop.style.left = Math.max(6, Math.min(window.innerWidth - pw - 6, r.left + r.width / 2 - pw / 2)) + 'px';
+  lpPop.style.top = Math.max(6, r.top - ph - 10) + 'px';
+  lpPop.querySelector('[data-lp="gear"]').addEventListener('click', (e) => { e.stopPropagation(); lpClose(); const o = $('drawerOverlay'); if (o) o.classList.add('hidden'); if (isDroid) post('/api/app', { android: pkg }); else post('/api/app', { id: id }); });
+  lpPop.querySelector('[data-lp="home"]').addEventListener('click', (e) => { e.stopPropagation(); lpClose(); if (isDroid) post('/api/apps/dock', { package: pkg }); else post('/api/apps/dock', { id: id, inDrawer: !pinned }); });
+}
+document.addEventListener('pointerdown', (ev) => {
+  if (lpPop && !(ev.target.closest && ev.target.closest('#lpPop'))) lpClose();
+  const tile = ev.target.closest && ev.target.closest('.drawer-tile[data-appopen], .drawer-tile[data-android]');
+  if (!tile) return;
+  lpX = ev.clientX; lpY = ev.clientY;
+  if (lpTimer) clearTimeout(lpTimer);
+  lpTimer = setTimeout(() => { lpFiredAt = Date.now(); lpShow(tile); }, 550);
+}, true);
+document.addEventListener('pointermove', (ev) => { if (lpTimer && (Math.abs(ev.clientX - lpX) > 12 || Math.abs(ev.clientY - lpY) > 12)) { clearTimeout(lpTimer); lpTimer = null; } }, true);
+document.addEventListener('pointerup', () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } }, true);
+document.addEventListener('pointercancel', () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } }, true);
 
 let lastSnap = null;
 let lastNetworkSig = '';
@@ -936,6 +1181,26 @@ function renderShop(snap) {
   if (body) body.innerHTML = h;
   if (wasSearch) { const inp = $('shopSearch'); if (inp) { inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) {} } }
 }
+// Installing from the shop asks which drawer tab the app should live in.
+const SHOP_TAB_CHOICES = [['all', 'All Apps'], ['social', 'Social'], ['productivity', 'Productivity'], ['games', 'Games']];
+function closeShopAsk() { const el = $('shopAsk'); if (el) el.remove(); }
+function shopAskTab(pkg) {
+  closeShopAsk();
+  const ov = $('shopOverlay');
+  if (!ov) { post('/api/shop/install', { package: pkg, tab: 'all' }); return; }
+  const el = document.createElement('div');
+  el.id = 'shopAsk';
+  el.innerHTML = '<div class="shop-ask-card"><div class="shop-ask-title">Which tab should this app go in?</div>' +
+    SHOP_TAB_CHOICES.map((t) => '<button class="shop-ask-btn" data-install-tab="' + t[0] + '" data-pkg="' + esc(pkg) + '">' + t[1] + '</button>').join('') +
+    '<button class="shop-ask-cancel" id="shopAskCancel">Cancel</button></div>';
+  ov.appendChild(el);
+}
+document.addEventListener('keydown', (ev) => {
+  if (ev.target && ev.target.id === 'todoInput' && ev.key === 'Enter') {
+    const v = ev.target.value.trim();
+    if (v) { post('/api/todos', { list: lastListMode, add: v }); ev.target.value = ''; }
+  }
+});
 let shopSearchTimer = null;
 document.addEventListener('input', (ev) => {
   if (ev.target && ev.target.id === 'shopSearch') {
@@ -944,20 +1209,48 @@ document.addEventListener('input', (ev) => {
     shopSearchTimer = setTimeout(() => { post('/api/shop/search', { q: v }); }, 350);
   }
 });
+// ---- Settings pages ----
+// Settings is a small menu (Guardian, help, display style, Wi-Fi,
+// Account PIN) - each entry is just a button. Wi-Fi and the PIN open
+// their own sub-pages here instead of filling the whole screen.
+let settingsPage = 'home'; // 'home' | 'wifi' | 'pin'
+let pinFlow = null;        // { mode, cur, fresh, entry, msg } while a PIN flow is running
+function refreshSettings() { lastSettingsSig = ''; if (lastSnap) renderSettings(lastSnap); }
 function renderSettings(snap) {
   const ov = $('settingsOverlay');
   if (!ov) return;
   const view = snap.settingsView || { visible: false };
   ov.classList.toggle('hidden', !view.visible);
   lastSettings = snap.settings || null;
-  if (!view.visible) { closeWifiPanel(); return; }
+  if (!view.visible) { closeWifiPanel(); settingsPage = 'home'; pinFlow = null; return; }
   const w = (snap.settings && snap.settings.wifi) || {};
   if (wifiBusy && w.updatedAt && w.updatedAt !== wifiBusy.since) wifiBusy = null;
-  const sig = JSON.stringify(w) + '|' + (wifiBusy ? wifiBusy.label : '');
+  const pinSet = !!(snap.settings && snap.settings.pinSet);
+  const sig = JSON.stringify(w) + '|' + (wifiBusy ? wifiBusy.label : '') + '|' + (snap.navStyle || '') + '|' + settingsPage + '|' + pinSet + '|' + (pinFlow ? pinFlow.mode + ':' + pinFlow.entry.length + ':' + pinFlow.msg : '');
   if (sig === lastSettingsSig) return;
   lastSettingsSig = sig;
   const box = $('settingsBody');
   const upd = w.updatedAt ? new Date(w.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'never';
+  const dock = snap.navStyle === 'dock';
+  let h = '';
+  if (settingsPage === 'wifi') {
+    h += '<button class="set-back" data-setpage="home">&larr; SETTINGS</button>' + wifiSectionHtml(w, upd);
+  } else if (settingsPage === 'pin') {
+    h += '<button class="set-back" data-setpage="home">&larr; SETTINGS</button>' + pinSectionHtml(pinSet);
+  } else {
+    const wifiSub = !w.radio ? 'Off' : (w.connected ? esc(w.connected.ssid) : 'Not connected');
+    h += '<div class="set-icons">' +
+      '<button class="set-icon" data-setnav="guardian"><span class="set-icon-ico">&#128737;&#65039;</span><span class="set-icon-name">Guardian</span></button>' +
+      '<button class="set-icon" data-setnav="help"><span class="set-icon-ico">&#128161;</span><span class="set-icon-name">What I can do</span></button>' +
+      '<button class="set-icon" data-setnav="navstyle"><span class="set-icon-ico">&#127915;&#65038;</span><span class="set-icon-name">' + (dock ? 'Use button bar' : 'Use icon dock') + '</span></button>' +
+      '<button class="set-icon" data-setpage="wifi"><span class="set-icon-ico">&#128246;</span><span class="set-icon-name">Wi-Fi</span><span class="set-icon-sub">' + wifiSub + '</span></button>' +
+      '<button class="set-icon" data-setpage="pin"><span class="set-icon-ico">&#128272;</span><span class="set-icon-name">Account PIN</span><span class="set-icon-sub">' + (pinSet ? 'PIN is set' : 'No PIN yet') + '</span></button>' +
+      '</div>';
+    if (w.lastError) h += '<div class="wifi-err">' + esc(w.lastError) + '</div>';
+  }
+  box.innerHTML = h;
+}
+function wifiSectionHtml(w, upd) {
   let h = '<div class="fb-sec">WI-FI</div>';
   if (!w.radio) {
     h += '<div class="net-chips"><span class="net-chip bad">WI-FI <b>OFF</b></span></div>';
@@ -982,7 +1275,79 @@ function renderSettings(snap) {
     }).join('');
     h += rows || '<div class="net-host">No networks found yet - tap SCAN FOR NETWORKS.</div>';
   }
-  box.innerHTML = h;
+  return h;
+}
+// ---- Account PIN page ----
+// The PIN is entered on this pad only - it lives in JS while typing,
+// goes to the box's PIN endpoint, and is never stored in board state.
+function pinSectionHtml(pinSet) {
+  let h = '<div class="fb-sec">ACCOUNT PIN</div>';
+  h += '<p class="pin-note">A PIN for locking parts of this screen. Set by touch only - it never leaves this box.</p>';
+  if (!pinFlow) {
+    if (pinSet) {
+      h += '<div class="net-chips"><span class="net-chip">PIN <b>SET</b></span></div>';
+      h += '<div class="network-actions"><button class="app-go" data-pinaction="begin-edit">CHANGE PIN</button><button class="app-pin2" data-pinaction="begin-delete">DELETE PIN</button></div>';
+    } else {
+      h += '<div class="net-chips"><span class="net-chip bad">PIN <b>NOT SET</b></span></div>';
+      h += '<div class="network-actions"><button class="app-go" data-pinaction="begin-set">SET A PIN</button></div>';
+    }
+    return h;
+  }
+  const prompts = { set: 'CHOOSE A PIN (4-6 NUMBERS)', set2: 'ENTER IT AGAIN', cur: 'ENTER YOUR CURRENT PIN', del: 'ENTER YOUR PIN TO DELETE IT', new: 'CHOOSE A NEW PIN (4-6 NUMBERS)', new2: 'ENTER THE NEW PIN AGAIN' };
+  h += '<div class="pin-prompt">' + (prompts[pinFlow.mode] || '') + '</div>';
+  h += '<div class="pin-dots">' + (pinFlow.entry ? '&#9679;'.repeat(pinFlow.entry.length) : '<span class="pin-dots-empty">- - - -</span>') + '</div>';
+  if (pinFlow.msg) h += '<div class="wifi-err">' + esc(pinFlow.msg) + '</div>';
+  h += '<div class="pin-pad">';
+  for (const d of ['1', '2', '3', '4', '5', '6', '7', '8', '9']) h += '<button class="pin-key" data-pinkey="' + d + '">' + d + '</button>';
+  h += '<button class="pin-key dim" data-pinkey="back">&#9003;</button><button class="pin-key" data-pinkey="0">0</button><button class="pin-key ok" data-pinkey="ok">&#10003;</button>';
+  h += '</div>';
+  h += '<div class="network-actions"><button class="app-pin2" data-pinaction="cancel">CANCEL</button></div>';
+  return h;
+}
+function pinAction(a) {
+  if (a === 'begin-set') pinFlow = { mode: 'set', cur: '', fresh: '', entry: '', msg: '' };
+  else if (a === 'begin-edit') pinFlow = { mode: 'cur', cur: '', fresh: '', entry: '', msg: '' };
+  else if (a === 'begin-delete') pinFlow = { mode: 'del', cur: '', fresh: '', entry: '', msg: '' };
+  else if (a === 'cancel') pinFlow = null;
+  refreshSettings();
+}
+function pinKey(k) {
+  if (!pinFlow) return;
+  if (k === 'back') pinFlow.entry = pinFlow.entry.slice(0, -1);
+  else if (k === 'ok') { pinSubmit(); return; }
+  else if (/^\d$/.test(k) && pinFlow.entry.length < 6) pinFlow.entry += k;
+  refreshSettings();
+}
+async function pinSubmit() {
+  const f = pinFlow;
+  if (!f) return;
+  const e = f.entry;
+  if (e.length < 4) { f.msg = 'PINs are 4 to 6 numbers.'; refreshSettings(); return; }
+  if (f.mode === 'set') { f.fresh = e; f.entry = ''; f.mode = 'set2'; f.msg = ''; }
+  else if (f.mode === 'set2') {
+    if (e !== f.fresh) { f.mode = 'set'; f.fresh = ''; f.entry = ''; f.msg = 'Those did not match - start over.'; }
+    else {
+      const d = await postJson('/api/settings/pin', { action: 'set', pin: e });
+      if (d && d.ok) { pinFlow = null; settingsPage = 'home'; }
+      else { f.mode = 'set'; f.fresh = ''; f.entry = ''; f.msg = (d && d.error) || 'Could not set the PIN.'; }
+    }
+  }
+  else if (f.mode === 'cur') { f.cur = e; f.entry = ''; f.mode = 'new'; f.msg = ''; }
+  else if (f.mode === 'new') { f.fresh = e; f.entry = ''; f.mode = 'new2'; f.msg = ''; }
+  else if (f.mode === 'new2') {
+    if (e !== f.fresh) { f.mode = 'new'; f.fresh = ''; f.entry = ''; f.msg = 'Those did not match - try the new PIN again.'; }
+    else {
+      const d = await postJson('/api/settings/pin', { action: 'edit', pin: f.cur, newPin: e });
+      if (d && d.ok) { pinFlow = null; settingsPage = 'home'; }
+      else { f.mode = 'cur'; f.cur = ''; f.fresh = ''; f.entry = ''; f.msg = (d && d.error) || 'Could not change the PIN.'; }
+    }
+  }
+  else if (f.mode === 'del') {
+    const d = await postJson('/api/settings/pin', { action: 'delete', pin: e });
+    if (d && d.ok) { pinFlow = null; settingsPage = 'home'; }
+    else { f.entry = ''; f.msg = (d && d.error) || 'Could not delete the PIN.'; }
+  }
+  refreshSettings();
 }
 function closeWifiPanel() {
   const had = !!wifiSel;
@@ -1151,10 +1516,26 @@ function parseD(s) { const p = String(s).split('-'); return new Date(+p[0], +p[1
 function addDays(d, n) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; }
 function fmtDay(d) { return DOW[d.getDay()] + ' ' + MONTHS[d.getMonth()].slice(0, 3) + ' ' + d.getDate(); }
 
+let calMonthOff = 0;
+let calWasVisible = false;
 function renderCalendar() {
   const cal = lastCalendar;
   const ov = $('calOverlay');
-  if (!cal || !cal.visible) { ov.classList.add('hidden'); document.body.classList.remove('calopen'); return; }
+  const locked = !!(lastSnap && lastSnap.calLock && lastSnap.calLock.locked);
+  if (!cal || (!cal.visible && !locked)) { ov.classList.add('hidden'); document.body.classList.remove('calopen'); calWasVisible = false; ov.classList.remove('cal-locked'); return; }
+  ov.classList.toggle('cal-locked', locked);
+  const lb = $('calLockBtn');
+  if (lb) { lb.classList.toggle('hidden', locked); lb.innerHTML = '&#128274;'; }
+  const xb = $('calExitBtn');
+  if (xb) xb.classList.toggle('hidden', !locked);
+  const wb = $('calWxBtn');
+  if (wb) wb.classList.toggle('hidden', !locked);
+  renderWxCard();
+  const sb = $('calShopBtn');
+  if (sb) sb.classList.toggle('hidden', !locked);
+  renderCalPin();
+  renderCalPop();
+  if (!calWasVisible) { calMonthOff = 0; calWasVisible = true; }
   const view = cal.view || 'days30';
   const byDate = {};
   (cal.events || []).forEach((e) => { (byDate[e.date] = byDate[e.date] || []).push(e); });
@@ -1170,13 +1551,13 @@ function renderCalendar() {
   const cell = (d, opts) => {
     const ds = dstr(d); const evs = byDate[ds] || [];
     const max = opts.max;
-    let h = '<div class="cal-cell' + (ds === todayS ? ' today' : '') + (ds === dstr(sel) && view === 'day' ? ' sel' : '') + (opts.dim ? ' dim' : '') + '">';
+    let h = '<div class="cal-cell' + (ds === todayS ? ' today' : '') + (ds === dstr(sel) && view === 'day' ? ' sel' : '') + (opts.dim ? ' dim' : '') + '" data-date="' + ds + '">';
     h += '<div class="cal-dnum">' + d.getDate() + (opts.mon ? '<span class="cal-mon">' + MONTHS[d.getMonth()].slice(0, 3).toUpperCase() + '</span>' : '') + (ds === todayS ? '<span class="cal-today-tag">TODAY</span>' : '') + '</div>';
     h += evs.slice(0, max).map((e) => evCell(e)).join('');
     if (evs.length > max) h += '<div class="cal-more">+' + (evs.length - max) + ' more</div>';
     return h + '</div>';
   };
-  $('calViews').innerHTML = ['days30', 'week', 'day'].map((v) => '<span class="cal-view-chip' + (v === view ? ' on' : '') + '">' + (v === 'days30' ? '30 DAYS' : v.toUpperCase()) + '</span>').join('');
+  $('calViews').innerHTML = ['month', 'week', 'day'].map((v) => '<button class="cal-view-chip' + (v === view ? ' on' : '') + '" data-calview="' + v + '">' + v.toUpperCase() + '</button>').join('');
   const dow = $('calDow');
   if (view === 'day') {
     dow.classList.add('hidden'); dow.innerHTML = '';
@@ -1192,6 +1573,15 @@ function renderCalendar() {
     $('calSub').textContent = 'WEEK OF ' + fmtDay(sunday) + ' - ' + fmtDay(addDays(sunday, 6));
     let h = '<div class="cal-grid week">';
     for (let i = 0; i < 7; i++) h += cell(addDays(sunday, i), { max: 8, mon: true });
+    $('calBody').innerHTML = h + '</div>';
+  } else if (view === 'month') {
+    dow.classList.remove('hidden');
+    dow.innerHTML = DOW.map((x) => '<div>' + x + '</div>').join('');
+    const mfirst = new Date(today.getFullYear(), today.getMonth() + calMonthOff, 1);
+    $('calSub').textContent = MONTHS[mfirst.getMonth()].toUpperCase() + ' ' + mfirst.getFullYear();
+    const start = addDays(mfirst, -mfirst.getDay());
+    let h = '<div class="cal-grid month">';
+    for (let i = 0; i < 42; i++) { const d = addDays(start, i); h += cell(d, { max: 3, dim: d.getMonth() !== mfirst.getMonth() }); }
     $('calBody').innerHTML = h + '</div>';
   } else {
     dow.classList.remove('hidden');
@@ -1210,6 +1600,104 @@ function renderCalendar() {
   ov.classList.remove('hidden');
   document.body.classList.add('calopen');
 }
+
+// Swipe up/down on the month view moves a month forward/back.
+// ---- Calendar full-screen lock ----
+// The lock button (bottom right of the calendar) pins the calendar
+// full screen; the server holds other views off while it is locked.
+// Unlocking asks for the account PIN when one is set (Settings).
+let calPin = null; // { entry, msg } while the unlock pad is open
+function calLockTap() {
+  const locked = !!(lastSnap && lastSnap.calLock && lastSnap.calLock.locked);
+  if (!locked) { post('/api/calendar/lock', { locked: true }); return; }
+  calExitTap();
+}
+// The way out of the locked full-screen calendar: a big EXIT button
+// at the bottom. With an account PIN set it pops the PIN pad first;
+// the PIN is what lets you leave. Without a PIN it just leaves.
+function calExitTap() {
+  const pinSet = !!(lastSnap && lastSnap.settings && lastSnap.settings.pinSet);
+  if (!pinSet) { exitCal(); return; }
+  calPin = { entry: '', msg: '' };
+  renderCalPin();
+}
+// Peek pop-overs over the locked calendar: WEATHER reuses the real
+// weather overlay (raised above the calendar, with its own CLOSE chip
+// in this mode); SHOPPING is a small pop-over inside the calendar card
+// fed by the same list the board panel shows.
+let calPop = null; // 'weather' | 'shopping'
+// The WEATHER slot in the locked bar is a small card showing today's
+// weather at a glance; tapping it still pops the full weather view.
+let lastWxCardSig = '';
+function renderWxCard() {
+  const w = lastWeather;
+  const sig = w && w.current ? (w.updatedAt || '') + '|' + w.current.temp + '|' + w.current.code : 'none';
+  if (sig === lastWxCardSig) return;
+  lastWxCardSig = sig;
+  const icon = $('cwxIcon'), temp = $('cwxTemp'), cond = $('cwxCond'), hilo = $('cwxHiLo');
+  if (!icon || !temp || !cond || !hilo) return;
+  if (!w || !w.current) { icon.textContent = '\u2600'; temp.textContent = '--\u00B0'; cond.textContent = 'Weather'; hilo.textContent = ''; return; }
+  const info = wxInfo(w.current.code);
+  const d0 = (w.daily || [])[0] || {};
+  icon.textContent = info[0];
+  temp.textContent = w.current.temp + '\u00B0F';
+  cond.textContent = info[1];
+  hilo.textContent = (d0.hi != null ? 'H ' + d0.hi + '\u00B0' : '') + (d0.lo != null ? '  L ' + d0.lo + '\u00B0' : '');
+}
+function renderCalPop() {
+  const pop = $('calShopPop');
+  if (!pop) return;
+  const lockedNow = !!(lastSnap && lastSnap.calLock && lastSnap.calLock.locked);
+  const open = calPop === 'shopping' && lockedNow;
+  pop.classList.toggle('hidden', !open);
+  if (!open) return;
+  const items = (lastSnap.shopping || []);
+  $('calShopBody').innerHTML = items.length
+    ? items.map((t) => '<div class="todo-row' + (t.done ? ' done' : '') + '" data-shopid="' + esc(t.id) + '"><span class="todo-box">' + (t.done ? '&#10003;' : '') + '</span><span class="todo-text">' + esc(t.text) + '</span></div>').join('')
+    : '<div class="cal-shop-empty">The shopping list is empty.</div>';
+}
+async function exitCal() {
+  calPin = null;
+  renderCalPin();
+  await postJson('/api/calendar/lock', { locked: false });
+  post('/api/calendar', { show: false });
+}
+function renderCalPin() {
+  const p = $('calPinPad');
+  if (!p) return;
+  p.classList.toggle('hidden', !calPin);
+  if (!calPin) return;
+  const dots = $('calPinDots');
+  if (dots) dots.innerHTML = calPin.entry ? '&#9679;'.repeat(calPin.entry.length) : '<span class="pin-dots-empty">- - - -</span>';
+  const msg = $('calPinMsg');
+  if (msg) msg.textContent = calPin.msg || '';
+}
+async function calPinKey(k) {
+  if (!calPin) return;
+  if (k === 'cancel') { calPin = null; renderCalPin(); return; }
+  if (k === 'back') calPin.entry = calPin.entry.slice(0, -1);
+  else if (k === 'ok') {
+    if (calPin.entry.length < 4) { calPin.msg = 'PINs are 4 to 6 numbers.'; renderCalPin(); return; }
+    const d = await postJson('/api/settings/pin', { action: 'verify', pin: calPin.entry });
+    if (d && d.ok) { calPin = null; renderCalPin(); exitCal(); }
+    else { calPin.entry = ''; calPin.msg = 'Wrong PIN - try again.'; }
+  }
+  else if (/^\d$/.test(k) && calPin.entry.length < 6) calPin.entry += k;
+  renderCalPin();
+}
+let calSwipeY = null;
+let calSwipedAt = 0;
+document.addEventListener('pointerdown', (ev) => { if (ev.target.closest && ev.target.closest('#calOverlay') && !calPin && !calPop) calSwipeY = ev.clientY; }, true);
+document.addEventListener('pointerup', (ev) => {
+  if (calSwipeY === null) return;
+  const dy = ev.clientY - calSwipeY;
+  calSwipeY = null;
+  if (Math.abs(dy) < 60) return;
+  if (!lastCalendar || !lastCalendar.visible || (lastCalendar.view || '') !== 'month') return;
+  calMonthOff += dy < 0 ? 1 : -1;
+  calSwipedAt = Date.now();
+  renderCalendar();
+}, true);
 
 let lastCameras = [];
 let lastCameraView = null;
@@ -1395,6 +1883,9 @@ function render(snap) {
   lastCalendar = snap.calendar || null;
   renderAvatar(snap.avatar);
   renderCards(lastCards);
+  renderQueueView(snap);
+  renderSpeech(snap);
+  renderTodos(snap);
   renderFocus();
   renderCalendar();
   lastCameras = snap.cameras || [];
@@ -1432,23 +1923,6 @@ function render(snap) {
   lastHomeView = snap.homeView || null;
   homeHidden = snap.homeHidden || [];
   renderHome();
-  renderSpeech(snap);
-}
-
-// Spoken output is a browser feature, not a model call: lines the box
-// wants said out loud arrive in state.sayQueue and are spoken here with
-// the browser's built-in speechSynthesis. sayStopAt cancels (barge-in).
-const _saySeen = new Set();
-let _sayStopAt = 0;
-function renderSpeech(snap) {
-  if (!('speechSynthesis' in window)) return;
-  if (snap.sayStopAt && snap.sayStopAt !== _sayStopAt) { _sayStopAt = snap.sayStopAt; try { speechSynthesis.cancel(); } catch (e) {} }
-  for (const item of (snap.sayQueue || [])) {
-    if (!item || _saySeen.has(item.id)) continue;
-    _saySeen.add(item.id);
-    if (Date.now() - (item.at || 0) > 60000) continue;
-    try { speechSynthesis.speak(new SpeechSynthesisUtterance(String(item.text || ''))); } catch (e) {}
-  }
 }
 
 function connect() {
@@ -1631,6 +2105,41 @@ function calCellDate(cell) {
   return dstr(addDays(anchor, idx - anchor.getDay()));
 }
 document.addEventListener('click', (ev) => {
+  if (Date.now() - lpFiredAt < 800) { lpFiredAt = 0; return; }
+  if (lpPop && !(ev.target.closest && ev.target.closest('#lpPop'))) lpClose();
+  const dtab = ev.target.closest('[data-dtab]');
+  if (dtab) { drawerTab = dtab.dataset.dtab; lastDrawerSig = ''; syncDrawerTabs(); if (lastSnap) renderDrawer(lastSnap); return; }
+  if (ev.target.closest('#drawerSettingsBtn')) { openDrawerTarget('settings'); return; }
+  if (ev.target.closest('#stateChip') || ev.target.closest('#statusMsg')) { post('/api/queue-view', { show: true }); return; }
+  if (ev.target.id === 'queueOverlay') { post('/api/queue-view', { clear: true }); return; }
+  const lm = ev.target.closest('[data-listmode]');
+  if (lm) { post('/api/list-mode', { mode: lm.dataset.listmode }); closeListModePop(); return; }
+  if (ev.target.closest('[data-listprint]')) { post('/api/action', { kind: 'list-print', list: lastListMode }); closeListModePop(); return; }
+  if (Date.now() - listLpFired < 800) { listLpFired = 0; return; }
+  const tdRemove = ev.target.closest('[data-todo-remove]');
+  if (tdRemove) { post('/api/todos', { list: lastListMode, remove: tdRemove.dataset.todoRemove }); return; }
+  const tdRow = ev.target.closest('[data-todo]');
+  if (tdRow) { post('/api/todos', { list: lastListMode, toggle: tdRow.dataset.todo }); return; }
+  if (ev.target.closest('#todoAddBtn')) {
+    const inp = $('todoInput');
+    const v = inp ? inp.value.trim() : '';
+    if (v) { post('/api/todos', { list: lastListMode, add: v }); if (inp) inp.value = ''; }
+    return;
+  }
+  const snav = ev.target.closest('[data-setnav]');
+  if (snav) {
+    const k = snav.dataset.setnav;
+    if (k === 'guardian') post('/api/guardian', { show: true });
+    else if (k === 'help') post('/api/help', { show: true });
+    else if (k === 'navstyle') post('/api/navstyle', { style: document.body.classList.contains('dock-nav') ? 'bar' : 'dock' });
+    return;
+  }
+  const spage = ev.target.closest('[data-setpage]');
+  if (spage) { settingsPage = spage.dataset.setpage; if (settingsPage !== 'pin') pinFlow = null; refreshSettings(); return; }
+  const pact = ev.target.closest('[data-pinaction]');
+  if (pact) { pinAction(pact.dataset.pinaction); return; }
+  const pkey = ev.target.closest('[data-pinkey]');
+  if (pkey) { pinKey(pkey.dataset.pinkey); return; }
   const dTile = ev.target.closest('[data-drawer]');
   if (dTile) { openDrawerTarget(dTile.dataset.drawer); return; }
   if (ev.target.closest('#drawerBtn')) { const o = $('drawerOverlay'); if (o) o.classList.remove('hidden'); post('/api/android', { front: false }); return; }
@@ -1659,13 +2168,23 @@ document.addEventListener('click', (ev) => {
   const ago2 = ev.target.closest('[data-appgo]');
   if (ago2) { const a = (lastApps || []).find((x) => x.id === ago2.dataset.appgo); if (a && a.target && APP_TARGETS[a.target]) APP_TARGETS[a.target](); return; }
   const aopen = ev.target.closest('[data-appopen]');
-  if (aopen) { const o = $('drawerOverlay'); if (o) o.classList.add('hidden'); post('/api/app', { id: aopen.dataset.appopen }); return; }
+  if (aopen) {
+    const o = $('drawerOverlay'); if (o) o.classList.add('hidden');
+    const a = (lastApps || []).find((x) => x.id === aopen.dataset.appopen) || (lastCatalog || []).find((x) => x.id === aopen.dataset.appopen);
+    if (a && a.target && APP_TARGETS[a.target]) APP_TARGETS[a.target]();
+    else post('/api/app', { id: aopen.dataset.appopen });
+    return;
+  }
+  const aun = ev.target.closest('[data-android-uninstall]');
+  if (aun) { post('/api/shop/uninstall', { package: aun.dataset.androidUninstall }); return; }
+  const apn = ev.target.closest('[data-androidpin]');
+  if (apn) { post('/api/apps/dock', { package: apn.dataset.androidpin }); return; }
   const droid = ev.target.closest('[data-android]');
   if (droid) { const o = $('drawerOverlay'); if (o) o.classList.add('hidden'); post('/api/shop/launch', { package: droid.dataset.android }); return; }
   if (ev.target.closest('#appsCustom')) { post('/api/action', { kind: 'apps-custom' }); return; }
   if (ev.target.closest('#appsBuild')) { post('/api/action', { kind: 'apps-build' }); return; }
   const aback = ev.target.closest('#appBackApps');
-  if (aback) { post('/api/app', { clear: true }); post('/api/apps', { show: true }); return; }
+  if (aback) { post('/api/app', { clear: true }); return; }
   const anav = ev.target.closest('#boardNav button.app-nav');
   if (anav) { post('/api/app', { id: anav.dataset.appid }); return; }
   const acard = ev.target.closest('[data-appid]');
@@ -1720,7 +2239,10 @@ document.addEventListener('click', (ev) => {
   if (ev.target.closest('#grdPcAdd')) { grdPcAddOpen = !grdPcAddOpen; post('/api/pc/share', { on: grdPcAddOpen }); grdPhoneRefresh(); return; }
   if (ev.target.closest('#grdPcShareDone')) { grdPcAddOpen = false; post('/api/pc/share', { on: false }); grdPhoneRefresh(); return; }
   const shopInst = ev.target.closest('[data-install]');
-  if (shopInst) { post('/api/shop/install', { package: shopInst.getAttribute('data-install') }); return; }
+  if (shopInst) { shopAskTab(shopInst.getAttribute('data-install')); return; }
+  const iat = ev.target.closest('[data-install-tab]');
+  if (iat) { post('/api/shop/install', { package: iat.dataset.pkg, tab: iat.dataset.installTab }); closeShopAsk(); return; }
+  if (ev.target.closest('#shopAskCancel') || ev.target.id === 'shopAsk') { closeShopAsk(); return; }
   const shopLaunch = ev.target.closest('[data-launch]');
   if (shopLaunch) { post('/api/shop/launch', { package: shopLaunch.getAttribute('data-launch') }); return; }
   if (ev.target.closest('#shopRefresh')) { post('/api/shop/refresh', {}); return; }
@@ -1760,8 +2282,15 @@ document.addEventListener('click', (ev) => {
   if (ev.target.closest('#paperPrint')) { post('/api/action', { kind: 'paper-print' }); return; }
   if (ev.target.closest('#paperRead')) { paperPdfOpen = !paperPdfOpen; lastPaperSig = ''; if (lastSnap) renderPaper(lastSnap); return; }
   if (ev.target.closest('#touchClose')) { hideAllOverlays(); return; }
+  const sc = ev.target.closest('#stream .scard');
+  if (sc) {
+    if (Date.now() - queueSwipeAt < 400) return;
+    post('/api/focus', { id: Number(sc.dataset.cid) });
+    return;
+  }
   const qc = ev.target.closest('#queue .qcard');
   if (qc) {
+    if (Date.now() - queueSwipeAt < 400) return;
     const n = [...document.querySelectorAll('#queue .qcard')].indexOf(qc) + 1;
     if (n >= 1) post('/api/focus', { n });
     return;
@@ -1770,8 +2299,21 @@ document.addEventListener('click', (ev) => {
   if (smp) { post('/api/action', { kind: 'sms-open', n: Number(smp.dataset.smsn) }); return; }
   const igp = ev.target.closest('#igList .fb-post');
   if (igp) { post('/api/action', { kind: 'insta-open', n: Number(igp.dataset.ign) }); return; }
+  if (ev.target.closest('#calLockBtn')) { calLockTap(); return; }
+  if (ev.target.closest('#calExitBtn')) { calExitTap(); return; }
+  if (ev.target.closest('#calWxBtn')) { calPop = 'weather'; renderWeather(); return; }
+  if (ev.target.closest('#wxPopClose')) { calPop = null; renderWeather(); return; }
+  if (ev.target.closest('#calShopBtn')) { calPop = calPop === 'shopping' ? null : 'shopping'; renderCalPop(); return; }
+  if (ev.target.closest('#calShopClose')) { calPop = null; renderCalPop(); return; }
+  if (ev.target.id === 'calShopPop') { calPop = null; renderCalPop(); return; }
+  const srow = ev.target.closest('#calShopBody .todo-row');
+  if (srow) { post('/api/todos', { list: 'shopping', toggle: srow.dataset.shopid }); return; }
+  const cpk = ev.target.closest('[data-calpin]');
+  if (cpk) { calPinKey(cpk.dataset.calpin); return; }
   const mgp = ev.target.closest('#mgList .fb-post');
-  if (mgp) { post('/api/action', { kind: 'messenger-open', n: Number(mgp.dataset.mgn) }); return; }
+  if (mgp) { post('/api/msg/open', { source: 'messenger', id: mgp.dataset.mid }); return; }
+  const smsp = ev.target.closest('#smsList .fb-post');
+  if (smsp) { post('/api/msg/open', { source: 'sms', id: smsp.dataset.sid }); return; }
   const fp = ev.target.closest('#fbPosts .fb-post');
   if (fp) {
     post('/api/action', { kind: 'facebook-read', n: Number(fp.dataset.fbn), scope: fp.dataset.scope || 'feed' });
@@ -1783,16 +2325,22 @@ document.addEventListener('click', (ev) => {
   if (gr2) { post('/api/action', { kind: 'group-open', n: Number(gr2.dataset.gn), name: gr2.dataset.gname }); return; }
   const tr = ev.target.closest('#textsList .trow');
   if (tr) {
-    const rows = [...document.querySelectorAll('#textsList .trow')];
-    const qn = lastCards.filter((c) => c.kind === 'suggestion' && c.status === 'open').length;
+    if (Date.now() - queueSwipeAt < 400) return;
     post('/api/texts/highlight', { id: tr.dataset.tid });
-    post('/api/action', { kind: 'text-show', n: qn + rows.indexOf(tr) + 1, id: tr.dataset.tid });
+    post('/api/msg/open', { panelId: tr.dataset.tid });
     return;
   }
   const chip = ev.target.closest('.cal-view-chip');
   if (chip) {
-    const v = ['days30', 'week', 'day'][[...document.querySelectorAll('.cal-view-chip')].indexOf(chip)];
+    if (Date.now() - calSwipedAt < 300) return;
+    const v = chip.dataset.calview;
     if (v) post('/api/calendar', { view: v, show: true });
+    return;
+  }
+  const cc = ev.target.closest('.cal-cell');
+  if (cc && cc.dataset.date) {
+    if (Date.now() - calSwipedAt < 300) return;
+    post('/api/calendar', { view: 'day', date: cc.dataset.date, show: true });
     return;
   }
   const cell = ev.target.closest('.cal-cell');
@@ -1862,7 +2410,7 @@ for (const [el, sc] of [[$('queue'), queueScroller], [$('stream'), streamScrolle
 // Keep the touch chrome in sync with what's on screen.
 setInterval(() => {
   const vis = (id) => !$(id).classList.contains('hidden');
-  const any = vis('helpOverlay') || vis('mailOverlay') || vis('musicOverlay') || vis('camOverlay') || vis('calOverlay') || vis('focusOverlay') || vis('weatherOverlay') || vis('homeOverlay') || vis('imageOverlay') || vis('facebookOverlay') || vis('messengerOverlay') || vis('smsOverlay') || vis('instaOverlay') || vis('appsOverlay') || vis('appOverlay') || vis('paperOverlay') || vis('networkOverlay') || vis('guardianOverlay') || vis('shopOverlay') || vis('settingsOverlay') || vis('drawerOverlay');
+  const any = vis('helpOverlay') || vis('mailOverlay') || vis('musicOverlay') || vis('camOverlay') || vis('calOverlay') || vis('focusOverlay') || vis('weatherOverlay') || vis('homeOverlay') || vis('imageOverlay') || vis('facebookOverlay') || vis('messengerOverlay') || vis('smsOverlay') || vis('instaOverlay') || vis('appsOverlay') || vis('appOverlay') || vis('paperOverlay') || vis('networkOverlay') || vis('guardianOverlay') || vis('shopOverlay') || vis('settingsOverlay') || vis('drawerOverlay') || vis('queueOverlay');
   $('touchClose').classList.toggle('hidden', !any);
   $('boardNav').style.display = any ? 'none' : 'flex';
   const card = lastFocusId != null ? lastCards.find((c) => c.id === lastFocusId) : null;
@@ -1919,8 +2467,7 @@ function renderRail() {
     : '<div class="rail-empty">Inbox is empty.</div>';
 }
 document.addEventListener('click', (ev) => {
-  const rd = ev.target.closest('.rail-day');
-  if (rd && rd.dataset.date) { post('/api/calendar', { view: 'day', date: rd.dataset.date, show: true }); return; }
+  if (ev.target.closest('#railCalPanel')) { post('/api/calendar', { view: 'month', show: true }); return; }
   const rm = ev.target.closest('.rail-mrow');
   if (rm) {
     const n = +rm.dataset.n;
@@ -1959,8 +2506,13 @@ function renderWxPanel() {
 let lastWxSig = '';
 function renderWeather() {
   const ov = $('weatherOverlay');
-  if (!lastWeatherView || !lastWeatherView.visible) { ov.classList.add('hidden'); return; }
+  const popMode = calPop === 'weather';
+  if ((!lastWeatherView || !lastWeatherView.visible) && !popMode) { ov.classList.add('hidden'); ov.style.zIndex = ''; return; }
   ov.classList.remove('hidden');
+  ov.style.zIndex = popMode ? '260' : '';
+  ov.classList.toggle('popmode', popMode);
+  const pc = $('wxPopClose');
+  if (pc) pc.classList.toggle('hidden', !popMode);
   const w = lastWeather;
   const sig = w ? (w.updatedAt || '') : 'none';
   if (sig === lastWxSig) return;
@@ -1991,81 +2543,132 @@ function renderWeather() {
   }).join('');
 }
 
-// ---- Home Assistant control overlay ----
-const HA_ICONS = { switch: '\uD83D\uDD0C', light: '\uD83D\uDCA1', automation: '\uD83E\uDD16', media_player: '\uD83C\uDFB5', climate: '\uD83C\uDF21\uFE0F', fan: '\uD83C\uDF00', cover: '\uD83E\uDE9F', lock: '\uD83D\uDD12', scene: '\uD83C\uDFAC', script: '\uD83D\uDCDC', schedule: '\uD83D\uDDD3\uFE0F', timer: '\u23F1\uFE0F', input_boolean: '\uD83D\uDD18' };
-const HA_GROUPS = [['light', 'LIGHTS'], ['switch', 'SWITCHES'], ['media_player', 'MEDIA'], ['climate', 'CLIMATE'], ['fan', 'FANS'], ['cover', 'COVERS'], ['lock', 'LOCKS'], ['automation', 'AUTOMATIONS'], ['schedule', 'SCHEDULES'], ['timer', 'TIMERS'], ['scene', 'SCENES'], ['script', 'SCRIPTS'], ['input_boolean', 'HELPERS']];
-let homeEntities = null;
+// ---- Home control overlay ----
+// The simple Fuse Box face over the house device hub: scenes on top,
+// rooms with a few big plain tiles. The hub stays in the back end - its
+// name and its own screens never appear here.
+const SCENE_DOTS = ['#e8a33d', '#7c8cf8', '#b48cf2', '#f28ca8', '#2dd4bf', '#a3d65c'];
+let homeData = null;   // { scenes: [{id, name}], rooms: [{name, tiles: [...]}], hidden: [tiles] }
+let homeErr = false;
 let homeHidden = [];
 let showHidden = false;
 let homeFetchAt = 0;
 let homeBusy = false;
+let homeSig = '';
 async function fetchHome(force) {
   if (homeBusy) return;
-  if (!force && homeEntities && Date.now() - homeFetchAt < 7000) return;
+  if (!force && homeData && Date.now() - homeFetchAt < 7000) return;
   homeBusy = true;
   try {
-    const r = await fetch('/api/ha/entities');
+    const r = await fetch('/api/home/layout');
     const d = await r.json();
-    if (d.entities) { homeEntities = d.entities; homeFetchAt = Date.now(); paintHome(); }
-  } catch (e) { /* HA unreachable: keep last paint */ }
+    if (d && d.rooms) { homeData = d; homeErr = false; homeFetchAt = Date.now(); paintHome(); }
+    else if (!homeData) { homeErr = true; paintHome(); }
+  } catch (e) { if (!homeData) { homeErr = true; paintHome(); } }
   homeBusy = false;
 }
-let homeSig = '';
+function hCap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function allHomeTiles() {
+  const out = [];
+  if (!homeData) return out;
+  for (const r of homeData.rooms || []) for (const t of r.tiles) out.push(t);
+  for (const t of homeData.hidden || []) out.push(t);
+  return out;
+}
+function tileStateText(t) {
+  if (t.state === 'unavailable') return 'Not answering';
+  if (t.kind === 'lock') return t.state === 'locked' ? 'Locked' : 'Unlocked';
+  if (t.kind === 'cover') return t.state === 'open' ? 'Open' : t.state === 'closed' ? 'Closed' : hCap(t.state);
+  if (t.kind === 'climate') return t.action ? hCap(t.action) : hCap(t.state);
+  let s = t.on ? 'On' : 'Off';
+  if (t.on && t.kind === 'light' && t.brightness != null) s += ' · ' + t.brightness + '%';
+  return s;
+}
+function tileHtml(t, isHidden) {
+  if (t.kind === 'climate') {
+    const temp = t.temp != null ? t.temp : (t.current != null ? t.current : '--');
+    return '<div class="hm-tile wide climate' + (isHidden ? ' hid' : '') + '" data-eid="' + esc(t.id) + '">'
+      + '<div class="hm-main"><span class="hm-nm">' + esc(t.name) + '</span><span class="hm-st">' + esc(tileStateText(t)) + '</span></div>'
+      + '<span class="hm-temp">' + temp + '°</span>'
+      + '<span class="hm-tbtns"><button class="hm-tbtn" data-temp="-1">-</button><button class="hm-tbtn" data-temp="1">+</button></span></div>';
+  }
+  const cls = t.kind === 'lock' && t.state === 'locked' ? ' lock-on' : (t.on ? ' on' : '');
+  const wide = t.kind === 'lock' ? ' wide' : '';
+  let html = '<div class="hm-tile' + wide + cls + (isHidden ? ' hid' : '') + '" data-eid="' + esc(t.id) + '">'
+    + '<span class="hm-dot"></span><span class="hm-main"><span class="hm-nm">' + esc(t.name) + '</span><span class="hm-st">' + esc(tileStateText(t)) + '</span></span>';
+  if (t.kind === 'light' && t.dimmable) {
+    const v = t.brightness != null ? t.brightness : (t.on ? 100 : 0);
+    html += '<input class="hm-slider" type="range" min="1" max="100" value="' + v + '" data-eid="' + esc(t.id) + '">';
+  }
+  return html + '</div>';
+}
 function paintHome() {
   const box = $('homeGroups');
-  const sig = (homeEntities || []).map((e) => e.id + '=' + e.state).join('|') + '#' + homeHidden.join(',') + '#' + showHidden;
+  if (!homeData) { box.innerHTML = homeErr ? '<div class="rail-empty">Cannot reach the house right now - the hub is not answering. Lights and plugs will appear here when it does.</div>' : '<div class="rail-empty">Loading the house...</div>'; return; }
+  const sig = JSON.stringify(homeData) + '#' + showHidden;
   if (sig === homeSig && box.innerHTML) return;
   homeSig = sig;
-  if (!homeEntities) { box.innerHTML = '<div class="rail-empty">Loading devices...</div>'; return; }
-  const hid = homeEntities.filter((e) => homeHidden.includes(e.id));
-  $('homeUpd').textContent = (homeEntities.length - hid.length) + ' DEVICES \u00B7 UPDATED ' + new Date(homeFetchAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  let count = 0;
   let html = '';
-  for (const [dom, label] of HA_GROUPS) {
-    const rows = homeEntities.filter((e) => e.domain === dom && !homeHidden.includes(e.id));
-    if (!rows.length) continue;
-    html += '<div class="home-sec">' + label + '</div><div class="home-grid">';
-    for (const e of rows) html += tileHtml(e, dom, false);
+  const scenes = homeData.scenes || [];
+  if (scenes.length) {
+    html += '<div class="home-sec">SCENES</div><div class="home-scenes">';
+    scenes.forEach((s, i) => { html += '<button class="scene-btn" data-scene="' + esc(s.id) + '"><span class="scene-dot" style="background:' + SCENE_DOTS[i % SCENE_DOTS.length] + '"></span>' + esc(s.name) + '</button>'; });
     html += '</div>';
   }
+  for (const room of homeData.rooms || []) {
+    count += room.tiles.length;
+    html += '<div class="home-room"><div class="home-room-name">' + esc(room.name).toUpperCase() + '</div><div class="home-tiles">';
+    for (const t of room.tiles) html += tileHtml(t, false);
+    html += '</div></div>';
+  }
+  const hid = homeData.hidden || [];
   if (hid.length) {
     html += '<button class="home-hidden-toggle" id="homeHiddenToggle">HIDDEN (' + hid.length + ')' + (showHidden ? ' - TAP TO COLLAPSE' : ' - TAP TO SHOW') + '</button>';
-    if (showHidden) html += '<div class="home-grid">' + hid.map((e) => tileHtml(e, e.domain, true)).join('') + '</div>';
+    if (showHidden) html += '<div class="home-tiles roomless">' + hid.map((t) => tileHtml(t, true)).join('') + '</div>';
   }
-  box.innerHTML = html || '<div class="rail-empty">No controllable devices found.</div>';
-}
-function tileHtml(e, dom, isHidden) {
-  const onish = e.state === 'on' || e.state === 'playing' || e.state === 'open' || e.state === 'unlocked';
-  return '<button class="ha-tile' + (onish ? ' on' : '') + (isHidden ? ' hid' : '') + '" data-eid="' + esc(e.id) + '"><span class="ha-ic">' + (HA_ICONS[dom] || '\uD83D\uDD18') + '</span><span class="ha-nm">' + esc(e.name) + '</span><span class="ha-st">' + esc(String(e.state).toUpperCase()) + '</span></button>';
+  $('homeUpd').textContent = count + (count === 1 ? ' THING' : ' THINGS') + ' · UPDATED ' + new Date(homeFetchAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  box.innerHTML = html || '<div class="rail-empty">No lights, plugs or locks yet. When devices are added to the house, they show up here.</div>';
 }
 function renderHome() {
   const ov = $('homeOverlay');
   if (!lastHomeView || !lastHomeView.visible) { ov.classList.add('hidden'); return; }
   ov.classList.remove('hidden');
+  if (!homeData) paintHome();
   fetchHome(false);
 }
 setInterval(() => { if (lastHomeView && lastHomeView.visible) fetchHome(false); }, 4000);
+async function homeControl(id, body) {
+  try { await post('/api/ha/control', Object.assign({ id }, body)); } catch (e) {}
+  homeFetchAt = 0;
+  await fetchHome(true);
+}
 document.addEventListener('click', async (ev) => {
   const htg = ev.target.closest('#homeHiddenToggle');
   if (htg) { showHidden = !showHidden; homeSig = ''; paintHome(); return; }
-  const tile = ev.target.closest('.ha-tile');
+  const sc = ev.target.closest('.scene-btn');
+  if (sc) { sc.classList.add('busy'); await homeControl(sc.dataset.scene, { action: 'on' }); sc.classList.remove('busy'); return; }
+  const tb = ev.target.closest('.hm-tbtn');
+  if (tb) {
+    const tile = tb.closest('.hm-tile');
+    const t = allHomeTiles().find((x) => x.id === tile.dataset.eid);
+    if (!t) return;
+    const base = t.temp != null ? t.temp : (t.current != null ? t.current : 70);
+    await homeControl(t.id, { action: 'temp', value: base + Number(tb.dataset.temp) });
+    return;
+  }
+  if (ev.target.closest('.hm-slider')) return;
+  const tile = ev.target.closest('.hm-tile');
   if (!tile) return;
   if (suppressClick) { suppressClick = false; return; }
   tile.classList.add('busy');
-  try {
-    const r = await post('/api/ha/control', { id: tile.dataset.eid, action: 'toggle' });
-    if (r && r.json) {
-      const d = await r.json().catch(() => null);
-      if (d && d.entity && homeEntities) {
-        const i = homeEntities.findIndex((e) => e.id === d.entity.id);
-        if (i >= 0) homeEntities[i] = d.entity;
-        homeSig = '';
-        paintHome();
-      }
-    }
-    homeFetchAt = 0;
-    await fetchHome(true);
-  } catch (e) {}
+  await homeControl(tile.dataset.eid, { action: 'toggle' });
   tile.classList.remove('busy');
+});
+document.addEventListener('change', async (ev) => {
+  const sl = ev.target.closest('.hm-slider');
+  if (!sl) return;
+  await homeControl(sl.dataset.eid, { action: 'brightness', value: Number(sl.value) });
 });
 
 // ---- Long-press a tile: pop-up to remove it from this screen (or restore) ----
@@ -2073,10 +2676,10 @@ let suppressClick = false;
 let haPopFor = null;
 let haPopHidden = false;
 function openHaPop(eid) {
-  const e = (homeEntities || []).find((x) => x.id === eid);
+  const e = allHomeTiles().find((x) => x.id === eid);
   if (!e) return;
   haPopFor = eid;
-  haPopHidden = homeHidden.includes(eid);
+  haPopHidden = (homeData.hidden || []).some((x) => x.id === eid);
   $('haPopName').textContent = e.name;
   $('haPopQ').textContent = haPopHidden ? 'Put this back on the Home screen?' : 'Remove this from the Home screen?';
   $('haPopYes').textContent = haPopHidden ? 'RESTORE' : 'REMOVE';
@@ -2091,16 +2694,16 @@ $('haPopYes').addEventListener('click', async () => {
   closeHaPop();
   if (wasHidden) homeHidden = homeHidden.filter((x) => x !== id);
   else if (!homeHidden.includes(id)) homeHidden.push(id);
-  homeSig = '';
-  paintHome();
   await post(wasHidden ? '/api/ha/unhide' : '/api/ha/hide', { id });
+  homeFetchAt = 0;
+  await fetchHome(true);
 });
 let pressTimer = null;
 let pressX = 0;
 let pressY = 0;
 document.addEventListener('pointerdown', (ev) => {
-  const t = ev.target.closest('.ha-tile');
-  if (!t) return;
+  const t = ev.target.closest('.hm-tile');
+  if (!t || ev.target.closest('.hm-slider') || ev.target.closest('.hm-tbtn')) return;
   homeScroller.waitUntil = Date.now() + 25000;
   pressX = ev.clientX;
   pressY = ev.clientY;

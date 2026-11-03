@@ -263,7 +263,10 @@ from files on the box at runtime, and those files are git-ignored:
     development. Either file powers the cloud reflex tier (Muse
     Spark) and all speech-to-text (Muse Voice Transcribe). With
     neither, the box still runs; voice input and call transcription
-    simply stay off.
+    simply stay off. To try the box with your own key, copy
+    `.env.example` to `.env`, paste your key in, and run the
+    installer — it stores the key at this path with owner-only
+    permissions and leaves an existing key file alone.
 - Home Assistant long-lived token: the path set by `haTokenPath` in
   `cosmo-ui/config.json`.
 - Guardian phone credentials (SIP user/password, line number) and the

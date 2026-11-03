@@ -154,34 +154,12 @@
     <div class="toprow">
     <div class="queue-col">
     <div class="queue-head">
-      <h2>NEEDS YOUR VOICE</h2>
-      <span class="queue-count" id="queueCount">3</span>
+      <h2 id="listTitle">TO DO</h2>
     </div>
-    <div id="queue" class="queue">
-<div class="qcard">
-<div class="qnum">1</div>
-<div class="qbody">
-<h3>Follow up with the pharmacy (demo)</h3>
-<p>Your refill is ready for pickup. Draft reply: ask about Saturday hours and confirm the pickup name.</p>
-<div class="meta">Demo inbox · email · 4h ago</div>
-</div>
-</div>
-<div class="qcard">
-<div class="qnum">2</div>
-<div class="qbody">
-<h3>Possible scam - screen check (demo)</h3>
-<p>The PC companion flagged a fake virus pop-up on the laptop. The snapshot is ready to review before anyone calls the number on screen.</p>
-<div class="meta">PC guardian - demo · 6h ago</div>
-</div>
-</div>
-<div class="qcard">
-<div class="qnum">3</div>
-<div class="qbody">
-<h3>Call back the bakery (demo)</h3>
-<p>Missed call about Saturday's cake order. Callback script and order details are drafted.</p>
-<div class="meta">Call log - demo · 7h ago</div>
-</div>
-</div>
+    <div id="todoList" class="todo-list"></div>
+    <div class="todo-add">
+      <input id="todoInput" type="text" placeholder="Add a to-do..." autocomplete="off">
+      <button id="todoAddBtn">ADD</button>
     </div>
     </div>
     <aside id="textsPanel" class="texts-panel">
@@ -282,6 +260,31 @@
 </div>
     <div class="cal-hint">Say: <b>“week view”</b> · <b>“day view”</b> · <b>“show 30 days”</b> · <b>“back to the board”</b>
 </div>
+    <button id="calLockBtn" class="cal-lock-btn" title="Lock the calendar full screen">&#128274;</button>
+    <button id="calExitBtn" class="cal-exit-btn hidden">&#128274; EXIT</button>
+    <button id="calWxBtn" class="cal-wx-card hidden"><span class="cwx-icon" id="cwxIcon">&#9728;</span><span class="cwx-main"><span class="cwx-temp" id="cwxTemp">--&deg;</span><span class="cwx-cond" id="cwxCond">Weather</span><span class="cwx-hilo" id="cwxHiLo"></span></span></button>
+    <button id="calShopBtn" class="cal-pop-btn right hidden">&#128722; SHOPPING</button>
+    <div id="calShopPop" class="cal-pop hidden">
+      <div class="cal-pop-card">
+        <div class="cal-pop-head"><span>&#128722; SHOPPING LIST</span><button id="calShopClose" class="cal-pop-x">&#10005;</button></div>
+        <div id="calShopBody" class="cal-shop-body"></div>
+        <div class="cal-pop-note">Tap an item to check it off. The calendar stays locked underneath.</div>
+      </div>
+    </div>
+    <div id="calPinPad" class="cal-pinpad hidden">
+      <div class="cal-pin-card">
+        <div class="pin-prompt" id="calPinPrompt">ENTER YOUR PIN TO EXIT</div>
+        <div class="pin-dots" id="calPinDots"></div>
+        <div class="wifi-err" id="calPinMsg"></div>
+        <div class="pin-pad">
+          <button class="pin-key" data-calpin="1">1</button><button class="pin-key" data-calpin="2">2</button><button class="pin-key" data-calpin="3">3</button>
+          <button class="pin-key" data-calpin="4">4</button><button class="pin-key" data-calpin="5">5</button><button class="pin-key" data-calpin="6">6</button>
+          <button class="pin-key" data-calpin="7">7</button><button class="pin-key" data-calpin="8">8</button><button class="pin-key" data-calpin="9">9</button>
+          <button class="pin-key dim" data-calpin="back">&#9003;</button><button class="pin-key" data-calpin="0">0</button><button class="pin-key ok" data-calpin="ok">&#10003;</button>
+        </div>
+        <div class="network-actions"><button class="app-pin2" data-calpin="cancel">CANCEL</button></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -439,6 +442,7 @@
 <span class="wx-title" id="wxTitle">WEATHER</span>
 <span class="wx-upd" id="wxUpd"></span>
 </div>
+<button id="wxPopClose" class="wx-pop-close hidden">&#10005; CLOSE</button>
 <div class="wx-now">
 <span class="wx-now-icon" id="wxNowIcon"></span>
 <div>
@@ -457,7 +461,7 @@
 <div id="homeOverlay" class="home-overlay hidden">
 <div class="home-card">
 <div class="home-top">
-<span class="home-title">HOME CONTROL</span>
+<span class="home-title">HOME</span>
 <span class="home-upd" id="homeUpd"></span>
 </div>
 <div id="homeGroups" class="home-groups"></div>
@@ -465,14 +469,14 @@
 <div class="ha-pop-card">
 <div class="ha-pop-name" id="haPopName"></div>
 <div class="ha-pop-q" id="haPopQ"></div>
-<div class="ha-pop-note">It stays in Home Assistant - this only changes this screen. Hidden tiles live under HIDDEN at the bottom.</div>
+<div class="ha-pop-note">This only changes this screen - the device itself stays connected. Hidden tiles live under HIDDEN at the bottom.</div>
 <div class="touch-bar">
 <button class="tbtn danger" id="haPopYes">REMOVE</button>
 <button class="tbtn back" id="haPopNo">CANCEL</button>
 </div>
 </div>
 </div>
-<div class="hint">Tap a tile to turn it on or off. Say: <b>"back to the board"</b></div>
+<div class="hint">Tap a scene or a tile. Say: <b>"back to the board"</b></div>
 </div>
 </div>
 <div id="imageOverlay" class="img-overlay hidden">
@@ -560,8 +564,8 @@
 </div>
 </div>
             <div class="hsec">
-<h2>HOME CONTROL</h2>
-<p>Every switch, plug, light and automation in Home Assistant, as tiles. Tap a tile to turn it on or off - or just ask me. Press and hold a tile to remove it from this screen; the engineering switches can go, normal people just need the lights and plugs.</p>
+<h2>HOME</h2>
+<p>The house, kept simple: scenes at the top, then rooms with the lights, plugs, the lock and the thermostat. Tap a tile to turn it on or off - or just ask me. Press and hold a tile to remove it from this screen.</p>
 <div class="hcmds">
 <span>"Show me the home controls"</span>
 <span>"Turn off the shop cam recordings"</span>
@@ -630,7 +634,14 @@
 
 <div id="drawerOverlay" class="drawer-overlay hidden">
   <div class="drawer-card">
-    <div class="fb-head"><h2>ALL APPS</h2><span class="apps-sub">Tap an app to open it</span></div>
+    <div class="fb-head"><h2>ALL APPS</h2><span class="apps-sub">Tap an app to open it &middot; hold for options</span><button id="drawerSettingsBtn" class="drawer-settings-btn" aria-label="Settings">&#9881;&#65039;</button></div>
+    <div id="drawerTabs" class="drawer-tabs">
+      <button class="dtab on" data-dtab="all">All Apps</button>
+      <button class="dtab" data-dtab="social">Social</button>
+      <button class="dtab" data-dtab="productivity">Productivity</button>
+      <button class="dtab" data-dtab="games">Games</button>
+      <button class="dtab" data-dtab="connected">Connected apps</button>
+    </div>
     <div id="drawerGrid" class="drawer-grid"></div>
   </div>
 </div>
@@ -675,9 +686,16 @@
 </div>
 <div id="shopOverlay" class="apps-overlay hidden">
   <div class="apps-card network-card">
-    <div class="net-head"><div class="net-logo">&#128722;</div><div><div class="apps-title">FUSE SHOP</div><div class="apps-sub">Android apps for this box - tap INSTALL and the app is put on for you</div></div></div>
+    <div class="net-head"><div class="net-logo">&#128722;</div><div><div class="apps-title">FUSE SHOP</div><div class="apps-sub">Android apps for this box - tap INSTALL, pick a tab, and the app is put on for you</div></div></div>
     <div id="shopBody" class="apps-body shop-body"></div>
     <div class="fb-hint">Say: "back"</div>
+  </div>
+</div>
+<div id="queueOverlay" class="apps-overlay hidden">
+  <div class="apps-card queue-card">
+    <div class="net-head"><div class="net-logo">&#128483;&#65039;</div><div><div class="apps-title">NEEDS YOUR VOICE</div><div class="apps-sub">Waiting on your say-so — nothing sends without you</div></div><span class="queue-count" id="queueCount">0</span></div>
+    <div id="queue" class="queue"></div>
+    <div class="fb-hint">Say: "show me 1" &middot; "back"</div>
   </div>
 </div>
 <div id="settingsOverlay" class="apps-overlay hidden">
@@ -708,7 +726,7 @@
     </div>
     </div>
     </div>
-    <div class="fb-hint">Say: "read conversation 2" &middot; "text 2: ..." &middot; "back"</div>
+    <div class="fb-hint">Tap a conversation to open it - type a reply or tap the mic in the thread, and SEND hands it to Cosmo to text from your phone. Or say: "back"</div>
   </div>
 </div>
 <div id="instaOverlay" class="mg-overlay hidden">
@@ -742,7 +760,7 @@
     </div>
     </div>
     </div>
-    <div class="fb-hint">Say: "read conversation 2" &middot; "reply to 2: ..." &middot; "back"</div>
+    <div class="fb-hint">Tap a conversation to open it - reply right in the thread: type, or tap the mic and talk. Or say: "back"</div>
   </div>
 </div>
 <div id="facebookOverlay" class="fb-overlay hidden">

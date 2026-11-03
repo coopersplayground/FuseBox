@@ -36,6 +36,8 @@ const CONFIG = Object.assign({
   haUrl: 'http://127.0.0.1:8123',
   haTokenPath: '/home/cosmo/.config/ha-api-token',
   haDbPath: '',
+  homeLayout: null,
+  sttMicDevice: 'plughw:CARD=PCH,DEV=0',
   personEntity: 'person.owner',
   personOverridePath: '',
   perimeterCameras: ['driveway_cam'],
@@ -87,19 +89,29 @@ function wdExec(args, timeout) {
   });
 }
 async function wdInstalled() {
-  const pm = await new Promise((resolve) => {
-    require('child_process').execFile('sudo', ['-n', 'waydroid', 'shell', 'pm', 'list', 'packages', '-3'], { timeout: 30000, maxBuffer: 1048576 }, (err, out) => resolve({ err, out: String(out || '') }));
-  });
-  if (!pm.err) {
-    const pkgs = [];
-    pm.out.split('\n').forEach((ln) => { const m = ln.match(/^package:(\S+)/); if (m) pkgs.push(m[1]); });
-    return pkgs;
+  // `waydroid shell` reads on this box fail more often than they succeed
+  // (empty output, clean exit). Trust a read only when two in a row agree
+  // on the same non-zero count; otherwise keep the largest seen. Never
+  // let a bad read wipe the known installed list.
+  let best = null, prevCount = -1;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const pm = await new Promise((resolve) => {
+      require('child_process').execFile('sudo', ['-n', 'waydroid', 'shell', 'pm', 'list', 'packages', '-3'], { timeout: 30000, maxBuffer: 1048576 }, (err, out) => resolve({ err, out: String(out || '') }));
+    });
+    if (!pm.err) {
+      const pkgs = [];
+      pm.out.split('\n').forEach((ln) => { const m = ln.match(/^package:(\S+)/); if (m) pkgs.push(m[1]); });
+      if (!best || pkgs.length > best.length) best = pkgs;
+      if (pkgs.length && pkgs.length === prevCount) return pkgs;
+      prevCount = pkgs.length;
+    } else prevCount = -1;
   }
+  if (best && best.length) return best;
   const r = await wdExec(['app', 'list'], 30000);
   if (r.err) return state.shop.installed || [];
   const pkgs = [];
   r.out.split('\n').forEach((ln) => { const m = ln.match(/^packageName:\s*(\S+)/i); if (m) pkgs.push(m[1]); });
-  return pkgs;
+  return pkgs.length ? pkgs : (state.shop.installed || []);
 }
 let SHOP_ALL = [];
 function shopSlice() {
@@ -114,7 +126,7 @@ function shopSlice() {
 function shopFind(pkg) {
   return (state.shop.apps || []).find((a) => a.package === pkg) || SHOP_ALL.find((a) => a.package === pkg) || null;
 }
-function androidAppsList() { return (state.shop.installed || []).map((pkg) => { const a = shopFind(pkg); return { package: pkg, name: a ? a.name : pkg, icon: a ? (a.icon || '') : '' }; }); }
+function androidAppsList() { return (state.shop.installed || []).map((pkg) => { const a = shopFind(pkg); return { package: pkg, name: a ? a.name : pkg, icon: a ? (a.icon || '') : '', pinned: (state.androidPins || []).includes(pkg), tab: (state.appTabs || {})[pkg] || '', cats: a ? (a.cats || []) : [] }; }); }
 function westonIds(cb) { require('child_process').execFile('xdotool', ['search', '--class', 'Weston'], { env: Object.assign({}, process.env, { DISPLAY: ':0' }) }, (e, out) => cb(String(out || '').split(/\s+/).filter(Boolean))); }
 function raiseAndroid() { westonIds((ids) => { for (const id of ids) { require('child_process').execFile('xdotool', ['windowmove', id, '0', '0'], { env: Object.assign({}, process.env, { DISPLAY: ':0' }) }, () => {}); require('child_process').execFile('xdotool', ['windowraise', id], { env: Object.assign({}, process.env, { DISPLAY: ':0' }) }, () => {}); } }); }
 function lowerAndroid() { westonIds((ids) => { for (const id of ids) require('child_process').execFile('xdotool', ['windowmove', id, '1920', '0'], { env: Object.assign({}, process.env, { DISPLAY: ':0' }) }, () => {}); }); }
@@ -130,7 +142,7 @@ async function shopFetch(manual) {
     if (Array.isArray(j.cats)) state.shop.cats = j.cats.filter((c) => typeof c === 'string').slice(0, 24);
     SHOP_ALL = (Array.isArray(j.apps) ? j.apps : []).map((a) => ({
       name: String(a.name || 'App'), package: String(a.package || ''), version: String(a.version || ''),
-      description: String(a.description || ''),
+      description: String(a.description || ''), fulldesc: String(a.fulldesc || ''), license: String(a.license || ''),
       cats: Array.isArray(a.cats) ? a.cats.filter((c) => typeof c === 'string') : [],
       icon: a.icon ? new URL(String(a.icon), url).toString() : '',
       apk: a.apk ? new URL(String(a.apk), url).toString() : ''
@@ -196,6 +208,22 @@ async function shopInstall(app) {
   state.shop.installed = await wdInstalled();
   save(); broadcast('snapshot', snapshot());
 }
+async function shopUninstall(pkg) {
+  const app = shopFind(pkg);
+  const name = app ? app.name : pkg;
+  const pmRun = (args) => new Promise((res2) => {
+    require('child_process').execFile('sudo', ['-n', 'waydroid', 'shell'].concat(args), { timeout: 120000, maxBuffer: 1048576 }, (e2, out, errOut) => res2(String(out || '') + String(errOut || '')));
+  });
+  await pmRun(['pm', 'uninstall', pkg]);
+  state.shop.installed = await wdInstalled();
+  const gone = !(state.shop.installed || []).includes(pkg);
+  state.shop.installMsg = gone ? (name + ' was removed from the box.') : ('Sorry - ' + name + ' could not be removed.');
+  if (state.appView && state.appView.package === pkg) state.appView = null;
+  state.androidPins = (state.androidPins || []).filter((x) => x !== pkg);
+  if (state.appTabs) delete state.appTabs[pkg];
+  save(); broadcast('snapshot', snapshot());
+  return gone;
+}
 
 const PORT = process.env.PORT || CONFIG.port;
 const PUB = path.join(__dirname, 'public');
@@ -249,6 +277,8 @@ if (state.homeHidden === undefined) state.homeHidden = [];
 if (state.imageView === undefined) state.imageView = { visible: false, src: null, title: null, credit: null };
 if (state.navStyle === undefined) state.navStyle = 'bar';
 if (state.texts === undefined) state.texts = { messages: [], updatedAt: null };
+if (state.textsDeleted === undefined) state.textsDeleted = [];
+if (state.calLock === undefined) state.calLock = { locked: false };
 if (state.textView === undefined) state.textView = { highlightId: null };
 if (state.facebook === undefined) state.facebook = { me: null, posts: [], groups: [], updatedAt: null };
 if (state.facebookView === undefined) state.facebookView = { visible: false, draft: null };
@@ -280,7 +310,7 @@ const APP_CATALOG = [
   { id: 'instagram', name: 'Instagram', icon: '\u{1F4F7}', bg: '#d62976', desc: "Your Instagram feed in a phone.", target: 'instagram', facts: ["Shows your following feed and its comments", "Refreshes on its own every 10 minutes"] },
   { id: 'texts', name: 'Texts', icon: '\u{1F4F1}', bg: '#2fbf4f', desc: "Your phone text messages in a phone.", target: 'texts', facts: ["Drafts are read back before anything sends", "Texts refresh while Cosmo is awake"] },
   { id: 'telnyx', name: 'Phone', icon: '\u{1F4DE}', bg: '#0aa06e', desc: "Phone calls through your phone line.", target: null, facts: ["Your board number is +1 555-555-0100", "In the final product, calls ring right here on the box"] },
-  { id: 'home', name: 'Home Assistant', icon: '\u{1F3E0}', bg: '#03a9f4', desc: "Switches, cameras and automations in your home.", target: 'home', facts: ["Tap a tile to turn something on or off", "Long-press a tile to hide it from the page"] },
+  { id: 'home', name: 'Home', icon: '\u{1F3E0}', bg: '#03a9f4', desc: "Lights, plugs, the lock and the thermostat.", target: 'home', facts: ["Scenes at the top run the whole routine", "Tap a tile to turn it on or off"] },
   { id: 'frigate', name: 'Cameras', icon: '\u{1F3A5}', bg: '#455a64', desc: "Your security cameras, live.", target: 'cameras', facts: ["Shop, driveway and microscope cameras", "Say a camera name and it comes right up"] },
   { id: 'weather', name: 'Weather', icon: '\u2600\u{FE0F}', bg: '#b97f10', desc: "Local weather for New York.", target: 'weather', facts: ["Updates itself every 30 minutes", "Open it for the hour-by-hour and week ahead"] },
   { id: 'github', name: 'GitHub', icon: '\u{1F419}', bg: '#24292e', desc: "Your GitHub repositories, issues and pull requests.", target: null, facts: ["Connected and ready - ask Cosmo to use it"] },
@@ -297,6 +327,7 @@ const APP_SEED = ['spotify', 'gmail', 'calendar', 'facebook', 'messenger', 'inst
 function catalogApp(c, status) { return { id: c.id, name: c.name, icon: c.icon, bg: c.bg, desc: c.desc, target: c.target || null, facts: c.facts || [], kind: 'connector', status: status || 'connected', inDrawer: false, custom: false }; }
 if (!Array.isArray(state.apps)) state.apps = APP_SEED.map((id) => catalogApp(APP_CATALOG.find((a) => a.id === id)));
 for (const a of state.apps) { if (a.inDrawer === undefined && a.inDock !== undefined) a.inDrawer = a.inDock; delete a.inDock; }
+{ const h = state.apps.find((a) => a.id === 'home'); const cat = APP_CATALOG.find((a) => a.id === 'home'); if (h && cat && h.name !== cat.name) { h.name = cat.name; h.desc = cat.desc; h.facts = cat.facts; } }
 if (state.guardian && !state.guardian.wizard) state.guardian.wizard = { step: 'welcome' };
 if (state.guardian && !state.guardian.candidates) state.guardian.candidates = [];
 if (!state.guardian) state.guardian = { adapter: { found: false, ip: '', mac: '', model: '', registered: false, status: '' }, line: { number: '', status: 'none' }, setup: { busy: false, step: '', error: '', needsPassword: false }, porting: { status: '', number: '', carrier: '' } };
@@ -304,8 +335,14 @@ if (!Array.isArray(state.guardian.calls)) state.guardian.calls = [];
 if (typeof state.guardian.live === 'undefined') state.guardian.live = null;
 if (!state.guardianView) state.guardianView = { visible: false };
 if (!state.shop) state.shop = { name: 'Fuse Shop', apps: [], installed: [], fetchedAt: 0, error: '', busy: '', installMsg: '', query: '', category: '', total: 0, cats: [] };
+if (!Array.isArray(state.androidPins)) state.androidPins = [];
+if (!state.appTabs || typeof state.appTabs !== 'object' || Array.isArray(state.appTabs)) state.appTabs = {};
 if (state.shop && typeof state.shop === 'object') { if (typeof state.shop.query !== 'string') state.shop.query = ''; if (typeof state.shop.category !== 'string') state.shop.category = ''; if (!Array.isArray(state.shop.cats)) state.shop.cats = []; if (typeof state.shop.total !== 'number') state.shop.total = 0; }
 if (!state.shopView) state.shopView = { visible: false };
+if (!state.queueView) state.queueView = { visible: false };
+if (!Array.isArray(state.todos)) state.todos = [];
+if (!Array.isArray(state.shopping)) state.shopping = [];
+if (state.listMode !== 'shopping' && state.listMode !== 'todo') state.listMode = 'todo';
 if (!state.apps.some((a) => a.id === 'fuse-shop')) state.apps.push({ id: 'fuse-shop', name: 'Fuse Shop', icon: '\u{1F6D2}', bg: '#b45309', desc: 'Android apps for this box, from the Fuse Shop. Tap INSTALL and the app is downloaded and put on the box for you.', target: 'shop', kind: 'built', status: 'ready', custom: true, facts: ['Apps come from the shop address set on this box', 'Installs go into the Android side of the box (Waydroid)', 'Tap OPEN on an installed app to start it'], inDrawer: false });
 if (!state.apps.some((a) => a.id === 'guardian')) state.apps.push({ id: 'guardian', name: 'Guardian', icon: '\u{1F6E1}\u{FE0F}', bg: '#5b21b6', desc: 'Your home phone, guarded - set up the phone adapter, get your number, and let the Guardian watch over your calls.', target: 'guardian', kind: 'built', status: 'ready', custom: true, facts: ['Plug the Grandstream adapter into power and the network, and your phone into PHONE 1 - this app does the rest', 'A new local number, or bring the number you already have', 'Fail-open: if this box is ever off, calls still ring your phone like always', 'Screening, the family code word and the scam watch live here once your line is set up'], inDrawer: false });
 
@@ -402,6 +439,20 @@ async function discoverCameras() {
 }
 
 function addCard(b) {
+  // Camera sightings of the same subject (same title) refresh the one open
+  // card instead of stacking a new numbered card per sighting — otherwise
+  // the queue fills with duplicates and the numbering balloons.
+  if (b.kind === 'suggestion' && b.source === 'frigate' && b.title) {
+    const dupe = state.cards.find((c) => c.kind === 'suggestion' && c.status === 'open' && c.source === 'frigate' && c.title === String(b.title));
+    if (dupe) {
+      dupe.body = String(b.body || dupe.body || '');
+      dupe.meta = String(b.meta || dupe.meta || '');
+      if (b.image) dupe.image = String(b.image);
+      dupe.time = Date.now();
+      save(); broadcast('snapshot', snapshot());
+      return dupe;
+    }
+  }
   const card = {
     id: ++state.seq,
     kind: ['suggestion', 'email', 'call', 'text', 'calendar', 'system', 'person'].includes(b.kind) ? b.kind : 'system',
@@ -474,9 +525,111 @@ async function haCall(method, path, body) {
 async function haEntities() {
   if (haCache.entities && Date.now() - haCache.at < 5000) return haCache.entities;
   const all = await haCall('GET', '/api/states');
-  const ents = all.filter((e) => HA_CONTROL.includes(e.entity_id.split('.')[0])).map((e) => ({ id: e.entity_id, domain: e.entity_id.split('.')[0], name: (e.attributes && e.attributes.friendly_name) || e.entity_id, state: e.state }));
+  const ents = all.filter((e) => HA_CONTROL.includes(e.entity_id.split('.')[0])).map((e) => {
+    const at = e.attributes || {};
+    return {
+      id: e.entity_id, domain: e.entity_id.split('.')[0], name: at.friendly_name || e.entity_id, state: e.state,
+      attrs: {
+        brightness: at.brightness != null ? Math.round(at.brightness / 2.55) : null,
+        dimmable: Array.isArray(at.supported_color_modes) ? at.supported_color_modes.some((m) => m !== 'onoff') : null,
+        temp: at.temperature != null ? at.temperature : null,
+        current: at.current_temperature != null ? at.current_temperature : null,
+        action: at.hvac_action || null,
+      },
+    };
+  });
   haCache = { at: Date.now(), entities: ents };
   return ents;
+}
+// --- Speech-to-text (Muse Voice Transcribe) for board dictation.
+// Endpoint resolution mirrors guardian-ear: the owner's gateway
+// (per-device token, no API key on the box) when gateway.json exists,
+// else the direct endpoint with the on-box key file.
+function asrEndpoint() {
+  const home = require('os').homedir();
+  try {
+    const g = JSON.parse(fs.readFileSync(path.join(home, '.config/cosmo-voice/gateway.json'), 'utf8'));
+    if (g.url && g.token) return { url: String(g.url).replace(/\/$/, '') + '/v1/asr/transcribe', auth: 'Bearer ' + g.token };
+  } catch (e) {}
+  try {
+    const key = fs.readFileSync(path.join(home, '.config/cosmo-voice/meta_api_key'), 'utf8').trim();
+    if (key) return { url: 'https://api.meta.ai/v1/asr/transcribe', auth: 'Bearer ' + key };
+  } catch (e) {}
+  return null;
+}
+async function metaTranscribeWav(wav) {
+  const ep = asrEndpoint();
+  if (!ep) throw new Error('no speech endpoint configured');
+  const boundary = '----msgstt' + Date.now().toString(36);
+  const reqJson = JSON.stringify({ model: 'muse-voice-transcribe-1.0', mode: 'PUSH_TO_TALK', audioEncoding: 'WAV' });
+  const head = Buffer.from('--' + boundary + '\r\nContent-Disposition: form-data; name="request"\r\nContent-Type: application/json\r\n\r\n' + reqJson + '\r\n--' + boundary + '\r\nContent-Disposition: form-data; name="audio"; filename="audio.wav"\r\nContent-Type: audio/wav\r\n\r\n');
+  const tail = Buffer.from('\r\n--' + boundary + '--\r\n');
+  const r = await fetch(ep.url, { method: 'POST', headers: { 'Content-Type': 'multipart/form-data; boundary=' + boundary, Authorization: ep.auth }, body: Buffer.concat([head, wav, tail]), signal: AbortSignal.timeout(60000) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('speech service ' + r.status);
+  return String(d.transcript || '').trim();
+}
+let sttCap = null; // { proc, file } while a dictation capture is running
+
+// --- Account PIN: the foundation for locking parts of the screen.
+// Only a salted hash ever touches disk, in a small file in the data
+// dir beside state.json (survives releases; never enters the snapshot
+// or board state). The PIN itself is set by touch on the box only -
+// never by voice, never in chat. Snapshot exposes pinSet + unlocked.
+const PIN_FILE = path.join(__dirname, 'data', 'account-pin.json');
+function pinRecord() { try { return JSON.parse(fs.readFileSync(PIN_FILE, 'utf8')); } catch (e) { return null; } }
+function pinIsSet() { return !!pinRecord(); }
+function pinHash(pin, salt) { return require('crypto').createHash('sha256').update(salt + ':' + pin).digest('hex'); }
+function pinCheck(pin) {
+  const r = pinRecord();
+  if (!r || !r.salt || !r.hash) return false;
+  const want = Buffer.from(r.hash, 'hex');
+  const got = Buffer.from(pinHash(String(pin || ''), r.salt), 'hex');
+  return want.length === got.length && require('crypto').timingSafeEqual(want, got);
+}
+function pinStore(pin) {
+  const salt = require('crypto').randomBytes(16).toString('hex');
+  const rec = { v: 1, salt, hash: pinHash(pin, salt), updatedAt: new Date().toISOString() };
+  const tmp = PIN_FILE + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(rec), { mode: 0o600 });
+  fs.renameSync(tmp, PIN_FILE);
+}
+function pinRemove() { try { fs.unlinkSync(PIN_FILE); } catch (e) {} }
+let pinUnlockUntil = 0;
+
+// --- Home screen layout: the simple Fuse Box face over the device hub.
+// A box can carry a curated layout in config (homeLayout: { scenes: [ids],
+// rooms: [{ name, tiles: [ids] }] }); without one we auto-build from
+// everyday devices only - engineering entities (camera switches,
+// automations, helpers) never reach this screen. The hub itself, its name
+// and its own UI stay in the back end where they belong.
+const HOME_AUTO_GROUPS = [['light', 'Lights'], ['switch', 'Switches & Plugs'], ['lock', 'Locks'], ['climate', 'Climate'], ['fan', 'Fans'], ['cover', 'Blinds & Doors']];
+const HOME_AUTO_DOMAINS = HOME_AUTO_GROUPS.map((g) => g[0]);
+const HOME_EXCLUDE = /(frigate|camera|\bcam\b|snapshot|detect|record|motion|review|sub_?label|webrtc|birdseye)/i;
+function homeTile(e) {
+  const a = e.attrs || {};
+  const on = e.state === 'on' || e.state === 'open' || e.state === 'unlocked' || (e.domain === 'climate' && e.state !== 'off' && e.state !== 'unavailable');
+  return { id: e.id, name: e.name, kind: e.domain, state: e.state, on, brightness: a.brightness != null ? a.brightness : null, dimmable: !!a.dimmable, temp: a.temp != null ? a.temp : null, current: a.current != null ? a.current : null, action: a.action || null };
+}
+async function homeLayout() {
+  const ents = await haEntities();
+  const byId = {};
+  ents.forEach((e) => { byId[e.id] = e; });
+  const L = CONFIG.homeLayout;
+  if (L && Array.isArray(L.rooms)) {
+    const scenes = (L.scenes || []).map((id) => byId[id]).filter(Boolean).map((e) => ({ id: e.id, name: e.name }));
+    const rooms = L.rooms.map((r) => ({ name: r.name, tiles: (r.tiles || []).map((t) => byId[typeof t === 'string' ? t : t.id]).filter(Boolean).map(homeTile) })).filter((r) => r.tiles.length);
+    return { source: 'config', scenes, rooms, hidden: [] };
+  }
+  const usable = ents.filter((e) => !state.homeHidden.includes(e.id));
+  const scenes = usable.filter((e) => (e.domain === 'scene' || e.domain === 'script') && !HOME_EXCLUDE.test(e.id + ' ' + e.name)).slice(0, 6).map((e) => ({ id: e.id, name: e.name }));
+  const rooms = [];
+  for (const [dom, label] of HOME_AUTO_GROUPS) {
+    const tiles = usable.filter((e) => e.domain === dom && !HOME_EXCLUDE.test(e.id + ' ' + e.name)).map(homeTile);
+    if (tiles.length) rooms.push({ name: label, tiles });
+  }
+  const hidden = ents.filter((e) => state.homeHidden.includes(e.id) && HOME_AUTO_DOMAINS.includes(e.domain)).map(homeTile);
+  return { source: 'auto', scenes, rooms, hidden };
 }
 async function pollPersons() {
   const events = await httpGetJson(CONFIG.frigateUrl + '/api/events?labels=person&has_snapshot=1&limit=25', 5000);
@@ -582,8 +735,30 @@ function broadcast(event, data) {
   const msg = 'event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n';
   for (const res of clients) { try { res.write(msg); } catch (e) {} }
 }
-function snapshot() { return { avatar: state.avatar, cards: state.cards, focusId: state.focusId, avatarMode: avatarMode, calendar: state.calendar, cameras: state.cameras, cameraView: state.cameraView, inbox: state.inbox, mailView: state.mailView, helpView: state.helpView, music: state.music, musicView: state.musicView, actionOutbox: state.actionOutbox, weather: state.weather, weatherView: state.weatherView, homeView: state.homeView, homeHidden: state.homeHidden, imageView: state.imageView, navStyle: state.navStyle, texts: state.texts, textView: state.textView, facebook: state.facebook, facebookView: state.facebookView, facebookPost: state.facebookPost, facebookGroup: state.facebookGroup, messenger: state.messenger, messengerView: state.messengerView, messengerThread: state.messengerThread, sms: state.sms, smsView: state.smsView, smsThread: state.smsThread, insta: state.insta, instaView: state.instaView, instaPost: state.instaPost, apps: state.apps, appsView: state.appsView, appView: state.appView, paper: state.paper, paperView: state.paperView, network: state.network, networkView: state.networkView, settings: state.settings, settingsView: state.settingsView, guardian: state.guardian, guardianView: state.guardianView, shop: state.shop, shopView: state.shopView, androidApps: androidAppsList(), pc: state.pc, pcControl: state.pcControl, pcShare: pcShareOn, hid: state.hid || null, sayQueue: state.sayQueue || [], sayStopAt: state.sayStopAt || 0, appsCatalog: APP_CATALOG.filter((c) => !state.apps.some((a) => a.id === c.id)) }; }
+function sweepQueue() {
+  // The numbering stays small because the open queue stays small:
+  // suggestion cards retire themselves after 48 hours (status 'expired').
+  // Nothing is deleted — retired cards stay visible in the stream,
+  // tagged EXPIRED.
+  const cutoff = Date.now() - 48 * 3600 * 1000;
+  let changed = false;
+  for (const c of state.cards || []) {
+    if (c.kind === 'suggestion' && c.status === 'open' && c.time && c.time < cutoff) { c.status = 'expired'; changed = true; }
+  }
+  if (changed) save();
+}
+let sayQueue = [];
+let sayStopAt = 0;
+let saySeq = 0;
+function snapshot() { sweepQueue(); return { avatar: state.avatar, cards: state.cards, focusId: state.focusId, avatarMode: avatarMode, calendar: state.calendar, calLock: state.calLock || { locked: false }, cameras: state.cameras, cameraView: state.cameraView, inbox: state.inbox, mailView: state.mailView, helpView: state.helpView, music: state.music, musicView: state.musicView, actionOutbox: state.actionOutbox, weather: state.weather, weatherView: state.weatherView, homeView: state.homeView, homeHidden: state.homeHidden, imageView: state.imageView, navStyle: state.navStyle, texts: state.texts, textView: state.textView, facebook: state.facebook, facebookView: state.facebookView, facebookPost: state.facebookPost, facebookGroup: state.facebookGroup, messenger: state.messenger, messengerView: state.messengerView, messengerThread: state.messengerThread, sms: state.sms, smsView: state.smsView, smsThread: state.smsThread, insta: state.insta, instaView: state.instaView, instaPost: state.instaPost, apps: state.apps, appsView: state.appsView, appView: state.appView, paper: state.paper, paperView: state.paperView, network: state.network, networkView: state.networkView, settings: Object.assign({}, state.settings, { pinSet: pinIsSet(), unlocked: Date.now() < pinUnlockUntil }), settingsView: state.settingsView, guardian: state.guardian, guardianView: state.guardianView, shop: state.shop, shopView: state.shopView, queueView: state.queueView, todos: state.todos || [], shopping: state.shopping || [], listMode: state.listMode || 'todo', androidApps: androidAppsList(), pc: state.pc, pcControl: state.pcControl, pcShare: pcShareOn, hid: state.hid || null, appsCatalog: APP_CATALOG.filter((c) => !state.apps.some((a) => a.id === c.id)), sayQueue: sayQueue, sayStopAt: sayStopAt }; }
 function showOnly(which) {
+  // Calendar lock: while the calendar is locked full-screen, no other
+  // view replaces it and a global hide keeps it up. Unlocking happens
+  // on the calendar itself (PIN pad when a PIN is set).
+  if (state.calLock && state.calLock.locked) {
+    if (which === '') { if (state.calendar) state.calendar.visible = true; return; }
+    if (which !== 'calendar') return;
+  }
   // One modal at a time (the owner's rule, 2026-10-26): opening any overlay closes the others.
   if (which !== 'camera') state.cameraView = { visible: false, cameraId: null, identify: null };
   if (which !== 'mail') state.mailView = { visible: false, focusN: null };
@@ -603,6 +778,7 @@ function showOnly(which) {
   if (which !== 'guardian') state.guardianView.visible = false;
   if (which !== 'shop') state.shopView.visible = false;
   if (which !== 'settings') state.settingsView.visible = false;
+  if (which !== 'queueView') state.queueView.visible = false;
   if (which !== 'calendar' && state.calendar) state.calendar.visible = false;
   if (which !== 'focus') state.focusId = null;
 }
@@ -721,26 +897,12 @@ async function guardianProgram() {
   } finally { guardianBusy = false; save(); broadcast('snapshot', snapshot()); }
 }
 
-// ---- Guardian Ear: live call transcription (2026-10-27: the
-// Guardian listens to the call - that is the whole point). The board page
-// taps both sides of an app-phone call and posts PCM windows here; each
-// window goes to Muse Voice Transcribe (Meta Model API) and comes
-// back as text, appended to the live call and saved with it at hangup.
-// All speech-to-text is Muse Voice Transcribe (Meta), via the Meta Model
-// API's one-shot endpoint — reached through the owner's gateway when
-// gateway.json is provisioned (per-device token, no API key on the box),
-// or directly with the on-box key file on the owner's own hardware.
-const META_KEY_PATH = '/home/cosmo/.config/cosmo-voice/meta_api_key';
-const GATEWAY_PATH = '/home/cosmo/.config/cosmo-voice/gateway.json';
-function metaApiKey() { try { return require('fs').readFileSync(META_KEY_PATH, 'utf8').trim(); } catch (e) { return ''; } }
-function cloudStt() {
-  try {
-    const g = JSON.parse(require('fs').readFileSync(GATEWAY_PATH, 'utf8'));
-    if (g.url && g.token) return { url: String(g.url).replace(/\/$/, '') + '/v1/asr/transcribe', auth: 'Bearer ' + g.token };
-  } catch (e) {}
-  const key = metaApiKey();
-  return key ? { url: 'https://api.meta.ai/v1/asr/transcribe', auth: 'Bearer ' + key } : null;
-}
+// ---- Guardian Ear: live call transcription. The Guardian listens to
+// the call - that is the whole point. The board page taps both sides of
+// an app-phone call and posts PCM windows here; each window goes to
+// Muse Voice Transcribe on the Meta Model API (through the owner's
+// gateway when one is configured) and comes back as text, appended to
+// the live call and saved with it at hangup.
 function pcm16ToWav(pcm, rate) {
   // The endpoint takes mono 16-bit WAV at 16 or 24 kHz only - resample
   // (linear) and wrap. Phone audio arrives at 8 kHz.
@@ -764,21 +926,9 @@ function pcm16ToWav(pcm, rate) {
   head.write('data', 36); head.writeUInt32LE(samples.length, 40);
   return Buffer.concat([head, samples]);
 }
-async function metaTranscribe(pcm, rate) {
-  const ep = cloudStt();
-  if (!ep || !pcm || pcm.length < 3200) return '';
-  try {
-    const form = new FormData();
-    form.append('request', new Blob([JSON.stringify({ model: 'muse-voice-transcribe-1.0', mode: 'PUSH_TO_TALK', audioEncoding: 'WAV' })], { type: 'application/json' }));
-    form.append('audio', new Blob([pcm16ToWav(pcm, rate)], { type: 'audio/wav' }), 'audio.wav');
-    const ctl = new AbortController();
-    const to = setTimeout(() => ctl.abort(), 30000);
-    const r = await fetch(ep.url, { method: 'POST', headers: { Authorization: ep.auth }, body: form, signal: ctl.signal });
-    clearTimeout(to);
-    if (!r.ok) return '';
-    const d = await r.json();
-    return String(d.transcript || '').trim();
-  } catch (e) { return ''; }
+async function metaTranscribePcm(pcm, rate) {
+  if (!pcm || pcm.length < 3200) return '';
+  try { return await metaTranscribeWav(pcm16ToWav(pcm, rate)); } catch (e) { return ''; }
 }
 const grdAudioBufs = new Map();
 const GRD_RISK_WORDS = ['gift card', 'wire transfer', 'wire the money', 'verification code', 'code from the text', 'social security', 'bank account', 'routing number', 'do not tell', "don't tell", 'gift cards', 'crypto', 'bitcoin', 'cash app', 'zelle', 'grandson', 'bail money', 'arrested', 'refund department', 'microsoft support', 'irs', 'medicare card', 'code on the back', 'credit card number', 'social security number', 'birth date', 'date of birth', 'address'];
@@ -884,8 +1034,9 @@ async function grdMute(side, on) {
 }
 // --- Guardian talk: the Interruptor on Asterisk levers --------------------
 // With both directions muted, Cosmo speaks to either party (or both) by
-// speaking privately into that party's channel with ChanSpy: the other party
-// hears nothing of it. Lines are rendered once (espeak-ng, a rule-based formant synthesizer - plain non-ML code), resampled to
+// speaking privately into that party's channel with ChanSpy: the other
+// party hears nothing of it. Lines are rendered once (espeak-ng, a
+// rule-based formant synthesizer - plain non-ML code), resampled to
 // 8 kHz phone format, and cached by text hash in the Asterisk spool.
 const GRD_LINE_IN = 'This is Cosmo, the Guardian, stepping into this call. From now on, this call goes through me. You can each talk to me, but you cannot hear each other. Caller, stay on the line and speak with me.';
 const GRD_LINE_OUT = 'This is Cosmo. I am stepping back now. You can talk to each other again.';
@@ -1155,13 +1306,13 @@ async function grdFlush(key, force) {
   const pcm = Buffer.concat(ent.chunks);
   ent.chunks = []; ent.bytes = 0;
   try {
-    // Silence gate: transcription invents words ("You", "Thank you") on
+    // Silence gate: speech-to-text invents words ("You", "Thank you") on
     // near-silent windows. If the loudest sample is a trace of noise,
     // there was no speech - skip the window entirely.
     let peak = 0;
     for (let i = 0; i + 1 < pcm.length; i += 8) { const v = Math.abs(pcm.readInt16LE(i)); if (v > peak) peak = v; }
     if (peak >= 500) {
-      const text = await metaTranscribe(pcm, ent.rate);
+      const text = await metaTranscribePcm(pcm, ent.rate);
       if (text) grdPushLine(ent.side, text);
     }
   } catch (e) { }
@@ -1343,6 +1494,31 @@ const server = http.createServer(async (req, res) => {
       card.status = ['sent', 'skipped', 'held'].includes(b.action) ? b.action : 'skipped';
       card.resolvedAt = Date.now();
       if (state.focusId === card.id) state.focusId = null;
+      save(); broadcast('snapshot', snapshot());
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+  if (p === '/api/card-delete' && req.method === 'POST') {
+    // Swipe-to-delete: the card is removed from the board entirely.
+    const b = await readBody(req);
+    const ix = state.cards.findIndex((c) => c.id === Number(b.id));
+    if (ix >= 0) {
+      const gone = state.cards.splice(ix, 1)[0];
+      if (state.focusId === gone.id) state.focusId = null;
+      save(); broadcast('snapshot', snapshot());
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+  if (p === '/api/texts-delete' && req.method === 'POST') {
+    // Swipe-to-delete on the Messages panel: remove the conversation and
+    // tombstone its id so the feeder's next full push does not resurrect it.
+    const b = await readBody(req);
+    const tid = String(b.tid || '');
+    if (tid && state.texts && Array.isArray(state.texts.messages)) {
+      state.texts.messages = state.texts.messages.filter((m) => String(m.id) !== tid);
+      if (!state.textsDeleted.includes(tid)) { state.textsDeleted.push(tid); if (state.textsDeleted.length > 300) state.textsDeleted = state.textsDeleted.slice(-300); }
       save(); broadcast('snapshot', snapshot());
     }
     res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true }));
@@ -1700,6 +1876,7 @@ const server = http.createServer(async (req, res) => {
     const app = shopFind(String(b.package || ''));
     if (!app) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'app not in the shop' })); return; }
     if (state.shop.busy) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'another install is running' })); return; }
+    if (b.tab && ['all', 'social', 'productivity', 'games', 'connected'].includes(b.tab)) { state.appTabs = state.appTabs || {}; state.appTabs[app.package] = b.tab; }
     state.shop.busy = app.package;
     state.shop.installMsg = 'Downloading ' + app.name + '...';
     save(); broadcast('snapshot', snapshot());
@@ -1718,6 +1895,15 @@ const server = http.createServer(async (req, res) => {
     save(); broadcast('snapshot', snapshot());
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: !r.err }));
+    return;
+  }
+  if (p === '/api/shop/uninstall' && req.method === 'POST') {
+    const b = await readBody(req);
+    const pkg = String(b.package || '');
+    if (!pkg) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'no package' })); return; }
+    const gone = await shopUninstall(pkg);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: gone }));
     return;
   }
   if (p === '/api/android' && req.method === 'POST') {
@@ -1773,6 +1959,17 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({ ok: true }));
     return;
   }
+  if (p === '/api/home/layout' && req.method === 'GET') {
+    try {
+      const layout = await homeLayout();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(layout));
+    } catch (e) {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: String(e.message || e) }));
+    }
+    return;
+  }
   if (p === '/api/ha/entities' && req.method === 'GET') {
     try {
       const entities = await haEntities();
@@ -1791,8 +1988,21 @@ const server = http.createServer(async (req, res) => {
       if (!HA_CONTROL.includes(dom)) throw new Error('domain not controllable: ' + dom);
       let svc = { on: 'turn_on', off: 'turn_off', toggle: 'toggle' }[b.action || 'toggle'];
       if (dom === 'media_player' && b.action === 'toggle') svc = 'media_play_pause';
-      if (dom === 'scene') svc = 'turn_on';
-      await haCall('POST', '/api/services/' + dom + '/' + svc, { entity_id: b.id });
+      if (dom === 'scene' || dom === 'script') svc = 'turn_on';
+      const payload = { entity_id: b.id };
+      if (dom === 'lock') {
+        if (b.action === 'on') svc = 'lock';
+        else if (b.action === 'off') svc = 'unlock';
+        else { const cur = (await haEntities()).find((e) => e.id === b.id); svc = cur && cur.state === 'locked' ? 'unlock' : 'lock'; }
+      }
+      if (dom === 'cover') svc = { on: 'open_cover', off: 'close_cover', toggle: 'toggle' }[b.action || 'toggle'];
+      if (b.action === 'brightness' && dom === 'light') {
+        const v = Math.max(0, Math.min(100, Number(b.value) || 0));
+        if (v <= 0) svc = 'turn_off';
+        else { svc = 'turn_on'; payload.brightness_pct = v; }
+      }
+      if (b.action === 'temp' && dom === 'climate') { svc = 'set_temperature'; payload.temperature = Number(b.value); }
+      await haCall('POST', '/api/services/' + dom + '/' + svc, payload);
       haCache.at = 0;
       const entities = await haEntities();
       const ent = entities.find((e) => e.id === b.id);
@@ -1938,6 +2148,16 @@ const server = http.createServer(async (req, res) => {
   }
   if (p === '/api/apps/dock' && req.method === 'POST') {
     const b = await readBody(req);
+    if (b.package) {
+      const pkg = String(b.package);
+      const pins = state.androidPins || (state.androidPins = []);
+      const i = pins.indexOf(pkg);
+      if (i >= 0) pins.splice(i, 1); else pins.push(pkg);
+      save(); broadcast('snapshot', snapshot());
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, androidPins: pins }));
+      return;
+    }
     const a = state.apps.find((x) => x.id === b.id);
     if (a) a.inDrawer = !!b.inDrawer;
     save(); broadcast('snapshot', snapshot());
@@ -1948,6 +2168,12 @@ const server = http.createServer(async (req, res) => {
   if (p === '/api/app' && req.method === 'POST') {
     const b = await readBody(req);
     if (b.clear) state.appView = null;
+    else if (b.android) {
+      const pkg = String(b.android);
+      const a = shopFind(pkg);
+      state.appView = { id: 'android:' + pkg, kind: 'android', package: pkg, name: a ? a.name : pkg, icon: a ? (a.icon || '') : '', desc: a ? (a.description || '') : '', fulldesc: a ? (a.fulldesc || '') : '', license: a ? (a.license || '') : '', version: a ? (a.version || '') : '' };
+      showOnly('app');
+    }
     else if (b.id) {
       const a = state.apps.find((x) => x.id === b.id) || APP_CATALOG.find((x) => x.id === b.id);
       if (a) { state.appView = { id: a.id }; showOnly('app'); }
@@ -2106,28 +2332,6 @@ const server = http.createServer(async (req, res) => {
     }
     return;
   }
-  if (p === '/api/tts-say' && req.method === 'POST') {
-    // Spoken output on the board is a browser feature, not a model call:
-    // the page speaks queued lines with its built-in speechSynthesis.
-    const b = await readBody(req);
-    const text = String(b.text || '').slice(0, 500);
-    if (text) {
-      state.sayQueue = state.sayQueue || [];
-      state.sayQueue.push({ id: Date.now().toString(36) + Math.floor(Math.random() * 1e4), text: text, at: Date.now() });
-      if (state.sayQueue.length > 10) state.sayQueue = state.sayQueue.slice(-10);
-      save(); broadcast('snapshot', snapshot());
-    }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true }));
-    return;
-  }
-  if (p === '/api/tts-stop' && req.method === 'POST') {
-    state.sayStopAt = Date.now();
-    save(); broadcast('snapshot', snapshot());
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true }));
-    return;
-  }
   if (p === '/api/guardian/call-start' && req.method === 'POST') {
     const b = await readBody(req);
     state.guardian.live = { id: String(b.callId || Date.now()), peer: String(b.peer || ''), dir: String(b.dir || ''), startedAt: Date.now(), lines: [], watch: [], alert: null, intrCmd: '', interrupted: false, mutedHer: false, mutedThem: false, phoneChan: String(b.phoneChan || ''), trunkChan: String(b.trunkChan || '') };
@@ -2244,6 +2448,64 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({ ok: true }));
     return;
   }
+  if (p === '/api/queue-view' && req.method === 'POST') {
+    const b = await readBody(req);
+    if (b.clear) state.queueView.visible = false;
+    if (b.show) { state.queueView.visible = true; showOnly('queueView'); }
+    save(); broadcast('snapshot', snapshot());
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, queueView: state.queueView }));
+    return;
+  }
+  if (p === '/api/tts-say' && req.method === 'POST') {
+    const b = await readBody(req);
+    const text = String(b.text || '').slice(0, 600);
+    if (text) { sayQueue.push({ id: ++saySeq, text, at: Date.now() }); if (sayQueue.length > 10) sayQueue = sayQueue.slice(-10); }
+    broadcast('snapshot', snapshot());
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, queued: sayQueue.length }));
+    return;
+  }
+  if (p === '/api/tts-done' && req.method === 'POST') {
+    const b = await readBody(req);
+    sayQueue = sayQueue.filter((q) => q.id !== b.id);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+  if (p === '/api/tts-stop' && req.method === 'POST') {
+    await readBody(req);
+    sayQueue = [];
+    sayStopAt = Date.now();
+    broadcast('snapshot', snapshot());
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+  if (p === '/api/list-mode' && req.method === 'POST') {
+    const b = await readBody(req);
+    if (b.mode === 'shopping' || b.mode === 'todo') state.listMode = b.mode;
+    save(); broadcast('snapshot', snapshot());
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, listMode: state.listMode }));
+    return;
+  }
+  if (p === '/api/todos' && req.method === 'POST') {
+    const b = await readBody(req);
+    const key = b.list === 'shopping' ? 'shopping' : 'todos';
+    if (!Array.isArray(state[key])) state[key] = [];
+    const arr = state[key];
+    if (typeof b.add === 'string' && b.add.trim()) {
+      arr.push({ id: 'td' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), text: b.add.trim().slice(0, 200), done: false, time: Date.now() });
+    }
+    if (b.toggle) { const t = arr.find((x) => x.id === b.toggle); if (t) t.done = !t.done; }
+    if (b.remove) state[key] = arr.filter((x) => x.id !== b.remove);
+    if (b.clearDone) state[key] = arr.filter((x) => !x.done);
+    save(); broadcast('snapshot', snapshot());
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, todos: state.todos, shopping: state.shopping }));
+    return;
+  }
   if (p === '/api/settings' && req.method === 'POST') {
     const b = await readBody(req);
     if (b.clear) state.settingsView.visible = false;
@@ -2270,6 +2532,31 @@ const server = http.createServer(async (req, res) => {
     } catch (e) {
       res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: String(e && e.message || e) }));
     }
+    return;
+  }
+  if (p === '/api/settings/pin' && req.method === 'POST') {
+    const b = await readBody(req);
+    const pinOk = (v) => /^\d{4,6}$/.test(String(v || ''));
+    let out = { ok: false, error: 'unknown action' };
+    if (b.action === 'set') {
+      if (pinIsSet()) out = { ok: false, error: 'A PIN is already set - change or delete it first.' };
+      else if (!pinOk(b.pin)) out = { ok: false, error: 'PIN must be 4 to 6 numbers.' };
+      else { pinStore(String(b.pin)); out = { ok: true, pinSet: true }; }
+    } else if (b.action === 'edit') {
+      if (!pinCheck(b.pin)) out = { ok: false, error: 'That current PIN does not match.' };
+      else if (!pinOk(b.newPin)) out = { ok: false, error: 'New PIN must be 4 to 6 numbers.' };
+      else { pinStore(String(b.newPin)); out = { ok: true, pinSet: true }; }
+    } else if (b.action === 'delete') {
+      if (!pinCheck(b.pin)) out = { ok: false, error: 'That PIN does not match.' };
+      else { pinRemove(); pinUnlockUntil = 0; out = { ok: true, pinSet: false }; }
+    } else if (b.action === 'verify') {
+      const good = pinCheck(b.pin);
+      if (good) pinUnlockUntil = Date.now() + 5 * 60000;
+      out = { ok: good, error: good ? '' : 'That PIN does not match.' };
+    }
+    save(); broadcast('snapshot', snapshot());
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(out));
     return;
   }
   if (p === '/api/settings/wifi/scan' && req.method === 'POST') {
@@ -2416,6 +2703,126 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({ ok: true, draft: state.messengerView.draft }));
     return;
   }
+  // --- Board-local message open + reply (touch-first: tapping a message
+  // opens the conversation and replies right here - no agent session.
+  // Messenger sends are queued for the messages feeder, which owns the
+  // Messenger connection; SMS sends are queued for the agent, because
+  // texts can only leave from the owner's phone.) ---
+  if (p === '/api/msg/open' && req.method === 'POST') {
+    const b = await readBody(req);
+    let source = String(b.source || '');
+    let id = String(b.id || '');
+    if (b.panelId) { const m = String(b.panelId).match(/^(sms|messenger):(.+)$/); if (m) { source = m[1]; id = m[2]; } }
+    const buildThread = (t) => {
+      if (!t) return null;
+      let msgs = Array.isArray(t.messages) && t.messages.length ? t.messages.slice(-60) : null;
+      if (!msgs) {
+        const snip = String(t.snippet || '');
+        const mine = snip.startsWith('You: ');
+        msgs = snip ? [{ sender: mine ? 'You' : (t.name || ''), text: mine ? snip.slice(5) : snip, time: t.time || 0, mine }] : [];
+      }
+      return { id: t.id, name: t.name || '', messages: msgs };
+    };
+    let ok = false;
+    if (source === 'messenger') {
+      const th = buildThread((state.messenger.threads || []).find((x) => String(x.id) === id));
+      if (th) { state.messengerThread = th; state.messengerView.visible = true; showOnly('messenger'); ok = true; }
+    } else if (source === 'sms') {
+      const th = buildThread(((state.sms || {}).threads || []).find((x) => String(x.id) === id));
+      if (th) { state.smsThread = th; state.smsView.visible = true; showOnly('sms'); ok = true; }
+    }
+    save(); broadcast('snapshot', snapshot());
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok }));
+    return;
+  }
+  if (p === '/api/msg/send' && req.method === 'POST') {
+    const b = await readBody(req);
+    const source = String(b.source || '');
+    const id = String(b.id || '');
+    const text = String(b.text || '').trim().slice(0, 2000);
+    if (!id || !text || (source !== 'messenger' && source !== 'sms')) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'bad send' }));
+      return;
+    }
+    const pushAction = (entry) => {
+      entry.id = 'a' + Date.now().toString(36) + Math.floor(Math.random() * 1e4);
+      entry.at = Date.now();
+      state.actionOutbox.push(entry);
+      if (state.actionOutbox.length > 50) state.actionOutbox = state.actionOutbox.slice(-50);
+    };
+    if (source === 'messenger') {
+      const t = (state.messenger.threads || []).find((x) => String(x.id) === id);
+      pushAction({ kind: 'msg-send', source, threadId: id, name: t ? t.name : '', text });
+      if (state.messengerThread && String(state.messengerThread.id) === id) state.messengerThread.messages.push({ mine: true, sender: 'You', text, time: Date.now() });
+      if (t) { t.snippet = 'You: ' + text; t.time = Date.now(); t.unread = false; }
+    } else {
+      const t = (((state.sms || {}).threads) || []).find((x) => String(x.id) === id);
+      state.smsView.draft = { text, name: t ? t.name : '', threadId: id };
+      pushAction({ kind: 'sms-send', source, threadId: id, name: t ? t.name : '', text });
+      if (state.smsThread && String(state.smsThread.id) === id) state.smsThread.messages.push({ mine: true, sender: 'You', text, time: Date.now() });
+    }
+    save(); broadcast('snapshot', snapshot());
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, queued: true }));
+    return;
+  }
+  // --- Dictation for the reply box: Muse Voice Transcribe, reached the
+  // same way as every other cloud call on the box (owner gateway first,
+  // on-box key file as the dev fallback). ---
+  if (p === '/api/stt' && req.method === 'POST') {
+    const b = await readBody(req);
+    try {
+      const wav = Buffer.from(String(b.audio || ''), 'base64');
+      if (wav.length < 2000 || wav.length > 4000000) throw new Error('bad audio size');
+      const text = await metaTranscribeWav(wav);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, text }));
+    } catch (e) {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: String(e.message || e) }));
+    }
+    return;
+  }
+  if (p === '/api/stt/capture' && req.method === 'POST') {
+    const b = await readBody(req);
+    if (b.start) {
+      if (sttCap) { try { sttCap.proc.kill('SIGINT'); } catch (e) {} sttCap = null; }
+      const file = '/tmp/msg-dictate.wav';
+      try { fs.unlinkSync(file); } catch (e) {}
+      const proc = require('child_process').spawn('arecord', ['-D', CONFIG.sttMicDevice || 'plughw:CARD=PCH,DEV=0', '-f', 'S16_LE', '-r', '16000', '-c', '1', '-d', '45', file], { stdio: 'ignore' });
+      sttCap = { proc, file };
+      proc.on('exit', () => { if (sttCap && sttCap.proc === proc) sttCap = null; });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, recording: true }));
+      return;
+    }
+    if (b.stop) {
+      const cap = sttCap;
+      sttCap = null;
+      if (!cap) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'not recording' }));
+        return;
+      }
+      try { cap.proc.kill('SIGINT'); } catch (e) {}
+      await new Promise((r) => { let done = false; cap.proc.on('exit', () => { if (!done) { done = true; r(); } }); setTimeout(() => { if (!done) { done = true; r(); } }, 2500); });
+      try {
+        const wav = fs.readFileSync(cap.file);
+        const text = await metaTranscribeWav(wav);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, text }));
+      } catch (e) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: String(e.message || e) }));
+      }
+      return;
+    }
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: 'start or stop' }));
+    return;
+  }
   if (p === '/api/facebook' && req.method === 'POST') {
     const b = await readBody(req);
     if (b.clear) state.facebookView.visible = false;
@@ -2469,7 +2876,7 @@ const server = http.createServer(async (req, res) => {
   }
   if (p === '/api/texts' && req.method === 'POST') {
     const b = await readBody(req);
-    if (Array.isArray(b.messages)) state.texts = { messages: b.messages.slice(0, 30), updatedAt: new Date().toISOString() };
+    if (Array.isArray(b.messages)) state.texts = { messages: b.messages.filter((m) => !state.textsDeleted.includes(String(m.id))).slice(0, 30), updatedAt: new Date().toISOString() };
     save(); broadcast('snapshot', snapshot());
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, count: state.texts.messages.length }));
@@ -2513,15 +2920,33 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({ ok: true, helpView: state.helpView }));
     return;
   }
+  if (p === '/api/calendar/lock' && req.method === 'POST') {
+    const b = await readBody(req);
+    if (!state.calLock) state.calLock = { locked: false };
+    state.calLock.locked = !!b.locked;
+    if (state.calLock.locked) {
+      if (!state.calendar) state.calendar = { visible: false, view: 'days30', date: null, anchor: null, days: 60, events: [] };
+      state.calendar.visible = true;
+      showOnly('calendar');
+    } else {
+      // Unlocking also sweeps away anything that got flagged open
+      // underneath the lock - the calendar alone stays up.
+      showOnly('calendar');
+    }
+    save(); broadcast('snapshot', snapshot());
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, locked: state.calLock.locked }));
+    return;
+  }
   if (p === '/api/calendar' && req.method === 'POST') {
     const b = await readBody(req);
     if (!state.calendar) state.calendar = { visible: false, view: 'days30', date: null, anchor: null, days: 60, events: [] };
     if (Array.isArray(b.events)) state.calendar.events = b.events.slice(0, 500);
-    if (b.view && ['days30', 'week', 'day'].includes(b.view)) state.calendar.view = b.view;
+    if (b.view && ['days30', 'week', 'day', 'month'].includes(b.view)) state.calendar.view = b.view;
     if (b.date !== undefined) state.calendar.date = b.date ? String(b.date) : null;
     if (b.anchor) state.calendar.anchor = String(b.anchor);
     if (b.days) state.calendar.days = Number(b.days);
-    if (b.show !== undefined) state.calendar.visible = !!b.show;
+    if (b.show !== undefined) state.calendar.visible = (state.calLock && state.calLock.locked) ? true : !!b.show;
     if (state.calendar.visible) showOnly('calendar');
     state.calendar.updatedAt = Date.now();
     save(); broadcast('snapshot', snapshot());

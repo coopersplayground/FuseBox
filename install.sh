@@ -232,6 +232,24 @@ note "Listener venv: OK"
 # Guardian's phone prompts and acting as the local fallback voice.
 note "Voice: Meta transcription API + browser speech (no local AI voice models)"
 
+# A box running on its owner's own key: if META_API_KEY is set in the
+# environment or in a .env beside this script (see .env.example), store
+# it as the box's key file. An existing key file is left alone.
+KEY_FROM_ENV="${META_API_KEY:-}"
+if [ -z "$KEY_FROM_ENV" ] && [ -f "$SRC_DIR/.env" ]; then
+  KEY_FROM_ENV="$(sed -n 's/^META_API_KEY=//p' "$SRC_DIR/.env" | head -n 1 | tr -d ' \t\r\n"')"
+fi
+if [ -n "$KEY_FROM_ENV" ]; then
+  if [ -f "$FB_HOME/.config/cosmo-voice/meta_api_key" ]; then
+    note "Meta Model API key: already on the box - left alone"
+  else
+    printf '%s' "$KEY_FROM_ENV" | put "$FB_HOME/.config/cosmo-voice/meta_api_key"
+    run chown "$FB_USER:$FB_USER" "$FB_HOME/.config/cosmo-voice/meta_api_key"
+    run chmod 600 "$FB_HOME/.config/cosmo-voice/meta_api_key"
+    note "Meta Model API key: installed from .env (owner-only)"
+  fi
+fi
+
 # ---------------------------------------------------------------- Ollama judge
 say "Local judge (Ollama + Llama 3.2 3B)"
 if ! command -v ollama >/dev/null; then

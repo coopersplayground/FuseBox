@@ -55,8 +55,84 @@ OPEN_SAY = {
     'weather': 'The weather is on screen.', 'home': 'Home controls are on screen.',
 }
 
+FAST_VERBS = {'open', 'show', 'bring', 'pull', 'check', 'get', 'view',
+              'display', 'launch', 'go', 'look', 'take'}
+FAST_QUESTION_STARTS = {'what', 'who', 'when', 'why', 'how', 'is', 'are',
+                        'do', 'does', 'did', 'can', 'could', 'would',
+                        'should', 'will'}
+FAST_ACTION_WORDS = {'read', 'send', 'reply', 'delete', 'draft', 'write',
+                     'play', 'pause', 'call', 'tell'}
+# Ordered: multi-word phrases first so "text messages" wins over "messages".
+FAST_TARGETS = [
+    (('text', 'messages'), 'texts'), (('text', 'message'), 'texts'),
+    (('shop', 'cam'), 'camera:shop'), (('shop', 'camp'), 'camera:shop'),
+    (('shop', 'camera'), 'camera:shop'),
+    (('driveway', 'cam'), 'camera:driveway'),
+    (('driveway', 'camera'), 'camera:driveway'),
+    (('email',), 'email'), (('emails',), 'email'), (('mail',), 'email'),
+    (('gmail',), 'email'), (('inbox',), 'email'),
+    (('calendar',), 'calendar'),
+    (('messages',), 'texts'), (('message',), 'texts'),
+    (('texts',), 'texts'), (('text',), 'texts'), (('sms',), 'texts'),
+    (('messenger',), 'messenger'), (('facebook',), 'facebook'),
+    (('instagram',), 'instagram'), (('insta',), 'instagram'),
+    (('music',), 'music'), (('spotify',), 'music'),
+    (('newspaper',), 'newspaper'), (('news',), 'newspaper'),
+    (('paper',), 'newspaper'),
+    (('network',), 'network'), (('weather',), 'weather'),
+    (('apps',), 'apps'), (('home',), 'home'),
+    (('microscope',), 'camera:microscope'),
+]
+FAST_HIDE_WORDS = {'back', 'to', 'the', 'board', 'dashboard', 'go',
+                   'close', 'hide', 'never', 'mind', 'screen'}
+
+def _has_phrase(tokens, phrase):
+    n = len(phrase)
+    return any(tuple(tokens[i:i + n]) == phrase
+               for i in range(len(tokens) - n + 1))
+
+def fast_classify(text):
+    """Deterministic display-command routes: phrase spotting over a
+    synonym table, no model call. Tolerates filler and ASR wobble
+    ("open up my text messages", doubled wake words). Returns a route
+    dict, or None to fall through to the agent."""
+    t = re.sub(r'[^a-z0-9 ]', ' ', text.lower())
+    tokens = [w for w in re.sub(r'\s+', ' ', t).strip().split(' ') if w]
+    while tokens and tokens[0] in ('hey', 'ok', 'okay', 'cosmo'):
+        tokens.pop(0)
+    if not tokens:
+        return None
+    if tokens[0] in FAST_QUESTION_STARTS:
+        return None
+    if any(w in FAST_ACTION_WORDS for w in tokens):
+        return None
+    if tokens[0] == 'back' or (set(tokens) <= FAST_HIDE_WORDS and
+                               any(w in tokens for w in
+                                   ('back', 'close', 'hide', 'never'))):
+        return {'action': 'hide'}
+    if tokens[0] not in FAST_VERBS:
+        return None
+    rest = tokens[1:]
+    for phrase, target in FAST_TARGETS:
+        if _has_phrase(rest, phrase):
+            if target.startswith('camera:'):
+                return {'action': 'camera', 'target': target[7:]}
+            return {'action': 'open', 'app': target}
+    return None
+
 def classify(text):
-    """Return a validated route dict, or None to fall through to Muse."""
+    """Return a validated route dict, or None to fall through to Muse.
+
+    Fast deterministic routes only. The Llama classifier (classify_llm,
+    below) is out of the voice path: on this box it takes 11-15 s per
+    call and still misses often, so it taxed every command it could
+    not route. Plain code is the smallest capable tier for a fixed
+    command set.
+    """
+    return fast_classify(text)
+
+def classify_llm(text):
+    """Original Llama 3.2 classifier - kept intact for easy restore."""
     body = {'model': MODEL, 'system': SYSTEM, 'prompt': text, 'stream': False,
             'options': {'temperature': 0, 'num_ctx': 4096}}
     try:

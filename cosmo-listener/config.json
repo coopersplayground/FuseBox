@@ -1,10 +1,10 @@
 {
  "board_url": "http://127.0.0.1:3180",
  "meta_api_key_path": "~/.config/cosmo-voice/meta_api_key",
- "mic_device": "plughw:CARD=Device,DEV=0",
+ "mic_device": "plughw:CARD=PCH,DEV=0",
  "play_devices": [
-  "plughw:CARD=Generic_1,DEV=9",
-  "plughw:CARD=Generic,DEV=0"
+  "plughw:CARD=PCH,DEV=3",
+  "plughw:CARD=PCH,DEV=0"
  ],
  "threshold_min": 150,
  "local_router": true,
