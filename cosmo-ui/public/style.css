@@ -108,12 +108,15 @@ body[data-state='offline'] .status-chip { border-color: #64748b; color: #94a3b8;
 }
 .focus-overlay.hidden { display: none; }
 .focus-card {
+  position: relative;
   width: min(1180px, 92vw); max-height: 88vh; overflow-y: auto; scrollbar-width: none;
   background: linear-gradient(180deg, #131f3a, #0b1428);
   border: 2px solid #f59e0b; border-radius: 22px;
   padding: 40px 48px 34px;
   box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 44px rgba(245,158,11,0.22);
 }
+.focus-close { position: absolute; top: 14px; right: 14px; z-index: 3; min-height: 50px; padding: 8px 20px; font-size: 17px; font-weight: 800; letter-spacing: 1px; color: #fecaca; background: rgba(69,10,10,0.9); border: 2px solid rgba(248,113,113,0.6); border-radius: 999px; cursor: pointer; }
+.focus-close:active { transform: scale(0.95); }
 .focus-top { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; }
 .focus-num {
   font-size: 44px; font-weight: 800; color: #1a1005; background: #f59e0b;
@@ -203,7 +206,7 @@ body[data-avatar-mode='real'][data-state='speaking'] .eqbars span:nth-child(4) {
 .cwx-temp { font-size: 30px; font-weight: 800; line-height: 1.05; }
 .cwx-cond { font-size: 15px; font-weight: 700; color: #cfe0ff; }
 .cwx-hilo { font-size: 13px; font-weight: 700; color: #8fa3c8; }
-.cal-pop-btn.right { right: 24px; }
+.cal-pop-btn.right { right: 120px; }
 .cal-pop-btn.hidden { display: none; }
 .cal-pop { position: absolute; inset: 0; background: rgba(4, 8, 16, .82); display: flex; align-items: center; justify-content: center; z-index: 40; border-radius: inherit; }
 .cal-pop.hidden { display: none; }
@@ -214,6 +217,10 @@ body[data-avatar-mode='real'][data-state='speaking'] .eqbars span:nth-child(4) {
 .cal-shop-body .todo-row { font-size: 21px; padding: 12px 14px; background: #131f33; border-radius: 12px; }
 .cal-shop-empty { font-size: 19px; color: #9db8e8; padding: 12px 2px; }
 .cal-pop-note { font-size: 14px; color: #8fa3c8; margin-top: 14px; }
+.cal-shop-add { display: flex; gap: 10px; margin-top: 14px; }
+.cal-shop-add input { flex: 1; min-width: 0; background: #0d1830; border: 1.5px solid #2b4a77; border-radius: 12px; padding: 12px 14px; font-size: 19px; color: #eaf0ff; }
+.cal-shop-add button { padding: 12px 24px; border-radius: 12px; border: 2px solid #2dd4bf88; background: #12233d; color: #eaf0ff; font-size: 18px; font-weight: 800; letter-spacing: 1px; cursor: pointer; }
+.cal-shop-add button:active { transform: scale(0.96); }
 .wx-card { position: relative; }
 .wx-pop-close { position: absolute; top: 16px; right: 16px; padding: 12px 22px; border-radius: 999px; border: none; background: #e8a33d; color: #23180a; font-size: 17px; font-weight: 800; letter-spacing: 1px; cursor: pointer; z-index: 5; }
 .wx-pop-close.hidden { display: none; }

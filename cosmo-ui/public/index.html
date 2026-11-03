@@ -212,6 +212,7 @@
 
 <div id="focusOverlay" class="focus-overlay hidden">
   <div class="focus-card">
+    <button id="focusClose" class="focus-close">&#10005; CLOSE</button>
     <div class="focus-top">
       <span class="focus-num" id="focusNum">1</span>
       <span class="focus-kind" id="focusKind">
@@ -269,7 +270,8 @@
       <div class="cal-pop-card">
         <div class="cal-pop-head"><span>&#128722; SHOPPING LIST</span><button id="calShopClose" class="cal-pop-x">&#10005;</button></div>
         <div id="calShopBody" class="cal-shop-body"></div>
-        <div class="cal-pop-note">Tap an item to check it off. The calendar stays locked underneath.</div>
+        <div class="cal-shop-add"><input id="calShopInput" type="text" placeholder="Add an item..." autocomplete="off"><button id="calShopAdd">ADD</button></div>
+        <div class="cal-pop-note">You can add items here. Checking off and removing stay on the board - the calendar stays locked underneath.</div>
       </div>
     </div>
     <div id="calPinPad" class="cal-pinpad hidden">

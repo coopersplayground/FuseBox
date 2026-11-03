@@ -489,7 +489,7 @@ function renderDrawer(snap) {
   const apps = drawerTab === 'connected'
     ? allApps.filter((a) => DRAWER_DUPES[a.id])
     : allApps.filter((a) => !DRAWER_DUPES[a.id] && a.id !== 'guardian');
-  const sig = drawerTab + '|' + apps.map((a) => a.id + ':' + (a.inDrawer ? 1 : 0)).join(',') + '|D' + (snap.androidApps || []).map((d) => d.package + ':' + (d.pinned ? 1 : 0) + ':' + (d.tab || '')).join(',') + '|' + (document.body.classList.contains('dock-nav') ? 'dock' : 'bar');
+  const sig = drawerTab + '|' + apps.map((a) => a.id + ':' + (a.inDrawer ? 1 : 0)).join(',') + '|D' + (snap.androidApps || []).map((d) => d.package + ':' + (d.pinned ? 1 : 0) + ':' + (d.tab || '') + ':' + (d.name || '') + ':' + (d.icon ? 1 : 0)).join(',') + '|' + (document.body.classList.contains('dock-nav') ? 'dock' : 'bar');
   if (sig === lastDrawerSig) return;
   lastDrawerSig = sig;
   const inTab = (bucket) => drawerTab === 'all' || bucket === drawerTab;
@@ -1885,6 +1885,7 @@ function renderHelp() {
 }
 
 function render(snap) {
+  lastSnap = snap;
   lastCards = snap.cards || [];
   lastFocusId = snap.focusId !== undefined ? snap.focusId : null;
   if (snap.avatarMode && snap.avatarMode !== document.body.dataset.avatarMode) {
@@ -1918,7 +1919,6 @@ function render(snap) {
   renderMessenger(snap);
   renderSms(snap);
   renderInsta(snap);
-  lastSnap = snap;
   renderApps(snap);
   renderPaper(snap);
   renderNetwork(snap);
@@ -2089,6 +2089,7 @@ function hideAllOverlays() {
   post('/api/network', { clear: true });
   post('/api/guardian', { clear: true });
   post('/api/settings', { clear: true });
+  post('/api/queue-view', { clear: true });
 }
 function flashBtn(btn, text) {
   if (!btn || btn.dataset.busy) return;
@@ -2321,7 +2322,7 @@ document.addEventListener('click', (ev) => {
   if (ev.target.closest('#calShopClose')) { calPop = null; renderCalPop(); return; }
   if (ev.target.id === 'calShopPop') { calPop = null; renderCalPop(); return; }
   const srow = ev.target.closest('#calShopBody .todo-row');
-  if (srow) { post('/api/todos', { list: 'shopping', toggle: srow.dataset.shopid }); return; }
+  if (srow) { return; }
   const cpk = ev.target.closest('[data-calpin]');
   if (cpk) { calPinKey(cpk.dataset.calpin); return; }
   const mgp = ev.target.closest('#mgList .fb-post');
@@ -2389,7 +2390,13 @@ $('btnFocusSend').addEventListener('click', () => {
 });
 $('btnFocusSkip').addEventListener('click', () => { if (lastFocusId != null) post('/api/resolve', { id: lastFocusId, action: 'skipped' }); });
 $('btnFocusHold').addEventListener('click', () => { if (lastFocusId != null) post('/api/resolve', { id: lastFocusId, action: 'held' }); });
-$('btnFocusBack').addEventListener('click', () => post('/api/focus', { clear: true }));
+function closeFocus() { post('/api/focus', { clear: true }); setTimeout(() => post('/api/focus', { clear: true }), 400); }
+$('btnFocusBack').addEventListener('pointerdown', closeFocus);
+$('focusClose').addEventListener('pointerdown', closeFocus);
+$('touchClose').addEventListener('pointerdown', () => { hideAllOverlays(); });
+function calShopAddItem() { const i = $('calShopInput'); if (!i) return; const v = (i.value || '').trim(); if (v) { post('/api/todos', { list: 'shopping', add: v }); i.value = ''; } }
+$('calShopAdd').addEventListener('pointerdown', calShopAddItem);
+$('calShopInput').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); calShopAddItem(); } });
 function camStep(dir) {
   if (!lastCameras.length || !lastCameraView) return;
   const idx = lastCameras.findIndex((c) => c.id === lastCameraView.cameraId);
@@ -2428,7 +2435,9 @@ setInterval(() => {
   $('touchClose').classList.toggle('hidden', !any);
   $('boardNav').style.display = any ? 'none' : 'flex';
   const card = lastFocusId != null ? lastCards.find((c) => c.id === lastFocusId) : null;
-  $('focusActions').classList.toggle('hidden', !(vis('focusOverlay') && card && card.kind === 'suggestion' && card.status === 'open'));
+  $('focusActions').classList.toggle('hidden', !vis('focusOverlay'));
+  const canAct = !!(card && card.kind === 'suggestion' && card.status === 'open');
+  for (const bid of ['btnFocusSend', 'btnFocusHold', 'btnFocusSkip']) $(bid).classList.toggle('hidden', !canAct);
   const mFocus = !!(lastMailView && lastMailView.focusN != null);
   $('mailActions').classList.toggle('hidden', !(vis('mailOverlay') && mFocus));
   if (mFocus) {

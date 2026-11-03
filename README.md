@@ -362,3 +362,18 @@ Fuse_Box is open source under the Apache License, Version 2.0 — see
 [LICENSE](LICENSE) for the full text.
 
 (C) 2026 Harold Cooper /coopersplayground
+
+## The future Fuse_Box
+
+Meta started it all with Muse AI, bringing the power of Muse Spark to everyone with a smart phone. The Fuse_Box is positioned to be an open source central hub tying together all home technologies into the Muse AI app, with local control and switches. I envision it at the center of all homes, helping everyone with IT Support and Security.
+
+Future plans include-
+
+- Better Voice Synthesis
+- Whole home integration & Automation via Home Assistant back end integration.
+- Build on the ESPHome foundation and create micro switches or satellites that work with Fuse_Box.
+- Individual user accounts and family boards, separate and shared.
+- Facial recognition to change the screen depending on who's looking at it, custom dashboards.
+- Sharable profiles and communications between the different users' own "Muses" or AI Models.
+- Sharable and printable shopping list, send to a family member's cell.
+- Android App linking the features of the guardian.

@@ -235,7 +235,7 @@ function shopIndexPaths() {
   // The shop index is generated on the box (weekly sync). The copy in the
   // shared data dir survives app updates; the one beside this file is the
   // classic location and the fallback.
-  return [path.join(__dirname, '..', '..', 'shared', 'shop-index.json'), path.join(__dirname, 'shop-index.json')];
+  return [path.join(__dirname, '..', '..', '..', 'shared', 'shop-index.json'), path.join(__dirname, 'shop-index.json')];
 }
 function readShopIndexFile() {
   for (const p of shopIndexPaths()) { try { return fs.readFileSync(p); } catch (e) {} }
